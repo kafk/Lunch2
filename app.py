@@ -5,6 +5,8 @@ import json
 import os
 import re
 from datetime import datetime
+from io import BytesIO
+from pypdf import PdfReader
 
 app = Flask(__name__)
 
@@ -21,6 +23,52 @@ def save_urls(urls):
     """Spara URL:er till fil."""
     with open(URLS_FILE, 'w', encoding='utf-8') as f:
         json.dump(urls, f, ensure_ascii=False, indent=2)
+
+def extract_pdf_text(pdf_content):
+    """Extrahera text från PDF-innehåll."""
+    try:
+        pdf_file = BytesIO(pdf_content)
+        reader = PdfReader(pdf_file)
+        text_parts = []
+        for page in reader.pages:
+            text = page.extract_text()
+            if text:
+                text_parts.append(text)
+        return '\n'.join(text_parts)
+    except Exception as e:
+        return f"Kunde inte läsa PDF: {str(e)}"
+
+def find_pdf_links(soup, base_url):
+    """Hitta PDF-länkar på sidan."""
+    pdf_links = []
+    for link in soup.find_all('a', href=True):
+        href = link['href']
+        link_text = link.get_text(strip=True).lower()
+
+        # Kolla om länken är en PDF
+        if href.lower().endswith('.pdf') or 'pdf' in link_text:
+            # Gör relativa URL:er absoluta
+            if href.startswith('/'):
+                from urllib.parse import urljoin
+                href = urljoin(base_url, href)
+            elif not href.startswith('http'):
+                from urllib.parse import urljoin
+                href = urljoin(base_url, href)
+
+            # Prioritera länkar som verkar vara lunchmenyer
+            lunch_keywords = ['lunch', 'meny', 'menu', 'vecka', 'dagens']
+            priority = any(kw in link_text or kw in href.lower() for kw in lunch_keywords)
+            pdf_links.append({'url': href, 'text': link_text, 'priority': priority})
+
+    # Sortera så att lunchrelaterade PDF:er kommer först
+    pdf_links.sort(key=lambda x: 0 if x['priority'] else 1)
+    return pdf_links
+
+def scrape_pdf(url, headers):
+    """Hämta och extrahera text från en PDF."""
+    response = requests.get(url, headers=headers, timeout=15)
+    response.raise_for_status()
+    return extract_pdf_text(response.content)
 
 def extract_menu_text(soup):
     """Extrahera relevant text från en sida."""
@@ -77,6 +125,19 @@ def scrape_url(url, name):
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
+
+        # Kolla om URL:en är en direkt PDF-länk
+        if url.lower().endswith('.pdf'):
+            menu_text = scrape_pdf(url, headers)
+            return {
+                'name': name,
+                'url': url,
+                'menu': menu_text,
+                'success': True,
+                'source': 'PDF',
+                'scraped_at': datetime.now().strftime('%Y-%m-%d %H:%M')
+            }
+
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
 
@@ -86,7 +147,25 @@ def scrape_url(url, name):
 
         soup = BeautifulSoup(response.text, 'lxml')
 
-        # Hitta lunch-innehåll
+        # Först: leta efter PDF-länkar på sidan
+        pdf_links = find_pdf_links(soup, url)
+        if pdf_links:
+            # Försök hämta första (mest relevanta) PDF:en
+            try:
+                pdf_text = scrape_pdf(pdf_links[0]['url'], headers)
+                if pdf_text and len(pdf_text) > 50:
+                    return {
+                        'name': name,
+                        'url': url,
+                        'menu': pdf_text,
+                        'success': True,
+                        'source': f"PDF: {pdf_links[0]['url']}",
+                        'scraped_at': datetime.now().strftime('%Y-%m-%d %H:%M')
+                    }
+            except Exception:
+                pass  # Fallback till HTML-scraping
+
+        # Hitta lunch-innehåll från HTML
         sections = find_lunch_content(soup, url)
 
         if sections:
@@ -101,6 +180,7 @@ def scrape_url(url, name):
             'url': url,
             'menu': menu_text,
             'success': True,
+            'source': 'HTML',
             'scraped_at': datetime.now().strftime('%Y-%m-%d %H:%M')
         }
     except requests.RequestException as e:
