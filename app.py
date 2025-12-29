@@ -67,7 +67,8 @@ def format_menu_text(text):
         'Uber Eats', 'Wolt', 'Just Eat',
         'Hitta till oss', 'Hitta hit', 'Se hela menyn',
         'Vår Meny', 'Add Your Heading', 'Lorem ipsum',
-        'Fina Råvaror', 'Kville Saluhall', 'Gustaf Dalénsgatan'
+        'Fina Råvaror', 'Kville Saluhall', 'Gustaf Dalénsgatan',
+        'Dagens Lunch V.'
     ]
     for marker in footer_markers:
         # Case-insensitive sökning
