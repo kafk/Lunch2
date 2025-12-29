@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Hantera URL:er - Lunch Scraper{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Lagg till ny restaurang</h2>
+    <form id="addForm">
+        <div class="form-group">
+            <label for="name">Namn (valfritt)</label>
+            <input type="text" id="name" placeholder="T.ex. Restaurang X">
+        </div>
+        <div class="form-group">
+            <label for="url">URL till lunchmeny</label>
+            <input type="url" id="url" placeholder="https://exempel.se/lunch" required>
+        </div>
+        <button type="submit" class="btn">Lagg till</button>
+    </form>
+    <div id="addMessage" style="margin-top: 15px;"></div>
+</div>
+
+<div class="card">
+    <h2>Sparade restauranger</h2>
+    <ul class="url-list" id="urlList">
+        <li class="empty-state">Laddar...</li>
+    </ul>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const urlList = document.getElementById('urlList');
+    const addForm = document.getElementById('addForm');
+    const addMessage = document.getElementById('addMessage');
+
+    async function loadUrls() {
+        try {
+            const response = await fetch('/api/urls');
+            const urls = await response.json();
+
+            if (urls.length === 0) {
+                urlList.innerHTML = '<li class="empty-state">Inga restauranger tillagda an. Lagg till en ovan!</li>';
+                return;
+            }
+
+            urlList.innerHTML = urls.map((item, index) => `
+                <li class="url-item">
+                    <div class="info">
+                        <div class="name">${escapeHtml(item.name)}</div>
+                        <div class="url">${escapeHtml(item.url)}</div>
+                    </div>
+                    <button class="btn btn-danger" onclick="deleteUrl(${index})">Ta bort</button>
+                </li>
+            `).join('');
+        } catch (error) {
+            urlList.innerHTML = '<li class="error">Kunde inte ladda URL:er</li>';
+        }
+    }
+
+    async function deleteUrl(index) {
+        if (!confirm('Ar du saker pa att du vill ta bort denna restaurang?')) return;
+
+        try {
+            const response = await fetch(`/api/urls/${index}`, { method: 'DELETE' });
+            if (response.ok) {
+                loadUrls();
+            }
+        } catch (error) {
+            alert('Kunde inte ta bort URL');
+        }
+    }
+
+    addForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const name = document.getElementById('name').value;
+        const url = document.getElementById('url').value;
+
+        try {
+            const response = await fetch('/api/urls', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, url })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                addMessage.innerHTML = '<div class="success">Restaurang tillagd!</div>';
+                addForm.reset();
+                loadUrls();
+            } else {
+                addMessage.innerHTML = `<div class="error">${escapeHtml(result.error)}</div>`;
+            }
+
+            setTimeout(() => { addMessage.innerHTML = ''; }, 3000);
+        } catch (error) {
+            addMessage.innerHTML = '<div class="error">Nagot gick fel</div>';
+        }
+    });
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    loadUrls();
+</script>
+{% endblock %}

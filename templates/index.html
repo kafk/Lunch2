@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Dagens Lunch - Lunch Scraper{% endblock %}
+
+{% block content %}
+<div class="card" style="text-align: center;">
+    <button class="btn" id="refreshBtn" onclick="loadMenus()">
+        <span id="refreshIcon">&#x21bb;</span> Uppdatera menyer
+    </button>
+    <p class="timestamp" id="lastUpdate"></p>
+</div>
+
+<div class="loading" id="loading">
+    <div class="spinner"></div>
+    <p>Hamtar lunchmenyer...</p>
+</div>
+
+<div id="menuContainer"></div>
+
+<div class="card empty-state" id="emptyState" style="display: none;">
+    <h2>Inga restauranger tillagda</h2>
+    <p>Ga till <a href="/manage">Hantera URL:er</a> for att lagga till restauranger.</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const menuContainer = document.getElementById('menuContainer');
+    const loading = document.getElementById('loading');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const emptyState = document.getElementById('emptyState');
+    const lastUpdate = document.getElementById('lastUpdate');
+
+    async function loadMenus() {
+        refreshBtn.disabled = true;
+        loading.style.display = 'block';
+        menuContainer.innerHTML = '';
+        emptyState.style.display = 'none';
+
+        try {
+            // Kolla om det finns nagra URLs
+            const urlsResponse = await fetch('/api/urls');
+            const urls = await urlsResponse.json();
+
+            if (urls.length === 0) {
+                emptyState.style.display = 'block';
+                loading.style.display = 'none';
+                refreshBtn.disabled = false;
+                return;
+            }
+
+            const response = await fetch('/api/menus');
+            const menus = await response.json();
+
+            menuContainer.innerHTML = menus.map(menu => `
+                <div class="card">
+                    <h2>${escapeHtml(menu.name)}</h2>
+                    <div class="menu-content ${menu.success ? '' : 'error'}">
+${escapeHtml(menu.menu)}
+                    </div>
+                    <p class="timestamp">
+                        <a href="${escapeHtml(menu.url)}" target="_blank">Besok sidan</a>
+                        | Hamtad: ${menu.scraped_at}
+                    </p>
+                </div>
+            `).join('');
+
+            lastUpdate.textContent = `Senast uppdaterad: ${new Date().toLocaleTimeString('sv-SE')}`;
+        } catch (error) {
+            menuContainer.innerHTML = '<div class="card error">Kunde inte hamta menyer. Forsok igen.</div>';
+        }
+
+        loading.style.display = 'none';
+        refreshBtn.disabled = false;
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Ladda menyer automatiskt vid sidladdning
+    loadMenus();
+</script>
+{% endblock %}
