@@ -31,13 +31,26 @@ def format_menu_text(text):
     lines = [line for line in lines if not re.match(r'^\s*https?://', line.strip())]
     text = '\n'.join(lines)
 
+    # Ta bort sidtitlar i början (t.ex. "Lunch | Restaurant Name")
+    text = re.sub(r'^[^\n]*\s*[\|–-]\s*[^\n]*$\n?', '', text, count=1)
+
     # Ta bort vanligt header-skräp i början
     header_trash = [
         'Skip to content', 'Main Menu', 'Toggle Navigation',
-        'Hoppa till innehåll', 'Huvudmeny'
+        'Hoppa till innehåll', 'Huvudmeny', 'Primary Navigation',
+        'Select Language', '<![if IE]>', '<![endif]>'
     ]
     for trash in header_trash:
         text = re.sub(rf'^.*{re.escape(trash)}.*\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
+
+    # Ta bort språkval-rader
+    languages = ['Arabic', 'Chinese', 'Dutch', 'English', 'French', 'German',
+                 'Italian', 'Portuguese', 'Russian', 'Spanish', 'Swedish']
+    for lang in languages:
+        text = re.sub(rf'^\s*{lang}\s*$\n?', '', text, flags=re.MULTILINE)
+
+    # Ta bort rader med telefonnummer
+    text = re.sub(r'^.*\|\|.*\d{2,3}[\s-]?\d{2,3}[\s-]?\d{2,4}.*$\n?', '', text, flags=re.MULTILINE)
 
     # Klipp bort footer-innehåll efter dessa nyckelord
     # Men bara om de hittas efter minst 100 tecken (så vi inte klipper för tidigt)
@@ -48,7 +61,7 @@ def format_menu_text(text):
         'Uber Eats', 'Wolt', 'Just Eat',
         'Hitta till oss', 'Hitta hit', 'Se hela menyn',
         'Vår Meny', 'Add Your Heading', 'Lorem ipsum',
-        'Fina Råvaror'
+        'Fina Råvaror', 'Kville Saluhall', 'Gustaf Dalénsgatan'
     ]
     for marker in footer_markers:
         # Case-insensitive sökning
@@ -64,7 +77,8 @@ def format_menu_text(text):
         'KONTAKT', 'CONTACT', 'HEM', 'HOME', 'NYHETER', 'NEWS',
         'ÖPPETTIDER', 'HITTA HIT', 'FIND US', 'PRESENTKORT', 'GIFT CARD',
         'LUNCH', 'THE GRILL', 'INSTAGRAM', 'FACEBOOK', 'FÖLJ OSS',
-        'ITALIAN CUISINE', 'PIZZA & PASTA', 'VÄLKOMMEN', 'DAGENS LUNCH'
+        'ITALIAN CUISINE', 'PIZZA & PASTA', 'VÄLKOMMEN', 'DAGENS LUNCH',
+        'BOKNING', 'FOODORA', '<', '>'
     ]
 
     lines = text.split('\n')
