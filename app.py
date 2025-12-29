@@ -26,6 +26,23 @@ def save_urls(urls):
 
 def format_menu_text(text):
     """Formatera menytext för bättre läsbarhet."""
+    # Ta bort vanliga navigationsord (hela rader som bara innehåller dessa)
+    nav_words = [
+        'MENY', 'MENU', 'EVENTS', 'CATERING', 'GALLERI', 'GALLERY',
+        'BOKA BORD', 'BOOK', 'BOOKING', 'OM OSS', 'ABOUT', 'ABOUT US',
+        'KONTAKT', 'CONTACT', 'HEM', 'HOME', 'NYHETER', 'NEWS',
+        'ÖPPETTIDER', 'HITTA HIT', 'FIND US', 'PRESENTKORT', 'GIFT CARD'
+    ]
+
+    lines = text.split('\n')
+    filtered_lines = []
+    for line in lines:
+        stripped = line.strip().upper()
+        # Behåll raden om den inte är ett ensamt navigationsord
+        if stripped not in nav_words:
+            filtered_lines.append(line)
+    text = '\n'.join(filtered_lines)
+
     # Veckodagar - lägg till radbrytning före
     weekdays = ['MÅNDAG', 'TISDAG', 'ONSDAG', 'TORSDAG', 'FREDAG', 'LÖRDAG', 'SÖNDAG']
     for day in weekdays:
