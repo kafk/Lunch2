@@ -1,10 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Hantera URL:er - Lunch Scraper{% endblock %}
+{% block title %}Hantera Restauranger{% endblock %}
 
 {% block content %}
 <div class="card">
-    <h2>Lagg till ny restaurang</h2>
+    <div class="card-header">
+        <h2 class="card-title">Lägg till restaurang</h2>
+    </div>
     <form id="addForm">
         <div class="form-group">
             <label for="name">Namn (valfritt)</label>
@@ -14,15 +16,20 @@
             <label for="url">URL till lunchmeny</label>
             <input type="url" id="url" placeholder="https://exempel.se/lunch" required>
         </div>
-        <button type="submit" class="btn">Lagg till</button>
+        <button type="submit" class="btn">+ Lägg till</button>
     </form>
-    <div id="addMessage" style="margin-top: 15px;"></div>
+    <div id="addMessage" style="margin-top: 16px;"></div>
 </div>
 
 <div class="card">
-    <h2>Sparade restauranger</h2>
+    <div class="card-header">
+        <h2 class="card-title">Mina restauranger</h2>
+        <span class="see-all" id="urlCount"></span>
+    </div>
     <ul class="url-list" id="urlList">
-        <li class="empty-state">Laddar...</li>
+        <li class="empty-state">
+            <div class="spinner" style="width: 32px; height: 32px;"></div>
+        </li>
     </ul>
 </div>
 {% endblock %}
@@ -32,14 +39,22 @@
     const urlList = document.getElementById('urlList');
     const addForm = document.getElementById('addForm');
     const addMessage = document.getElementById('addMessage');
+    const urlCount = document.getElementById('urlCount');
 
     async function loadUrls() {
         try {
             const response = await fetch('/api/urls');
             const urls = await response.json();
 
+            urlCount.textContent = `${urls.length} st`;
+
             if (urls.length === 0) {
-                urlList.innerHTML = '<li class="empty-state">Inga restauranger tillagda an. Lagg till en ovan!</li>';
+                urlList.innerHTML = `
+                    <li class="empty-state">
+                        <div class="empty-state-icon">📍</div>
+                        <p>Inga restauranger tillagda än</p>
+                    </li>
+                `;
                 return;
             }
 
@@ -49,16 +64,18 @@
                         <div class="name">${escapeHtml(item.name)}</div>
                         <div class="url">${escapeHtml(item.url)}</div>
                     </div>
-                    <button class="btn btn-danger" onclick="deleteUrl(${index})">Ta bort</button>
+                    <button class="btn btn-danger" onclick="deleteUrl(${index})" style="padding: 10px 16px; font-size: 13px;">
+                        🗑️ Ta bort
+                    </button>
                 </li>
             `).join('');
         } catch (error) {
-            urlList.innerHTML = '<li class="error">Kunde inte ladda URL:er</li>';
+            urlList.innerHTML = '<li class="error">Kunde inte ladda restauranger</li>';
         }
     }
 
     async function deleteUrl(index) {
-        if (!confirm('Ar du saker pa att du vill ta bort denna restaurang?')) return;
+        if (!confirm('Är du säker på att du vill ta bort denna restaurang?')) return;
 
         try {
             const response = await fetch(`/api/urls/${index}`, { method: 'DELETE' });
@@ -66,7 +83,7 @@
                 loadUrls();
             }
         } catch (error) {
-            alert('Kunde inte ta bort URL');
+            alert('Kunde inte ta bort restaurang');
         }
     }
 
@@ -86,16 +103,16 @@
             const result = await response.json();
 
             if (response.ok) {
-                addMessage.innerHTML = '<div class="success">Restaurang tillagd!</div>';
+                addMessage.innerHTML = '<div class="success">✓ Restaurang tillagd!</div>';
                 addForm.reset();
                 loadUrls();
             } else {
-                addMessage.innerHTML = `<div class="error">${escapeHtml(result.error)}</div>`;
+                addMessage.innerHTML = `<div class="error">✗ ${escapeHtml(result.error)}</div>`;
             }
 
             setTimeout(() => { addMessage.innerHTML = ''; }, 3000);
         } catch (error) {
-            addMessage.innerHTML = '<div class="error">Nagot gick fel</div>';
+            addMessage.innerHTML = '<div class="error">✗ Något gick fel</div>';
         }
     });
 

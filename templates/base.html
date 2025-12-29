@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Lunch Scraper{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             box-sizing: border-box;
@@ -12,75 +13,230 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f5f7fb;
             min-height: 100vh;
             padding: 20px;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 800px;
             margin: 0 auto;
         }
 
-        nav {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 12px;
-            padding: 15px 25px;
-            margin-bottom: 25px;
+        /* Header Card */
+        .header-card {
+            background: white;
+            border-radius: 24px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+        }
+
+        .header-top {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 16px;
         }
 
-        nav h1 {
-            color: #333;
-            font-size: 1.5rem;
+        .menu-icon {
+            width: 24px;
+            height: 18px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            cursor: pointer;
         }
 
-        nav a {
-            color: #667eea;
-            text-decoration: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            transition: all 0.3s;
-            font-weight: 500;
+        .menu-icon span {
+            height: 2px;
+            background: #2d3436;
+            border-radius: 2px;
         }
 
-        nav a:hover {
-            background: #667eea;
-            color: white;
-        }
+        .menu-icon span:first-child { width: 100%; }
+        .menu-icon span:nth-child(2) { width: 70%; }
+        .menu-icon span:last-child { width: 50%; }
 
-        nav a.active {
-            background: #667eea;
-            color: white;
-        }
-
-        .card {
-            background: rgba(255, 255, 255, 0.95);
+        .avatar {
+            width: 44px;
+            height: 44px;
             border-radius: 12px;
-            padding: 25px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 18px;
         }
 
-        .card h2 {
-            color: #333;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
+        .greeting {
+            color: #636e72;
+            font-size: 14px;
+            margin-bottom: 4px;
         }
 
+        .title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2d3436;
+        }
+
+        .title span {
+            color: #0984e3;
+        }
+
+        /* Navigation Pills */
+        .nav-pills {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .nav-pill {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 16px 24px;
+            border-radius: 16px;
+            text-decoration: none;
+            transition: all 0.3s;
+            flex: 1;
+        }
+
+        .nav-pill.lunch {
+            background: #fff5f5;
+        }
+
+        .nav-pill.lunch .pill-icon {
+            background: #ff6b6b;
+        }
+
+        .nav-pill.manage {
+            background: #f0fff4;
+        }
+
+        .nav-pill.manage .pill-icon {
+            background: #00b894;
+        }
+
+        .nav-pill.active {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .pill-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .pill-text {
+            font-size: 13px;
+            font-weight: 500;
+            color: #2d3436;
+        }
+
+        /* Content Cards */
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3436;
+        }
+
+        .see-all {
+            color: #636e72;
+            font-size: 13px;
+            text-decoration: none;
+        }
+
+        /* Menu Items */
+        .menu-item {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid;
+            position: relative;
+        }
+
+        .menu-item:nth-child(5n+1) { border-left-color: #ff6b6b; }
+        .menu-item:nth-child(5n+2) { border-left-color: #ffd93d; }
+        .menu-item:nth-child(5n+3) { border-left-color: #6bcb77; }
+        .menu-item:nth-child(5n+4) { border-left-color: #4d96ff; }
+        .menu-item:nth-child(5n+5) { border-left-color: #9b59b6; }
+
+        .menu-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .menu-item-name {
+            font-weight: 600;
+            color: #2d3436;
+            font-size: 15px;
+        }
+
+        .menu-item-source {
+            font-size: 11px;
+            color: #636e72;
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .menu-item-content {
+            color: #636e72;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .menu-item-time {
+            font-size: 11px;
+            color: #b2bec3;
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Buttons */
         .btn {
-            background: #667eea;
+            background: #0984e3;
             color: white;
             border: none;
-            padding: 12px 25px;
-            border-radius: 8px;
+            padding: 14px 28px;
+            border-radius: 12px;
             cursor: pointer;
-            font-size: 1rem;
+            font-size: 14px;
+            font-weight: 600;
             transition: all 0.3s;
             display: inline-flex;
             align-items: center;
@@ -88,94 +244,71 @@
         }
 
         .btn:hover {
-            background: #5a6fd6;
+            background: #0773c7;
             transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(9, 132, 227, 0.3);
         }
 
         .btn:disabled {
-            background: #ccc;
+            background: #dfe6e9;
             cursor: not-allowed;
             transform: none;
+            box-shadow: none;
         }
 
         .btn-danger {
-            background: #e74c3c;
+            background: #ff6b6b;
         }
 
         .btn-danger:hover {
-            background: #c0392b;
+            background: #ee5a5a;
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
         }
 
-        input[type="text"], input[type="url"] {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border-color 0.3s;
+        .btn-add {
+            background: #0984e3;
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            padding: 0;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 20px rgba(9, 132, 227, 0.4);
         }
 
-        input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
+        /* Form Elements */
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 16px;
         }
 
         label {
             display: block;
-            margin-bottom: 5px;
-            color: #555;
+            margin-bottom: 8px;
+            color: #636e72;
+            font-size: 13px;
             font-weight: 500;
         }
 
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 40px;
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #e0e0e0;
-            border-top-color: #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .menu-content {
+        input[type="text"], input[type="url"] {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #f1f2f6;
+            border-radius: 12px;
+            font-size: 14px;
+            transition: all 0.3s;
             background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            white-space: pre-wrap;
-            font-size: 0.95rem;
-            line-height: 1.6;
-            max-height: 400px;
-            overflow-y: auto;
         }
 
-        .error {
-            color: #e74c3c;
-            background: #fde8e8;
-            padding: 10px;
-            border-radius: 8px;
+        input:focus {
+            outline: none;
+            border-color: #0984e3;
+            background: white;
         }
 
-        .success {
-            color: #27ae60;
-            background: #e8fde8;
-            padding: 10px;
-            border-radius: 8px;
-        }
-
+        /* URL List */
         .url-list {
             list-style: none;
         }
@@ -184,11 +317,18 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px;
+            padding: 16px;
             background: #f8f9fa;
-            border-radius: 8px;
-            margin-bottom: 10px;
+            border-radius: 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid;
         }
+
+        .url-item:nth-child(5n+1) { border-left-color: #ff6b6b; }
+        .url-item:nth-child(5n+2) { border-left-color: #ffd93d; }
+        .url-item:nth-child(5n+3) { border-left-color: #6bcb77; }
+        .url-item:nth-child(5n+4) { border-left-color: #4d96ff; }
+        .url-item:nth-child(5n+5) { border-left-color: #9b59b6; }
 
         .url-item .info {
             flex: 1;
@@ -196,61 +336,136 @@
 
         .url-item .name {
             font-weight: 600;
-            color: #333;
+            color: #2d3436;
+            font-size: 14px;
         }
 
         .url-item .url {
-            font-size: 0.9rem;
-            color: #666;
+            font-size: 12px;
+            color: #636e72;
             word-break: break-all;
+            margin-top: 4px;
         }
 
-        .timestamp {
-            font-size: 0.85rem;
-            color: #888;
-            margin-top: 10px;
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid #f1f2f6;
+            border-top-color: #0984e3;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: #636e72;
+            font-size: 14px;
+        }
+
+        /* States */
+        .error {
+            color: #ff6b6b;
+            background: #fff5f5;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+        }
+
+        .success {
+            color: #00b894;
+            background: #f0fff4;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 13px;
         }
 
         .empty-state {
             text-align: center;
-            padding: 40px;
-            color: #666;
+            padding: 40px 20px;
+            color: #636e72;
         }
 
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        /* Version */
         .version {
             text-align: center;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 0.8rem;
+            color: #b2bec3;
+            font-size: 11px;
             margin-top: 30px;
             padding: 10px;
         }
 
+        /* Responsive */
         @media (max-width: 600px) {
-            nav {
-                flex-direction: column;
-                gap: 15px;
+            body {
+                padding: 12px;
+            }
+
+            .nav-pills {
+                flex-direction: row;
+            }
+
+            .nav-pill {
+                padding: 12px 16px;
             }
 
             .url-item {
                 flex-direction: column;
-                gap: 10px;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .url-item .btn {
+                width: 100%;
+                justify-content: center;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <nav>
-            <h1>Lunch Scraper</h1>
-            <div>
-                <a href="/" class="{% if request.endpoint == 'index' %}active{% endif %}">Dagens lunch</a>
-                <a href="/manage" class="{% if request.endpoint == 'manage' %}active{% endif %}">Hantera URL:er</a>
+        <div class="header-card">
+            <div class="header-top">
+                <div class="menu-icon">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <div class="avatar">L</div>
             </div>
-        </nav>
+            <p class="greeting">Dagens datum</p>
+            <h1 class="title">Lunch <span>Scraper</span></h1>
+
+            <div class="nav-pills">
+                <a href="/" class="nav-pill lunch {% if request.endpoint == 'index' %}active{% endif %}">
+                    <div class="pill-icon">🍽️</div>
+                    <span class="pill-text">Dagens Lunch</span>
+                </a>
+                <a href="/manage" class="nav-pill manage {% if request.endpoint == 'manage' %}active{% endif %}">
+                    <div class="pill-icon">⚙️</div>
+                    <span class="pill-text">Hantera</span>
+                </a>
+            </div>
+        </div>
 
         {% block content %}{% endblock %}
 
-        <div class="version">v1.6.1</div>
+        <div class="version">v2.0.0</div>
     </div>
 
     {% block scripts %}{% endblock %}

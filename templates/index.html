@@ -1,25 +1,31 @@
 {% extends "base.html" %}
 
-{% block title %}Dagens Lunch - Lunch Scraper{% endblock %}
+{% block title %}Dagens Lunch{% endblock %}
 
 {% block content %}
-<div class="card" style="text-align: center;">
-    <button class="btn" id="refreshBtn" onclick="loadMenus()">
-        <span id="refreshIcon">&#x21bb;</span> Uppdatera menyer
-    </button>
-    <p class="timestamp" id="lastUpdate"></p>
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Dagens Menyer</h2>
+        <button class="btn" id="refreshBtn" onclick="loadMenus()">
+            🔄 Uppdatera
+        </button>
+    </div>
+    <p id="lastUpdate" style="font-size: 12px; color: #b2bec3; margin-bottom: 16px;"></p>
 </div>
 
 <div class="loading" id="loading">
     <div class="spinner"></div>
-    <p>Hamtar lunchmenyer...</p>
+    <p class="loading-text">Hämtar lunchmenyer...</p>
 </div>
 
 <div id="menuContainer"></div>
 
-<div class="card empty-state" id="emptyState" style="display: none;">
-    <h2>Inga restauranger tillagda</h2>
-    <p>Ga till <a href="/manage">Hantera URL:er</a> for att lagga till restauranger.</p>
+<div class="card" id="emptyState" style="display: none;">
+    <div class="empty-state">
+        <div class="empty-state-icon">🍽️</div>
+        <h3 style="margin-bottom: 8px; color: #2d3436;">Inga restauranger</h3>
+        <p>Lägg till restauranger under <a href="/manage" style="color: #0984e3;">Hantera</a></p>
+    </div>
 </div>
 {% endblock %}
 
@@ -38,7 +44,6 @@
         emptyState.style.display = 'none';
 
         try {
-            // Kolla om det finns nagra URLs
             const urlsResponse = await fetch('/api/urls');
             const urls = await urlsResponse.json();
 
@@ -54,20 +59,25 @@
 
             menuContainer.innerHTML = menus.map(menu => `
                 <div class="card">
-                    <h2>${escapeHtml(menu.name)}</h2>
-                    <div class="menu-content ${menu.success ? '' : 'error'}">
-${escapeHtml(menu.menu)}
+                    <div class="menu-item">
+                        <div class="menu-item-header">
+                            <span class="menu-item-name">${escapeHtml(menu.name)}</span>
+                            ${menu.source ? `<span class="menu-item-source">${escapeHtml(menu.source.substring(0, 30))}</span>` : ''}
+                        </div>
+                        <div class="menu-item-content ${menu.success ? '' : 'error'}">${escapeHtml(menu.menu)}</div>
+                        <div class="menu-item-time">
+                            <span>🕐</span>
+                            <span>${menu.scraped_at}</span>
+                            <span style="margin-left: 8px;">•</span>
+                            <a href="${escapeHtml(menu.url)}" target="_blank" style="color: #0984e3; margin-left: 8px;">Besök sidan →</a>
+                        </div>
                     </div>
-                    <p class="timestamp">
-                        <a href="${escapeHtml(menu.url)}" target="_blank">Besok sidan</a>
-                        | Hamtad: ${menu.scraped_at}
-                    </p>
                 </div>
             `).join('');
 
             lastUpdate.textContent = `Senast uppdaterad: ${new Date().toLocaleTimeString('sv-SE')}`;
         } catch (error) {
-            menuContainer.innerHTML = '<div class="card error">Kunde inte hamta menyer. Forsok igen.</div>';
+            menuContainer.innerHTML = '<div class="card"><div class="error">Kunde inte hämta menyer. Försök igen.</div></div>';
         }
 
         loading.style.display = 'none';
@@ -80,7 +90,6 @@ ${escapeHtml(menu.menu)}
         return div.innerHTML;
     }
 
-    // Ladda menyer automatiskt vid sidladdning
     loadMenus();
 </script>
 {% endblock %}
