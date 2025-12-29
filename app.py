@@ -27,17 +27,18 @@ def save_urls(urls):
 def format_menu_text(text):
     """Formatera menytext för bättre läsbarhet."""
     # Klipp bort footer-innehåll efter dessa nyckelord
+    # Men bara om de hittas efter minst 100 tecken (så vi inte klipper för tidigt)
     footer_markers = [
-        'Bordsbokning', 'Boka bord', 'Hemkörning', 'Avhämtning',
-        'Copyright', 'Följ oss', 'Kontakta oss', 'Öppettider:',
-        'Hitta hit', 'Vägbeskrivning', 'Foodora', 'Hungrig',
+        'Bordsbokning', 'Hemkörning', 'Avhämtning',
+        'Copyright ©', 'Kontakta oss för', 'Öppettider:',
+        'Vägbeskrivning', 'Foodora', 'Hungrig.se',
         'Uber Eats', 'Wolt', 'Just Eat'
     ]
     for marker in footer_markers:
         # Case-insensitive sökning
         pattern = re.compile(re.escape(marker), re.IGNORECASE)
         match = pattern.search(text)
-        if match:
+        if match and match.start() > 100:  # Bara klipp om vi har minst 100 tecken före
             text = text[:match.start()]
 
     # Ta bort vanliga navigationsord (hela rader som bara innehåller dessa)
