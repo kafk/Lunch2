@@ -26,13 +26,29 @@ def save_urls(urls):
 
 def format_menu_text(text):
     """Formatera menytext för bättre läsbarhet."""
+    # Ta bort rader med URL:er
+    lines = text.split('\n')
+    lines = [line for line in lines if not re.match(r'^\s*https?://', line.strip())]
+    text = '\n'.join(lines)
+
+    # Ta bort vanligt header-skräp i början
+    header_trash = [
+        'Skip to content', 'Main Menu', 'Toggle Navigation',
+        'Hoppa till innehåll', 'Huvudmeny'
+    ]
+    for trash in header_trash:
+        text = re.sub(rf'^.*{re.escape(trash)}.*\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
+
     # Klipp bort footer-innehåll efter dessa nyckelord
     # Men bara om de hittas efter minst 100 tecken (så vi inte klipper för tidigt)
     footer_markers = [
         'Bordsbokning', 'Hemkörning', 'Avhämtning',
         'Copyright ©', 'Kontakta oss för', 'Öppettider:',
         'Vägbeskrivning', 'Foodora', 'Hungrig.se',
-        'Uber Eats', 'Wolt', 'Just Eat'
+        'Uber Eats', 'Wolt', 'Just Eat',
+        'Hitta till oss', 'Hitta hit', 'Se hela menyn',
+        'Vår Meny', 'Add Your Heading', 'Lorem ipsum',
+        'Fina Råvaror'
     ]
     for marker in footer_markers:
         # Case-insensitive sökning
@@ -47,7 +63,8 @@ def format_menu_text(text):
         'BOKA BORD', 'BOOK', 'BOOKING', 'OM OSS', 'ABOUT', 'ABOUT US',
         'KONTAKT', 'CONTACT', 'HEM', 'HOME', 'NYHETER', 'NEWS',
         'ÖPPETTIDER', 'HITTA HIT', 'FIND US', 'PRESENTKORT', 'GIFT CARD',
-        'LUNCH', 'THE GRILL', 'INSTAGRAM', 'FACEBOOK', 'FÖLJ OSS'
+        'LUNCH', 'THE GRILL', 'INSTAGRAM', 'FACEBOOK', 'FÖLJ OSS',
+        'ITALIAN CUISINE', 'PIZZA & PASTA', 'VÄLKOMMEN', 'DAGENS LUNCH'
     ]
 
     lines = text.split('\n')
@@ -74,6 +91,12 @@ def format_menu_text(text):
 
     # Lägg till radbrytning efter priser (t.ex. "129kr" eller "129 kr")
     text = re.sub(r'(\d+\s*kr(?:/\d+\s*kr)?)\s*(?=[A-ZÅÄÖ❖])', r'\1\n', text)
+
+    # Försök hitta och extrahera bara lunchmeny-sektionen
+    lunch_match = re.search(r'(LUNCHMENY[^\n]*\n)(.*?)(?=\n\s*(?:Vår Meny|Á la carte|A la carte|Hitta|Adress|Öppettider|$))',
+                           text, re.IGNORECASE | re.DOTALL)
+    if lunch_match:
+        text = lunch_match.group(1) + lunch_match.group(2)
 
     # Rensa upp multipla radbrytningar
     text = re.sub(r'\n{3,}', '\n\n', text)
