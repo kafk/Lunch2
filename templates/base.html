@@ -217,6 +217,14 @@
             color: #666;
         }
 
+        .version {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.8rem;
+            margin-top: 30px;
+            padding: 10px;
+        }
+
         @media (max-width: 600px) {
             nav {
                 flex-direction: column;
@@ -241,6 +249,8 @@
         </nav>
 
         {% block content %}{% endblock %}
+
+        <div class="version">v1.0.0</div>
     </div>
 
     {% block scripts %}{% endblock %}
