@@ -26,6 +26,20 @@ def save_urls(urls):
 
 def format_menu_text(text):
     """Formatera menytext för bättre läsbarhet."""
+    # Klipp bort footer-innehåll efter dessa nyckelord
+    footer_markers = [
+        'Bordsbokning', 'Boka bord', 'Hemkörning', 'Avhämtning',
+        'Copyright', 'Följ oss', 'Kontakta oss', 'Öppettider:',
+        'Hitta hit', 'Vägbeskrivning', 'Foodora', 'Hungrig',
+        'Uber Eats', 'Wolt', 'Just Eat'
+    ]
+    for marker in footer_markers:
+        # Case-insensitive sökning
+        pattern = re.compile(re.escape(marker), re.IGNORECASE)
+        match = pattern.search(text)
+        if match:
+            text = text[:match.start()]
+
     # Ta bort vanliga navigationsord (hela rader som bara innehåller dessa)
     nav_words = [
         'MENY', 'MENU', 'EVENTS', 'CATERING', 'GALLERI', 'GALLERY',
