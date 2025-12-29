@@ -48,11 +48,11 @@ def format_menu_text(text):
     text = re.sub(r'<?\!?\[?endif\]?>?', '', text, flags=re.IGNORECASE)
     text = re.sub(r'!\[if IE\]>', '', text)
 
-    # Ta bort språkval-rader
-    languages = ['Arabic', 'Chinese', 'Chinese (Simplified)', 'Dutch', 'English', 'French', 'German',
+    # Ta bort språkval-rader (flexibelt för att fånga varianter)
+    languages = ['Arabic', 'Chinese.*', 'Dutch', 'English', 'French', 'German',
                  'Italian', 'Portuguese', 'Russian', 'Spanish', 'Swedish']
     for lang in languages:
-        text = re.sub(rf'^\s*{re.escape(lang)}\s*$\n?', '', text, flags=re.MULTILINE)
+        text = re.sub(rf'^\s*{lang}\s*$\n?', '', text, flags=re.MULTILINE | re.IGNORECASE)
 
     # Ta bort rader med telefonnummer och footer med ||
     text = re.sub(r'^.*\|\|.*\d{2,3}[\s-]?\d{2,3}[\s-]?\d{2,4}.*$\n?', '', text, flags=re.MULTILINE)
