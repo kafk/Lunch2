@@ -34,23 +34,29 @@ def format_menu_text(text):
     # Ta bort sidtitlar i början (t.ex. "Lunch | Restaurant Name")
     text = re.sub(r'^[^\n]*\s*[\|–-]\s*[^\n]*$\n?', '', text, count=1)
 
-    # Ta bort vanligt header-skräp i början
+    # Ta bort vanligt header-skräp
     header_trash = [
         'Skip to content', 'Main Menu', 'Toggle Navigation',
         'Hoppa till innehåll', 'Huvudmeny', 'Primary Navigation',
-        'Select Language', '<![if IE]>', '<![endif]>'
+        'Select Language', 'if IE', 'endif'
     ]
     for trash in header_trash:
         text = re.sub(rf'^.*{re.escape(trash)}.*\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
 
+    # Ta bort IE conditional comments och liknande skräp
+    text = re.sub(r'<?\!?\[?if\s*IE\]?>?', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'<?\!?\[?endif\]?>?', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'!\[if IE\]>', '', text)
+
     # Ta bort språkval-rader
-    languages = ['Arabic', 'Chinese', 'Dutch', 'English', 'French', 'German',
+    languages = ['Arabic', 'Chinese', 'Chinese (Simplified)', 'Dutch', 'English', 'French', 'German',
                  'Italian', 'Portuguese', 'Russian', 'Spanish', 'Swedish']
     for lang in languages:
-        text = re.sub(rf'^\s*{lang}\s*$\n?', '', text, flags=re.MULTILINE)
+        text = re.sub(rf'^\s*{re.escape(lang)}\s*$\n?', '', text, flags=re.MULTILINE)
 
-    # Ta bort rader med telefonnummer
+    # Ta bort rader med telefonnummer och footer med ||
     text = re.sub(r'^.*\|\|.*\d{2,3}[\s-]?\d{2,3}[\s-]?\d{2,4}.*$\n?', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^.*\|\|\s*$\n?', '', text, flags=re.MULTILINE)  # Rader som slutar med ||
 
     # Klipp bort footer-innehåll efter dessa nyckelord
     # Men bara om de hittas efter minst 100 tecken (så vi inte klipper för tidigt)
