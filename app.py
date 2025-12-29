@@ -24,6 +24,32 @@ def save_urls(urls):
     with open(URLS_FILE, 'w', encoding='utf-8') as f:
         json.dump(urls, f, ensure_ascii=False, indent=2)
 
+def format_menu_text(text):
+    """Formatera menytext för bättre läsbarhet."""
+    # Veckodagar - lägg till radbrytning före
+    weekdays = ['MÅNDAG', 'TISDAG', 'ONSDAG', 'TORSDAG', 'FREDAG', 'LÖRDAG', 'SÖNDAG']
+    for day in weekdays:
+        text = re.sub(rf'(?<!\n)({day})', r'\n\n\1', text)
+
+    # Kategorier - lägg till radbrytning före
+    categories = ['KÖTT', 'FISK', 'PASTA', 'SALLAD', 'BURGARE', 'VEGETARISKT', 'VEGAN', 'LUNCH']
+    for cat in categories:
+        text = re.sub(rf'(?<!\n)({cat})', r'\n\n\1', text)
+
+    # Lägg till radbrytning efter bullet points (❖)
+    text = re.sub(r'(❖)', r'\n  \1', text)
+
+    # Lägg till radbrytning efter priser (t.ex. "129kr" eller "129 kr")
+    text = re.sub(r'(\d+\s*kr(?:/\d+\s*kr)?)\s*(?=[A-ZÅÄÖ❖])', r'\1\n', text)
+
+    # Rensa upp multipla radbrytningar
+    text = re.sub(r'\n{3,}', '\n\n', text)
+
+    # Ta bort ledande/efterföljande whitespace
+    text = text.strip()
+
+    return text
+
 def extract_pdf_text(pdf_content):
     """Extrahera text från PDF-innehåll."""
     try:
@@ -34,7 +60,8 @@ def extract_pdf_text(pdf_content):
             text = page.extract_text()
             if text:
                 text_parts.append(text)
-        return '\n'.join(text_parts)
+        raw_text = '\n'.join(text_parts)
+        return format_menu_text(raw_text)
     except Exception as e:
         return f"Kunde inte läsa PDF: {str(e)}"
 
