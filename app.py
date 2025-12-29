@@ -115,6 +115,22 @@ def scrape_pdf(url, headers):
     response.raise_for_status()
     return extract_pdf_text(response.content)
 
+def find_lunch_page_link(soup, base_url):
+    """Hitta länk till lunch-undersida."""
+    from urllib.parse import urljoin
+
+    for link in soup.find_all('a', href=True):
+        href = link['href'].lower()
+        link_text = link.get_text(strip=True).lower()
+
+        # Leta efter lunch-länkar
+        if 'lunch' in href or link_text == 'lunch':
+            full_url = urljoin(base_url, link['href'])
+            # Undvik att följa samma sida
+            if full_url.rstrip('/') != base_url.rstrip('/'):
+                return full_url
+    return None
+
 def extract_menu_text(soup):
     """Extrahera relevant text från en sida."""
     # Ta bort script och style-element
@@ -209,6 +225,48 @@ def scrape_url(url, name):
                     }
             except Exception:
                 pass  # Fallback till HTML-scraping
+
+        # Leta efter länk till lunch-undersida och följ den
+        lunch_page_url = find_lunch_page_link(soup, url)
+        if lunch_page_url:
+            try:
+                lunch_response = requests.get(lunch_page_url, headers=headers, timeout=10)
+                lunch_response.raise_for_status()
+                if lunch_response.encoding == 'ISO-8859-1':
+                    lunch_response.encoding = lunch_response.apparent_encoding
+                lunch_soup = BeautifulSoup(lunch_response.text, 'lxml')
+
+                # Kolla om lunch-sidan har PDF
+                lunch_pdf_links = find_pdf_links(lunch_soup, lunch_page_url)
+                if lunch_pdf_links:
+                    try:
+                        pdf_text = scrape_pdf(lunch_pdf_links[0]['url'], headers)
+                        if pdf_text and len(pdf_text) > 50:
+                            return {
+                                'name': name,
+                                'url': url,
+                                'menu': pdf_text,
+                                'success': True,
+                                'source': f"PDF från {lunch_page_url}",
+                                'scraped_at': datetime.now().strftime('%Y-%m-%d %H:%M')
+                            }
+                    except Exception:
+                        pass
+
+                # Hämta text från lunch-sidan
+                lunch_text = lunch_soup.get_text(separator='\n', strip=True)
+                lunch_text = format_menu_text(lunch_text)
+                if lunch_text and len(lunch_text) > 50:
+                    return {
+                        'name': name,
+                        'url': url,
+                        'menu': lunch_text,
+                        'success': True,
+                        'source': f"Lunch-sida: {lunch_page_url}",
+                        'scraped_at': datetime.now().strftime('%Y-%m-%d %H:%M')
+                    }
+            except Exception:
+                pass  # Fallback till huvudsidan
 
         # Hitta lunch-innehåll från HTML
         sections = find_lunch_content(soup, url)
