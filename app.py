@@ -31,7 +31,8 @@ def format_menu_text(text):
         'MENY', 'MENU', 'EVENTS', 'CATERING', 'GALLERI', 'GALLERY',
         'BOKA BORD', 'BOOK', 'BOOKING', 'OM OSS', 'ABOUT', 'ABOUT US',
         'KONTAKT', 'CONTACT', 'HEM', 'HOME', 'NYHETER', 'NEWS',
-        'ÖPPETTIDER', 'HITTA HIT', 'FIND US', 'PRESENTKORT', 'GIFT CARD'
+        'ÖPPETTIDER', 'HITTA HIT', 'FIND US', 'PRESENTKORT', 'GIFT CARD',
+        'LUNCH', 'THE GRILL', 'INSTAGRAM', 'FACEBOOK', 'FÖLJ OSS'
     ]
 
     lines = text.split('\n')
@@ -218,6 +219,9 @@ def scrape_url(url, name):
         else:
             # Fallback: extrahera all text
             menu_text = extract_menu_text(soup)
+
+        # Applicera formatering på HTML-text också
+        menu_text = format_menu_text(menu_text)
 
         return {
             'name': name,
