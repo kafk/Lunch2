@@ -275,6 +275,17 @@ def format_menu_text(text):
     if lunch_match:
         text = lunch_match.group(1) + lunch_match.group(2)
 
+    # Ta bort konsekutiva dubbletter (från mobil/desktop-duplicering)
+    lines = text.split('\n')
+    deduped_lines = []
+    prev_line = None
+    for line in lines:
+        stripped = line.strip()
+        if stripped != prev_line:
+            deduped_lines.append(line)
+            prev_line = stripped
+    text = '\n'.join(deduped_lines)
+
     # Rensa upp multipla radbrytningar
     text = re.sub(r'\n{3,}', '\n\n', text)
 
