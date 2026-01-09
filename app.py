@@ -286,6 +286,35 @@ def format_menu_text(text):
             prev_line = stripped
     text = '\n'.join(deduped_lines)
 
+    # Sortera veckodagar i rätt ordning (måndag först)
+    weekday_order = ['MÅNDAG', 'TISDAG', 'ONSDAG', 'TORSDAG', 'FREDAG', 'LÖRDAG', 'SÖNDAG']
+    weekday_pattern = re.compile(r'^(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)\s*$', re.IGNORECASE | re.MULTILINE)
+
+    # Hitta alla veckodagsektioner
+    matches = list(weekday_pattern.finditer(text))
+    if len(matches) >= 2:
+        # Extrahera header (innan första veckodagen)
+        header = text[:matches[0].start()].strip()
+
+        # Extrahera varje veckodagssektion
+        day_sections = {}
+        for i, match in enumerate(matches):
+            day_name = match.group(1).upper()
+            start = match.start()
+            end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+            day_sections[day_name] = text[start:end].strip()
+
+        # Bygg om texten i rätt ordning
+        sorted_sections = []
+        if header:
+            sorted_sections.append(header)
+        for day in weekday_order:
+            if day in day_sections:
+                sorted_sections.append(day_sections[day])
+
+        if sorted_sections:
+            text = '\n\n'.join(sorted_sections)
+
     # Rensa upp multipla radbrytningar
     text = re.sub(r'\n{3,}', '\n\n', text)
 
