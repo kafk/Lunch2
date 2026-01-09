@@ -8,21 +8,159 @@ from datetime import datetime
 from io import BytesIO
 from pypdf import PdfReader
 
+# Firebase imports
+try:
+    import firebase_admin
+    from firebase_admin import credentials, firestore
+    FIREBASE_AVAILABLE = True
+except ImportError:
+    FIREBASE_AVAILABLE = False
+
 app = Flask(__name__)
 
 URLS_FILE = 'urls.json'
+COLLECTION_NAME = 'restaurants'
+
+# Firebase initialization
+db = None
+
+def init_firebase():
+    """Initialize Firebase if credentials are available."""
+    global db
+
+    if not FIREBASE_AVAILABLE:
+        print("Firebase Admin SDK not installed, using local JSON file")
+        return False
+
+    # Check for Firebase credentials
+    firebase_creds = os.environ.get('FIREBASE_CREDENTIALS')
+    firebase_project = os.environ.get('FIREBASE_PROJECT_ID')
+
+    if firebase_creds:
+        try:
+            # Parse JSON credentials from environment variable
+            cred_dict = json.loads(firebase_creds)
+            cred = credentials.Certificate(cred_dict)
+            firebase_admin.initialize_app(cred)
+            db = firestore.client()
+            print("Firebase initialized from FIREBASE_CREDENTIALS env var")
+            return True
+        except Exception as e:
+            print(f"Failed to initialize Firebase from env var: {e}")
+
+    # Try using default credentials (for local development with gcloud CLI)
+    if firebase_project:
+        try:
+            firebase_admin.initialize_app(options={'projectId': firebase_project})
+            db = firestore.client()
+            print(f"Firebase initialized with project: {firebase_project}")
+            return True
+        except Exception as e:
+            print(f"Failed to initialize Firebase with project ID: {e}")
+
+    # Try loading from local service account file
+    service_account_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', 'serviceAccountKey.json')
+    if os.path.exists(service_account_path):
+        try:
+            cred = credentials.Certificate(service_account_path)
+            firebase_admin.initialize_app(cred)
+            db = firestore.client()
+            print(f"Firebase initialized from {service_account_path}")
+            return True
+        except Exception as e:
+            print(f"Failed to initialize Firebase from file: {e}")
+
+    print("No Firebase credentials found, using local JSON file")
+    return False
+
+# Initialize Firebase on startup
+firebase_enabled = init_firebase()
 
 def load_urls():
-    """Ladda sparade URL:er från fil."""
+    """Ladda sparade URL:er från Firebase eller lokal fil."""
+    if db:
+        try:
+            docs = db.collection(COLLECTION_NAME).order_by('created_at').stream()
+            urls = []
+            for doc in docs:
+                data = doc.to_dict()
+                urls.append({
+                    'url': data.get('url', ''),
+                    'name': data.get('name', ''),
+                    'id': doc.id
+                })
+            if urls:
+                return urls
+            # If Firestore is empty, try to load from JSON and migrate
+            if os.path.exists(URLS_FILE):
+                with open(URLS_FILE, 'r', encoding='utf-8') as f:
+                    local_urls = json.load(f)
+                    if local_urls:
+                        # Migrate to Firestore
+                        for url_data in local_urls:
+                            db.collection(COLLECTION_NAME).add({
+                                'url': url_data['url'],
+                                'name': url_data['name'],
+                                'created_at': firestore.SERVER_TIMESTAMP
+                            })
+                        print(f"Migrated {len(local_urls)} URLs to Firestore")
+                        return local_urls
+            return []
+        except Exception as e:
+            print(f"Firebase error, falling back to local file: {e}")
+
+    # Fallback to local JSON file
     if os.path.exists(URLS_FILE):
         with open(URLS_FILE, 'r', encoding='utf-8') as f:
             return json.load(f)
     return []
 
 def save_urls(urls):
-    """Spara URL:er till fil."""
+    """Spara URL:er till Firebase eller lokal fil."""
+    if db:
+        try:
+            # Clear existing and add new (for full sync)
+            # Note: This is called after individual add/delete, so we skip full sync
+            return True
+        except Exception as e:
+            print(f"Firebase save error: {e}")
+
+    # Fallback to local JSON file
     with open(URLS_FILE, 'w', encoding='utf-8') as f:
         json.dump(urls, f, ensure_ascii=False, indent=2)
+
+def add_url_to_db(url, name):
+    """Lägg till en URL i databasen."""
+    if db:
+        try:
+            doc_ref = db.collection(COLLECTION_NAME).add({
+                'url': url,
+                'name': name,
+                'created_at': firestore.SERVER_TIMESTAMP
+            })
+            return True
+        except Exception as e:
+            print(f"Firebase add error: {e}")
+    return False
+
+def delete_url_from_db(index):
+    """Ta bort en URL från databasen."""
+    if db:
+        try:
+            urls = load_urls()
+            if 0 <= index < len(urls) and 'id' in urls[index]:
+                db.collection(COLLECTION_NAME).document(urls[index]['id']).delete()
+                return True
+        except Exception as e:
+            print(f"Firebase delete error: {e}")
+    return False
+
+def get_storage_info():
+    """Returnera information om lagring."""
+    return {
+        'firebase_enabled': db is not None,
+        'storage_type': 'Firebase Firestore' if db else 'Local JSON'
+    }
 
 def format_menu_text(text):
     """Formatera menytext för bättre läsbarhet."""
@@ -399,8 +537,12 @@ def add_url():
     if any(u['url'] == url for u in urls):
         return jsonify({'error': 'URL finns redan'}), 400
 
-    urls.append({'url': url, 'name': name})
-    save_urls(urls)
+    # Use Firebase if available
+    if db:
+        add_url_to_db(url, name)
+    else:
+        urls.append({'url': url, 'name': name})
+        save_urls(urls)
 
     return jsonify({'success': True, 'url': url, 'name': name})
 
@@ -410,11 +552,23 @@ def delete_url(index):
     urls = load_urls()
 
     if 0 <= index < len(urls):
-        removed = urls.pop(index)
-        save_urls(urls)
+        removed = urls[index]
+
+        # Use Firebase if available
+        if db:
+            delete_url_from_db(index)
+        else:
+            urls.pop(index)
+            save_urls(urls)
+
         return jsonify({'success': True, 'removed': removed})
 
     return jsonify({'error': 'Ogiltig index'}), 400
+
+@app.route('/api/storage', methods=['GET'])
+def get_storage():
+    """Returnera information om lagring."""
+    return jsonify(get_storage_info())
 
 @app.route('/api/menus', methods=['GET'])
 def get_menus():
