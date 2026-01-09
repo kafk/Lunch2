@@ -87,6 +87,7 @@ def load_urls():
                 urls.append({
                     'url': data.get('url', ''),
                     'name': data.get('name', ''),
+                    'enabled': data.get('enabled', True),  # Default enabled
                     'id': doc.id
                 })
             if urls:
@@ -105,6 +106,7 @@ def load_urls():
                                 doc_ref = db.collection(COLLECTION_NAME).add({
                                     'url': url_data['url'],
                                     'name': url_data['name'],
+                                    'enabled': url_data.get('enabled', True),
                                     'created_at': firestore.SERVER_TIMESTAMP
                                 })
                                 migrated.append(url_data)
@@ -119,7 +121,12 @@ def load_urls():
     # Fallback to local JSON file
     if os.path.exists(URLS_FILE):
         with open(URLS_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            urls = json.load(f)
+            # Ensure enabled field exists
+            for url in urls:
+                if 'enabled' not in url:
+                    url['enabled'] = True
+            return urls
     return []
 
 def save_urls(urls):
@@ -143,12 +150,35 @@ def add_url_to_db(url, name):
             doc_ref = db.collection(COLLECTION_NAME).add({
                 'url': url,
                 'name': name,
+                'enabled': True,
                 'created_at': firestore.SERVER_TIMESTAMP
             })
             return True
         except Exception as e:
             print(f"Firebase add error: {e}")
     return False
+
+def toggle_url_enabled(index):
+    """Växla enabled-status för en URL."""
+    urls = load_urls()
+    if 0 <= index < len(urls):
+        current_enabled = urls[index].get('enabled', True)
+        new_enabled = not current_enabled
+
+        if db and 'id' in urls[index]:
+            try:
+                db.collection(COLLECTION_NAME).document(urls[index]['id']).update({
+                    'enabled': new_enabled
+                })
+                return new_enabled
+            except Exception as e:
+                print(f"Firebase toggle error: {e}")
+        else:
+            # Local JSON
+            urls[index]['enabled'] = new_enabled
+            save_urls(urls)
+            return new_enabled
+    return None
 
 def delete_url_from_db(index):
     """Ta bort en URL från databasen."""
@@ -623,6 +653,14 @@ def delete_url(index):
 
     return jsonify({'error': 'Ogiltig index'}), 400
 
+@app.route('/api/urls/<int:index>/toggle', methods=['POST'])
+def toggle_url(index):
+    """Växla enabled-status för en URL."""
+    new_state = toggle_url_enabled(index)
+    if new_state is not None:
+        return jsonify({'success': True, 'enabled': new_state})
+    return jsonify({'error': 'Ogiltig index'}), 400
+
 @app.route('/api/storage', methods=['GET'])
 def get_storage():
     """Returnera information om lagring."""
@@ -660,13 +698,15 @@ def cleanup_duplicates():
 
 @app.route('/api/menus', methods=['GET'])
 def get_menus():
-    """Scrapa alla URL:er och returnera menyerna."""
+    """Scrapa alla aktiverade URL:er och returnera menyerna."""
     urls = load_urls()
     menus = []
 
     for url_data in urls:
-        result = scrape_url(url_data['url'], url_data['name'])
-        menus.append(result)
+        # Endast scrapa aktiverade restauranger
+        if url_data.get('enabled', True):
+            result = scrape_url(url_data['url'], url_data['name'])
+            menus.append(result)
 
     return jsonify(menus)
 

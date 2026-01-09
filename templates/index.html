@@ -162,15 +162,18 @@
                 return;
             }
 
-            // Show restaurant list
+            // Show restaurant list with toggle switches
             restaurantList.innerHTML = urls.map((url, i) => `
-                <div class="device-item">
+                <div class="device-item ${url.enabled === false ? 'disabled' : ''}">
                     <div class="device-icon">🍴</div>
                     <div class="device-info">
                         <div class="device-name">${escapeHtml(url.name)}</div>
                         <div class="device-meta">${escapeHtml(new URL(url.url).hostname)}</div>
                     </div>
-                    <span class="device-status" id="status-${i}">...</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" ${url.enabled !== false ? 'checked' : ''} onchange="toggleRestaurant(${i}, this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
                 </div>
             `).join('');
 
@@ -262,6 +265,16 @@
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    async function toggleRestaurant(index, enabled) {
+        try {
+            await fetch(`/api/urls/${index}/toggle`, { method: 'POST' });
+            // Reload menus to reflect the change
+            loadMenus();
+        } catch (error) {
+            console.error('Could not toggle restaurant:', error);
+        }
     }
 
     loadMenus();
