@@ -5,7 +5,7 @@
 {% block content %}
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title">Kompakt Lunchöversikt</h2>
+        <h2 class="card-title">Lunchöversikt</h2>
         <button class="btn" id="refreshBtn" onclick="loadMenus()">
             🔄 Uppdatera
         </button>
@@ -14,8 +14,9 @@
     <!-- View Toggle -->
     <div class="view-toggle">
         <button class="view-btn active" data-view="cards">🃏 Kort</button>
+        <button class="view-btn" data-view="status">📋 Status</button>
         <button class="view-btn" data-view="table">📊 Tabell</button>
-        <button class="view-btn" data-view="compact">📋 Kompakt</button>
+        <button class="view-btn" data-view="compact">📑 Kompakt</button>
     </div>
 </div>
 
@@ -27,6 +28,28 @@
 <!-- Cards View -->
 <div id="cardsView" class="view-container active">
     <div class="menu-grid" id="menuGrid"></div>
+</div>
+
+<!-- Status View (Order-style) -->
+<div id="statusView" class="view-container">
+    <div class="card" style="padding: 0; overflow: hidden;">
+        <div class="status-header">
+            <input type="text" class="status-search" placeholder="🔍 Sök restaurang..." id="statusSearch">
+        </div>
+        <table class="status-table" id="statusTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Restaurang</th>
+                    <th>Källa</th>
+                    <th>Status</th>
+                    <th>Uppdaterad</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
 </div>
 
 <!-- Table View -->
@@ -52,6 +75,17 @@
     </div>
 </div>
 
+<!-- Menu Modal -->
+<div class="modal" id="menuModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalTitle">Meny</h3>
+            <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+    </div>
+</div>
+
 <div class="card" id="emptyState" style="display: none;">
     <div class="empty-state">
         <div class="empty-state-icon">🍽️</div>
@@ -65,6 +99,7 @@
         display: flex;
         gap: 8px;
         margin-top: 16px;
+        flex-wrap: wrap;
     }
 
     .view-btn {
@@ -144,6 +179,188 @@
         overflow-y: auto;
     }
 
+    /* Status Table (Order-style) */
+    .status-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid #f1f2f6;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .status-search {
+        flex: 1;
+        padding: 10px 14px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 13px;
+        max-width: 300px;
+    }
+
+    .status-search:focus {
+        outline: none;
+        border-color: #0984e3;
+    }
+
+    .status-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .status-table th {
+        text-align: left;
+        padding: 14px 20px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #636e72;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid #f1f2f6;
+        background: #fafbfc;
+    }
+
+    .status-table td {
+        padding: 16px 20px;
+        border-bottom: 1px solid #f1f2f6;
+        font-size: 13px;
+        color: #2d3436;
+    }
+
+    .status-table tr:hover {
+        background: #fafbfc;
+    }
+
+    .status-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .status-id {
+        color: #636e72;
+        font-weight: 500;
+    }
+
+    .status-name {
+        font-weight: 600;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .badge-success {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .badge-pending {
+        background: #fff8e1;
+        color: #f57c00;
+    }
+
+    .badge-error {
+        background: #ffebee;
+        color: #c62828;
+    }
+
+    .badge-pdf {
+        background: #e3f2fd;
+        color: #1565c0;
+    }
+
+    .badge-html {
+        background: #f3e5f5;
+        color: #7b1fa2;
+    }
+
+    .status-time {
+        color: #0984e3;
+        font-size: 13px;
+    }
+
+    .status-view-btn {
+        background: none;
+        border: none;
+        color: #636e72;
+        cursor: pointer;
+        padding: 6px;
+        font-size: 16px;
+        transition: color 0.2s;
+    }
+
+    .status-view-btn:hover {
+        color: #0984e3;
+    }
+
+    /* Modal */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal.active {
+        display: flex;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 16px;
+        max-width: 600px;
+        width: 90%;
+        max-height: 80vh;
+        overflow: hidden;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+
+    .modal-header {
+        padding: 20px;
+        border-bottom: 1px solid #f1f2f6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        font-size: 18px;
+        color: #2d3436;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: #636e72;
+        padding: 4px 8px;
+        border-radius: 6px;
+    }
+
+    .modal-close:hover {
+        background: #f1f2f6;
+    }
+
+    .modal-body {
+        padding: 20px;
+        max-height: 60vh;
+        overflow-y: auto;
+        font-size: 14px;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        color: #636e72;
+    }
+
     /* Table View */
     .menu-table {
         width: 100%;
@@ -194,6 +411,7 @@
     .compact-item {
         padding: 16px 0;
         border-bottom: 1px solid #f1f2f6;
+        cursor: pointer;
     }
 
     .compact-item:last-child {
@@ -239,7 +457,6 @@
     .compact-expand {
         font-size: 12px;
         color: #0984e3;
-        cursor: pointer;
         margin-top: 8px;
     }
 
@@ -264,13 +481,18 @@
         display: none;
     }
 
+    .compact-item.expanded .compact-expand {
+        display: none;
+    }
+
     @media (max-width: 600px) {
         .menu-grid {
             grid-template-columns: 1fr;
         }
 
-        .view-toggle {
-            flex-wrap: wrap;
+        .status-table th:nth-child(3),
+        .status-table td:nth-child(3) {
+            display: none;
         }
 
         .menu-table {
@@ -284,10 +506,17 @@
 <script>
     const menuGrid = document.getElementById('menuGrid');
     const menuTable = document.getElementById('menuTable').querySelector('tbody');
+    const statusTable = document.getElementById('statusTable').querySelector('tbody');
     const compactList = document.getElementById('compactList');
     const loading = document.getElementById('loading');
     const refreshBtn = document.getElementById('refreshBtn');
     const emptyState = document.getElementById('emptyState');
+    const modal = document.getElementById('menuModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+    const statusSearch = document.getElementById('statusSearch');
+
+    let allMenus = [];
 
     // View switching
     document.querySelectorAll('.view-btn').forEach(btn => {
@@ -299,11 +528,61 @@
         });
     });
 
+    // Search filter
+    statusSearch.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        const filtered = allMenus.filter(m => m.name.toLowerCase().includes(query));
+        renderStatusTable(filtered);
+    });
+
+    function openModal(name, content) {
+        modalTitle.textContent = name;
+        modalBody.textContent = content;
+        modal.classList.add('active');
+    }
+
+    function closeModal() {
+        modal.classList.remove('active');
+    }
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+
+    function getSourceBadge(source) {
+        if (!source) return '<span class="status-badge badge-html">HTML</span>';
+        if (source.toLowerCase().includes('pdf')) return '<span class="status-badge badge-pdf">PDF</span>';
+        return '<span class="status-badge badge-html">HTML</span>';
+    }
+
+    function getStatusBadge(success) {
+        if (success) return '<span class="status-badge badge-success">OK</span>';
+        return '<span class="status-badge badge-error">Fel</span>';
+    }
+
+    function renderStatusTable(menus) {
+        statusTable.innerHTML = menus.map((menu, i) => `
+            <tr>
+                <td class="status-id">#${1000 + i}</td>
+                <td class="status-name">${escapeHtml(menu.name)}</td>
+                <td>${getSourceBadge(menu.source)}</td>
+                <td>${getStatusBadge(menu.success)}</td>
+                <td class="status-time">${menu.scraped_at || '-'}</td>
+                <td>
+                    <button class="status-view-btn" onclick="openModal('${escapeHtml(menu.name)}', allMenus[${i}].menu)" title="Visa meny">
+                        👁️
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
     async function loadMenus() {
         refreshBtn.disabled = true;
         loading.style.display = 'block';
         menuGrid.innerHTML = '';
         menuTable.innerHTML = '';
+        statusTable.innerHTML = '';
         compactList.innerHTML = '';
         emptyState.style.display = 'none';
 
@@ -319,10 +598,10 @@
             }
 
             const response = await fetch('/api/menus');
-            const menus = await response.json();
+            allMenus = await response.json();
 
             // Cards View
-            menuGrid.innerHTML = menus.map(menu => `
+            menuGrid.innerHTML = allMenus.map(menu => `
                 <div class="menu-card">
                     <div class="menu-card-title">
                         ${escapeHtml(menu.name)}
@@ -332,8 +611,11 @@
                 </div>
             `).join('');
 
-            // Table View
-            menuTable.innerHTML = menus.map(menu => `
+            // Status Table
+            renderStatusTable(allMenus);
+
+            // Regular Table View
+            menuTable.innerHTML = allMenus.map(menu => `
                 <tr>
                     <td class="table-restaurant">${escapeHtml(menu.name)}</td>
                     <td class="table-menu">${escapeHtml(menu.menu)}</td>
@@ -342,7 +624,7 @@
             `).join('');
 
             // Compact View
-            compactList.innerHTML = menus.map((menu, i) => `
+            compactList.innerHTML = allMenus.map((menu, i) => `
                 <div class="compact-item" onclick="this.classList.toggle('expanded')">
                     <div class="compact-header">
                         <span class="compact-name"><span class="compact-dot"></span>${escapeHtml(menu.name)}</span>
