@@ -123,6 +123,14 @@
             background: #00b894;
         }
 
+        .nav-pill.display {
+            background: #f0f5ff;
+        }
+
+        .nav-pill.display .pill-icon {
+            background: #4d96ff;
+        }
+
         .nav-pill.active {
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             transform: translateY(-2px);
@@ -454,7 +462,11 @@
             <div class="nav-pills">
                 <a href="/" class="nav-pill lunch {% if request.endpoint == 'index' %}active{% endif %}">
                     <div class="pill-icon">🍽️</div>
-                    <span class="pill-text">Dagens Lunch</span>
+                    <span class="pill-text">Lunch</span>
+                </a>
+                <a href="/display" class="nav-pill display {% if request.endpoint == 'display' %}active{% endif %}">
+                    <div class="pill-icon">📊</div>
+                    <span class="pill-text">Vyer</span>
                 </a>
                 <a href="/manage" class="nav-pill manage {% if request.endpoint == 'manage' %}active{% endif %}">
                     <div class="pill-icon">⚙️</div>
@@ -465,7 +477,7 @@
 
         {% block content %}{% endblock %}
 
-        <div class="version">v2.4.0</div>
+        <div class="version">v2.5.0</div>
     </div>
 
     {% block scripts %}{% endblock %}

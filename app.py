@@ -367,6 +367,11 @@ def manage():
     """Hantera URL:er."""
     return render_template('manage.html')
 
+@app.route('/display')
+def display():
+    """Alternativ vy för lunchmenyer."""
+    return render_template('display.html')
+
 @app.route('/api/urls', methods=['GET'])
 def get_urls():
     """Hämta alla sparade URL:er."""

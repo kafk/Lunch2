@@ -1,0 +1,377 @@
+{% extends "base.html" %}
+
+{% block title %}Kompakt Vy{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Kompakt Lunchöversikt</h2>
+        <button class="btn" id="refreshBtn" onclick="loadMenus()">
+            🔄 Uppdatera
+        </button>
+    </div>
+
+    <!-- View Toggle -->
+    <div class="view-toggle">
+        <button class="view-btn active" data-view="cards">🃏 Kort</button>
+        <button class="view-btn" data-view="table">📊 Tabell</button>
+        <button class="view-btn" data-view="compact">📋 Kompakt</button>
+    </div>
+</div>
+
+<div class="loading" id="loading">
+    <div class="spinner"></div>
+    <p class="loading-text">Hämtar lunchmenyer...</p>
+</div>
+
+<!-- Cards View -->
+<div id="cardsView" class="view-container active">
+    <div class="menu-grid" id="menuGrid"></div>
+</div>
+
+<!-- Table View -->
+<div id="tableView" class="view-container">
+    <div class="card">
+        <table class="menu-table" id="menuTable">
+            <thead>
+                <tr>
+                    <th>Restaurang</th>
+                    <th>Dagens Rätt</th>
+                    <th>Källa</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Compact View -->
+<div id="compactView" class="view-container">
+    <div class="card">
+        <div class="compact-list" id="compactList"></div>
+    </div>
+</div>
+
+<div class="card" id="emptyState" style="display: none;">
+    <div class="empty-state">
+        <div class="empty-state-icon">🍽️</div>
+        <h3>Inga restauranger</h3>
+        <p>Lägg till restauranger under <a href="/manage">Hantera</a></p>
+    </div>
+</div>
+
+<style>
+    .view-toggle {
+        display: flex;
+        gap: 8px;
+        margin-top: 16px;
+    }
+
+    .view-btn {
+        padding: 10px 16px;
+        border: 2px solid #e0e0e0;
+        background: white;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .view-btn:hover {
+        border-color: #0984e3;
+    }
+
+    .view-btn.active {
+        background: #0984e3;
+        color: white;
+        border-color: #0984e3;
+    }
+
+    .view-container {
+        display: none;
+    }
+
+    .view-container.active {
+        display: block;
+    }
+
+    /* Cards Grid */
+    .menu-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 16px;
+    }
+
+    .menu-card {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        border-top: 4px solid;
+    }
+
+    .menu-card:nth-child(5n+1) { border-top-color: #ff6b6b; }
+    .menu-card:nth-child(5n+2) { border-top-color: #ffd93d; }
+    .menu-card:nth-child(5n+3) { border-top-color: #6bcb77; }
+    .menu-card:nth-child(5n+4) { border-top-color: #4d96ff; }
+    .menu-card:nth-child(5n+5) { border-top-color: #9b59b6; }
+
+    .menu-card-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #2d3436;
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .menu-card-badge {
+        font-size: 10px;
+        background: #f1f2f6;
+        padding: 4px 8px;
+        border-radius: 6px;
+        color: #636e72;
+    }
+
+    .menu-card-content {
+        font-size: 13px;
+        color: #636e72;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    /* Table View */
+    .menu-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .menu-table th {
+        text-align: left;
+        padding: 12px;
+        background: #f8f9fa;
+        font-size: 13px;
+        font-weight: 600;
+        color: #2d3436;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .menu-table td {
+        padding: 12px;
+        border-bottom: 1px solid #f1f2f6;
+        font-size: 13px;
+        vertical-align: top;
+    }
+
+    .menu-table tr:hover {
+        background: #f8f9fa;
+    }
+
+    .table-restaurant {
+        font-weight: 600;
+        color: #2d3436;
+        white-space: nowrap;
+    }
+
+    .table-menu {
+        color: #636e72;
+        max-width: 500px;
+        white-space: pre-wrap;
+        max-height: 150px;
+        overflow-y: auto;
+    }
+
+    .table-source {
+        font-size: 11px;
+        color: #b2bec3;
+    }
+
+    /* Compact View */
+    .compact-item {
+        padding: 16px 0;
+        border-bottom: 1px solid #f1f2f6;
+    }
+
+    .compact-item:last-child {
+        border-bottom: none;
+    }
+
+    .compact-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .compact-name {
+        font-weight: 600;
+        color: #2d3436;
+        font-size: 14px;
+    }
+
+    .compact-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+    }
+
+    .compact-item:nth-child(5n+1) .compact-dot { background: #ff6b6b; }
+    .compact-item:nth-child(5n+2) .compact-dot { background: #ffd93d; }
+    .compact-item:nth-child(5n+3) .compact-dot { background: #6bcb77; }
+    .compact-item:nth-child(5n+4) .compact-dot { background: #4d96ff; }
+    .compact-item:nth-child(5n+5) .compact-dot { background: #9b59b6; }
+
+    .compact-preview {
+        font-size: 13px;
+        color: #636e72;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .compact-expand {
+        font-size: 12px;
+        color: #0984e3;
+        cursor: pointer;
+        margin-top: 8px;
+    }
+
+    .compact-full {
+        display: none;
+        margin-top: 12px;
+        padding: 12px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        font-size: 13px;
+        color: #636e72;
+        white-space: pre-wrap;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .compact-item.expanded .compact-full {
+        display: block;
+    }
+
+    .compact-item.expanded .compact-preview {
+        display: none;
+    }
+
+    @media (max-width: 600px) {
+        .menu-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .view-toggle {
+            flex-wrap: wrap;
+        }
+
+        .menu-table {
+            font-size: 12px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const menuGrid = document.getElementById('menuGrid');
+    const menuTable = document.getElementById('menuTable').querySelector('tbody');
+    const compactList = document.getElementById('compactList');
+    const loading = document.getElementById('loading');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const emptyState = document.getElementById('emptyState');
+
+    // View switching
+    document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(btn.dataset.view + 'View').classList.add('active');
+        });
+    });
+
+    async function loadMenus() {
+        refreshBtn.disabled = true;
+        loading.style.display = 'block';
+        menuGrid.innerHTML = '';
+        menuTable.innerHTML = '';
+        compactList.innerHTML = '';
+        emptyState.style.display = 'none';
+
+        try {
+            const urlsResponse = await fetch('/api/urls');
+            const urls = await urlsResponse.json();
+
+            if (urls.length === 0) {
+                emptyState.style.display = 'block';
+                loading.style.display = 'none';
+                refreshBtn.disabled = false;
+                return;
+            }
+
+            const response = await fetch('/api/menus');
+            const menus = await response.json();
+
+            // Cards View
+            menuGrid.innerHTML = menus.map(menu => `
+                <div class="menu-card">
+                    <div class="menu-card-title">
+                        ${escapeHtml(menu.name)}
+                        <span class="menu-card-badge">${menu.source ? escapeHtml(menu.source.substring(0, 15)) : 'HTML'}</span>
+                    </div>
+                    <div class="menu-card-content">${escapeHtml(menu.menu)}</div>
+                </div>
+            `).join('');
+
+            // Table View
+            menuTable.innerHTML = menus.map(menu => `
+                <tr>
+                    <td class="table-restaurant">${escapeHtml(menu.name)}</td>
+                    <td class="table-menu">${escapeHtml(menu.menu)}</td>
+                    <td class="table-source">${menu.source ? escapeHtml(menu.source.substring(0, 20)) : '-'}</td>
+                </tr>
+            `).join('');
+
+            // Compact View
+            compactList.innerHTML = menus.map((menu, i) => `
+                <div class="compact-item" onclick="this.classList.toggle('expanded')">
+                    <div class="compact-header">
+                        <span class="compact-name"><span class="compact-dot"></span>${escapeHtml(menu.name)}</span>
+                    </div>
+                    <div class="compact-preview">${escapeHtml(getPreview(menu.menu))}</div>
+                    <div class="compact-expand">Klicka för att visa mer ▼</div>
+                    <div class="compact-full">${escapeHtml(menu.menu)}</div>
+                </div>
+            `).join('');
+
+        } catch (error) {
+            menuGrid.innerHTML = '<div class="error">Kunde inte hämta menyer</div>';
+        }
+
+        loading.style.display = 'none';
+        refreshBtn.disabled = false;
+    }
+
+    function getPreview(text) {
+        const lines = text.split('\n').filter(l => l.trim());
+        return lines.slice(0, 3).join(' • ');
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    loadMenus();
+</script>
+{% endblock %}
