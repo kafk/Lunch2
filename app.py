@@ -213,8 +213,14 @@ def format_menu_text(text):
         'Hitta till oss', 'Hitta hit', 'Se hela menyn',
         'Vår Meny', 'Add Your Heading', 'Lorem ipsum',
         'Fina Råvaror', 'Kville Saluhall', 'Gustaf Dalénsgatan',
-        'Dagens Lunch V.'
+        'Dagens Lunch V.', 'Tema av', 'Colorlib', 'drivs med', 'WordPress',
+        'catering@', '@bistrot', '@gmail', '@hotmail'
     ]
+
+    # "Adress" som egen rad (inte som del av annat ord)
+    adress_match = re.search(r'\n\s*Adress\s*\n', text, re.IGNORECASE)
+    if adress_match and adress_match.start() > 100:
+        text = text[:adress_match.start()]
     for marker in footer_markers:
         # Case-insensitive sökning
         pattern = re.compile(re.escape(marker), re.IGNORECASE)
