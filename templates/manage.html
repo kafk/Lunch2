@@ -143,7 +143,14 @@
                     </svg>
                     Alternativa vyer
                 </a>
+                <button class="action-btn" id="cleanupBtn" onclick="cleanupDuplicates()" style="border: none; cursor: pointer; width: 100%; text-align: left;">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                    </svg>
+                    Ta bort dubbletter
+                </button>
             </div>
+            <div id="cleanupMessage" style="margin-top: 12px;"></div>
         </div>
     </div>
 </div>
@@ -520,6 +527,65 @@
         } catch (error) {
             console.error('Could not load storage info:', error);
         }
+    }
+
+    async function cleanupDuplicates() {
+        const cleanupBtn = document.getElementById('cleanupBtn');
+        const cleanupMessage = document.getElementById('cleanupMessage');
+
+        cleanupBtn.disabled = true;
+        cleanupBtn.innerHTML = `
+            <div class="spinner" style="width: 18px; height: 18px;"></div>
+            Rensar...
+        `;
+
+        try {
+            const response = await fetch('/api/cleanup', { method: 'POST' });
+            const result = await response.json();
+
+            if (response.ok) {
+                cleanupMessage.innerHTML = `
+                    <div class="success-msg">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        ${result.duplicates_removed} dubbletter borttagna. ${result.unique_urls} unika kvar.
+                    </div>
+                `;
+                loadUrls();
+            } else {
+                cleanupMessage.innerHTML = `
+                    <div class="error-msg">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M15 9l-6 6M9 9l6 6"/>
+                        </svg>
+                        ${result.error || 'Kunde inte rensa dubbletter'}
+                    </div>
+                `;
+            }
+        } catch (error) {
+            cleanupMessage.innerHTML = `
+                <div class="error-msg">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M15 9l-6 6M9 9l6 6"/>
+                    </svg>
+                    Något gick fel
+                </div>
+            `;
+        }
+
+        cleanupBtn.disabled = false;
+        cleanupBtn.innerHTML = `
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+            </svg>
+            Ta bort dubbletter
+        `;
+
+        setTimeout(() => { cleanupMessage.innerHTML = ''; }, 5000);
     }
 
     loadUrls();

@@ -96,15 +96,22 @@ def load_urls():
                 with open(URLS_FILE, 'r', encoding='utf-8') as f:
                     local_urls = json.load(f)
                     if local_urls:
-                        # Migrate to Firestore
+                        # Migrate to Firestore - check for duplicates
+                        migrated = []
                         for url_data in local_urls:
-                            db.collection(COLLECTION_NAME).add({
-                                'url': url_data['url'],
-                                'name': url_data['name'],
-                                'created_at': firestore.SERVER_TIMESTAMP
-                            })
-                        print(f"Migrated {len(local_urls)} URLs to Firestore")
-                        return local_urls
+                            # Check if URL already exists
+                            existing = db.collection(COLLECTION_NAME).where('url', '==', url_data['url']).limit(1).get()
+                            if not list(existing):
+                                doc_ref = db.collection(COLLECTION_NAME).add({
+                                    'url': url_data['url'],
+                                    'name': url_data['name'],
+                                    'created_at': firestore.SERVER_TIMESTAMP
+                                })
+                                migrated.append(url_data)
+                        if migrated:
+                            print(f"Migrated {len(migrated)} URLs to Firestore")
+                        # Re-fetch to get proper IDs
+                        return load_urls()
             return []
         except Exception as e:
             print(f"Firebase error, falling back to local file: {e}")
@@ -569,6 +576,36 @@ def delete_url(index):
 def get_storage():
     """Returnera information om lagring."""
     return jsonify(get_storage_info())
+
+@app.route('/api/cleanup', methods=['POST'])
+def cleanup_duplicates():
+    """Ta bort dubbletter från Firestore."""
+    if not db:
+        return jsonify({'error': 'Firebase not enabled'}), 400
+
+    try:
+        docs = db.collection(COLLECTION_NAME).stream()
+        seen_urls = {}
+        duplicates_removed = 0
+
+        for doc in docs:
+            data = doc.to_dict()
+            url = data.get('url', '')
+
+            if url in seen_urls:
+                # This is a duplicate - delete it
+                db.collection(COLLECTION_NAME).document(doc.id).delete()
+                duplicates_removed += 1
+            else:
+                seen_urls[url] = doc.id
+
+        return jsonify({
+            'success': True,
+            'duplicates_removed': duplicates_removed,
+            'unique_urls': len(seen_urls)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/menus', methods=['GET'])
 def get_menus():
