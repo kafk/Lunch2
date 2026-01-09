@@ -224,13 +224,13 @@ def format_menu_text(text):
 
     # Ta bort vanliga navigationsord (hela rader som bara innehåller dessa)
     nav_words = [
-        'MENY', 'MENU', 'EVENTS', 'CATERING', 'GALLERI', 'GALLERY',
+        'MENY', 'MENU', 'EVENTS', 'EVENT', 'CATERING', 'GALLERI', 'GALLERY',
         'BOKA BORD', 'BOOK', 'BOOKING', 'OM OSS', 'ABOUT', 'ABOUT US',
         'KONTAKT', 'CONTACT', 'HEM', 'HOME', 'NYHETER', 'NEWS',
         'ÖPPETTIDER', 'HITTA HIT', 'FIND US', 'PRESENTKORT', 'GIFT CARD',
-        'LUNCH', 'THE GRILL', 'INSTAGRAM', 'FACEBOOK', 'FÖLJ OSS',
+        'LUNCH', 'LUNCHMENY', 'THE GRILL', 'INSTAGRAM', 'FACEBOOK', 'FÖLJ OSS',
         'ITALIAN CUISINE', 'PIZZA & PASTA', 'VÄLKOMMEN', 'DAGENS LUNCH',
-        'BOKNING', 'FOODORA', '<', '>'
+        'BOKNING', 'FOODORA', '<', '>', 'SÖK', 'WEBBPLATSSÖK', 'SÖK EFTER:'
     ]
 
     lines = text.split('\n')
@@ -241,6 +241,11 @@ def format_menu_text(text):
         if stripped not in nav_words:
             filtered_lines.append(line)
     text = '\n'.join(filtered_lines)
+
+    # Om vi hittar "Meny vecka X" - klipp bort allt innan (tar bort nav-skräp)
+    menu_week_match = re.search(r'(Meny vecka \d+)', text, re.IGNORECASE)
+    if menu_week_match:
+        text = text[menu_week_match.start():]
 
     # Veckodagar - lägg till radbrytning före
     weekdays = ['MÅNDAG', 'TISDAG', 'ONSDAG', 'TORSDAG', 'FREDAG', 'LÖRDAG', 'SÖNDAG']
