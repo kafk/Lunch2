@@ -1,30 +1,123 @@
 {% extends "base.html" %}
 
-{% block title %}Dagens Lunch{% endblock %}
+{% block title %}Lunch Monitor{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="card-header">
-        <h2 class="card-title">Dagens Menyer</h2>
-        <button class="btn" id="refreshBtn" onclick="loadMenus()">
-            🔄 Uppdatera
-        </button>
+<!-- Header -->
+<div class="header">
+    <div class="header-left">
+        <div class="header-info">
+            <div class="location">
+                <span class="location-icon"></span>
+                <span>Göteborg, Sweden</span>
+            </div>
+            <h1 class="header-temp" id="restaurantCount">-</h1>
+            <div class="header-weather">
+                <span>🍽️ Restauranger</span>
+            </div>
+        </div>
     </div>
-    <p id="lastUpdate" style="font-size: 12px; color: #b2bec3; margin-bottom: 16px;"></p>
+    <div class="header-right">
+        <span class="date-time" id="currentDateTime"></span>
+        <div class="alert-badge" id="alertBadge" style="display: none;">
+            <span>⚠️</span>
+            <span id="alertCount">0 Varningar</span>
+        </div>
+    </div>
 </div>
 
-<div class="loading" id="loading">
-    <div class="spinner"></div>
-    <p class="loading-text">Hämtar lunchmenyer...</p>
+<!-- Stats Row -->
+<div class="stats-row" id="statsRow">
+    <div class="stat-card highlight">
+        <div class="stat-icon">📊</div>
+        <div class="stat-label">Lyckade</div>
+        <div class="stat-value" id="successCount">-</div>
+        <div class="stat-desc" id="successRate">Hämtar data...</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">📄</div>
+        <div class="stat-label">PDF-menyer</div>
+        <div class="stat-value" id="pdfCount">-</div>
+        <div class="stat-desc">Automatiskt extraherade</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">🌐</div>
+        <div class="stat-label">HTML-menyer</div>
+        <div class="stat-value" id="htmlCount">-</div>
+        <div class="stat-desc">Scrapade från webb</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">⏱️</div>
+        <div class="stat-label">Senast uppdaterad</div>
+        <div class="stat-value" id="lastUpdateTime" style="font-size: 20px;">--:--</div>
+        <div class="stat-desc" id="lastUpdateDate">-</div>
+    </div>
 </div>
 
-<div id="menuContainer"></div>
+<!-- Dashboard Grid -->
+<div class="dashboard-grid">
+    <!-- Main Menu List -->
+    <div class="main-area">
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Dagens Lunchmenyer</span>
+                <button class="btn btn-sm" id="refreshBtn" onclick="loadMenus()">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M23 4v6h-6M1 20v-6h6"/>
+                        <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+                    </svg>
+                    Uppdatera
+                </button>
+            </div>
 
-<div class="card" id="emptyState" style="display: none;">
-    <div class="empty-state">
-        <div class="empty-state-icon">🍽️</div>
-        <h3 style="margin-bottom: 8px; color: #2d3436;">Inga restauranger</h3>
-        <p>Lägg till restauranger under <a href="/manage" style="color: #0984e3;">Hantera</a></p>
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p class="loading-text">Hämtar lunchmenyer...</p>
+            </div>
+
+            <div class="menu-list" id="menuContainer"></div>
+
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <div class="empty-state-icon">🍽️</div>
+                <h3 style="margin-bottom: 8px; color: #374151;">Inga restauranger</h3>
+                <p>Lägg till restauranger under <a href="/manage" style="color: #22c55e;">Hantera</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Side Panel -->
+    <div class="side-area">
+        <!-- Restaurant List -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Restauranger</span>
+                <a href="/manage" class="card-icon" title="Hantera">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M9 18l6-6-6-6"/>
+                    </svg>
+                </a>
+            </div>
+            <div class="device-list" id="restaurantList">
+                <div class="loading-text" style="text-align: center; padding: 20px;">Laddar...</div>
+            </div>
+        </div>
+
+        <!-- Status Overview -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Status</span>
+            </div>
+            <div class="progress-container">
+                <div class="progress-header">
+                    <span class="progress-label" id="progressPercent">0%</span>
+                    <span class="progress-count" id="progressCount">0/0 Klar</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="task-list" id="statusList"></div>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -35,7 +128,19 @@
     const loading = document.getElementById('loading');
     const refreshBtn = document.getElementById('refreshBtn');
     const emptyState = document.getElementById('emptyState');
-    const lastUpdate = document.getElementById('lastUpdate');
+    const restaurantList = document.getElementById('restaurantList');
+    const statusList = document.getElementById('statusList');
+
+    // Update date/time
+    function updateDateTime() {
+        const now = new Date();
+        const options = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
+        const dateStr = now.toLocaleDateString('sv-SE', options);
+        const timeStr = now.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('currentDateTime').textContent = `${dateStr}    ${timeStr}`;
+    }
+    updateDateTime();
+    setInterval(updateDateTime, 60000);
 
     async function loadMenus() {
         refreshBtn.disabled = true;
@@ -47,41 +152,110 @@
             const urlsResponse = await fetch('/api/urls');
             const urls = await urlsResponse.json();
 
+            document.getElementById('restaurantCount').textContent = urls.length;
+
             if (urls.length === 0) {
                 emptyState.style.display = 'block';
                 loading.style.display = 'none';
                 refreshBtn.disabled = false;
+                updateStats([], urls);
                 return;
             }
+
+            // Show restaurant list
+            restaurantList.innerHTML = urls.map((url, i) => `
+                <div class="device-item">
+                    <div class="device-icon">🍴</div>
+                    <div class="device-info">
+                        <div class="device-name">${escapeHtml(url.name)}</div>
+                        <div class="device-meta">${escapeHtml(new URL(url.url).hostname)}</div>
+                    </div>
+                    <span class="device-status" id="status-${i}">...</span>
+                </div>
+            `).join('');
 
             const response = await fetch('/api/menus');
             const menus = await response.json();
 
-            menuContainer.innerHTML = menus.map(menu => `
-                <div class="card">
+            menuContainer.innerHTML = menus.map((menu, i) => {
+                const isPdf = menu.source && menu.source.toLowerCase().includes('pdf');
+                const statusEl = document.getElementById(`status-${i}`);
+                if (statusEl) {
+                    statusEl.className = `device-status ${menu.success ? 'online' : 'issue'}`;
+                    statusEl.textContent = menu.success ? 'OK' : 'Fel';
+                }
+
+                return `
                     <div class="menu-item">
                         <div class="menu-item-header">
                             <span class="menu-item-name">${escapeHtml(menu.name)}</span>
-                            ${menu.source ? `<span class="menu-item-source">${escapeHtml(menu.source.substring(0, 30))}</span>` : ''}
+                            <span class="menu-item-badge ${isPdf ? 'pdf' : 'html'}">${isPdf ? 'PDF' : 'HTML'}</span>
                         </div>
-                        <div class="menu-item-content ${menu.success ? '' : 'error'}">${escapeHtml(menu.menu)}</div>
-                        <div class="menu-item-time">
-                            <span>🕐</span>
-                            <span>${menu.scraped_at}</span>
-                            <span style="margin-left: 8px;">•</span>
-                            <a href="${escapeHtml(menu.url)}" target="_blank" style="color: #0984e3; margin-left: 8px;">Besök sidan →</a>
+                        <div class="menu-item-content">${escapeHtml(menu.menu)}</div>
+                        <div class="menu-item-footer">
+                            <span class="menu-item-time">${menu.scraped_at}</span>
+                            <div class="menu-item-status">
+                                <span class="status-dot ${menu.success ? 'success' : 'error'}"></span>
+                                <a href="${escapeHtml(menu.url)}" target="_blank" style="color: #22c55e;">Besök →</a>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
 
-            lastUpdate.textContent = `Senast uppdaterad: ${new Date().toLocaleTimeString('sv-SE')}`;
+            updateStats(menus, urls);
+
         } catch (error) {
-            menuContainer.innerHTML = '<div class="card"><div class="error">Kunde inte hämta menyer. Försök igen.</div></div>';
+            menuContainer.innerHTML = '<div class="error-msg">Kunde inte hämta menyer. Försök igen.</div>';
         }
 
         loading.style.display = 'none';
         refreshBtn.disabled = false;
+    }
+
+    function updateStats(menus, urls) {
+        const total = urls.length;
+        const successful = menus.filter(m => m.success).length;
+        const failed = total - successful;
+        const pdfs = menus.filter(m => m.source && m.source.toLowerCase().includes('pdf')).length;
+        const htmls = successful - pdfs;
+
+        document.getElementById('successCount').textContent = successful;
+        document.getElementById('successRate').textContent = total > 0 ? `${Math.round(successful/total*100)}% framgång` : 'Inga data';
+        document.getElementById('pdfCount').textContent = pdfs;
+        document.getElementById('htmlCount').textContent = htmls;
+
+        const now = new Date();
+        document.getElementById('lastUpdateTime').textContent = now.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('lastUpdateDate').textContent = now.toLocaleDateString('sv-SE');
+
+        // Progress
+        const percent = total > 0 ? Math.round(successful/total*100) : 0;
+        document.getElementById('progressPercent').textContent = percent + '%';
+        document.getElementById('progressCount').textContent = `${successful}/${total} Klar`;
+        document.getElementById('progressFill').style.width = percent + '%';
+
+        // Alerts
+        if (failed > 0) {
+            document.getElementById('alertBadge').style.display = 'flex';
+            document.getElementById('alertCount').textContent = `${failed} Varning${failed > 1 ? 'ar' : ''}`;
+        } else {
+            document.getElementById('alertBadge').style.display = 'none';
+        }
+
+        // Status list
+        statusList.innerHTML = menus.map(menu => `
+            <div class="task-item">
+                <div class="task-check ${menu.success ? 'done' : ''}">
+                    ${menu.success ? '✓' : ''}
+                </div>
+                <div class="task-content">
+                    <div class="task-title">${escapeHtml(menu.name)}</div>
+                    <div class="task-desc">${menu.success ? 'Meny hämtad' : 'Kunde inte hämta'}</div>
+                    <div class="task-time">${menu.scraped_at}</div>
+                </div>
+            </div>
+        `).join('');
     }
 
     function escapeHtml(text) {

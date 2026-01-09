@@ -1,22 +1,68 @@
 {% extends "base.html" %}
 
-{% block title %}Kompakt Vy{% endblock %}
+{% block title %}Vyer - Lunch Monitor{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="card-header">
-        <h2 class="card-title">Lunchöversikt</h2>
+<!-- Header -->
+<div class="header">
+    <div class="header-left">
+        <div class="header-info">
+            <div class="location">
+                <span class="location-icon"></span>
+                <span>Alternativa Vyer</span>
+            </div>
+            <h1 class="header-temp" style="font-size: 32px;">Lunchöversikt</h1>
+        </div>
+    </div>
+    <div class="header-right">
+        <span class="date-time" id="currentDateTime"></span>
         <button class="btn" id="refreshBtn" onclick="loadMenus()">
-            🔄 Uppdatera
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M23 4v6h-6M1 20v-6h6"/>
+                <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+            </svg>
+            Uppdatera
         </button>
     </div>
+</div>
 
-    <!-- View Toggle -->
+<!-- View Toggle -->
+<div class="card" style="margin-bottom: 20px;">
     <div class="view-toggle">
-        <button class="view-btn active" data-view="cards">🃏 Kort</button>
-        <button class="view-btn" data-view="status">📋 Status</button>
-        <button class="view-btn" data-view="table">📊 Tabell</button>
-        <button class="view-btn" data-view="compact">📑 Kompakt</button>
+        <button class="view-btn active" data-view="cards">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <rect x="3" y="3" width="7" height="7"/>
+                <rect x="14" y="3" width="7" height="7"/>
+                <rect x="14" y="14" width="7" height="7"/>
+                <rect x="3" y="14" width="7" height="7"/>
+            </svg>
+            Kort
+        </button>
+        <button class="view-btn" data-view="status">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M9 11l3 3L22 4"/>
+                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+            </svg>
+            Status
+        </button>
+        <button class="view-btn" data-view="table">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <path d="M3 9h18M9 21V9"/>
+            </svg>
+            Tabell
+        </button>
+        <button class="view-btn" data-view="compact">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <line x1="8" y1="6" x2="21" y2="6"/>
+                <line x1="8" y1="12" x2="21" y2="12"/>
+                <line x1="8" y1="18" x2="21" y2="18"/>
+                <line x1="3" y1="6" x2="3.01" y2="6"/>
+                <line x1="3" y1="12" x2="3.01" y2="12"/>
+                <line x1="3" y1="18" x2="3.01" y2="18"/>
+            </svg>
+            Kompakt
+        </button>
     </div>
 </div>
 
@@ -34,7 +80,13 @@
 <div id="statusView" class="view-container">
     <div class="card" style="padding: 0; overflow: hidden;">
         <div class="status-header">
-            <input type="text" class="status-search" placeholder="🔍 Sök restaurang..." id="statusSearch">
+            <div class="search-box">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="M21 21l-4.35-4.35"/>
+                </svg>
+                <input type="text" class="status-search" placeholder="Sök restaurang..." id="statusSearch">
+            </div>
         </div>
         <table class="status-table" id="statusTable">
             <thead>
@@ -54,7 +106,7 @@
 
 <!-- Table View -->
 <div id="tableView" class="view-container">
-    <div class="card">
+    <div class="card" style="padding: 0; overflow: hidden;">
         <table class="menu-table" id="menuTable">
             <thead>
                 <tr>
@@ -80,7 +132,11 @@
     <div class="modal-content">
         <div class="modal-header">
             <h3 id="modalTitle">Meny</h3>
-            <button class="modal-close" onclick="closeModal()">✕</button>
+            <button class="modal-close" onclick="closeModal()">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+            </button>
         </div>
         <div class="modal-body" id="modalBody"></div>
     </div>
@@ -89,38 +145,42 @@
 <div class="card" id="emptyState" style="display: none;">
     <div class="empty-state">
         <div class="empty-state-icon">🍽️</div>
-        <h3>Inga restauranger</h3>
-        <p>Lägg till restauranger under <a href="/manage">Hantera</a></p>
+        <h3 style="color: #374151; margin-bottom: 8px;">Inga restauranger</h3>
+        <p>Lägg till restauranger under <a href="/manage" style="color: #22c55e;">Hantera</a></p>
     </div>
 </div>
 
 <style>
     .view-toggle {
         display: flex;
-        gap: 8px;
-        margin-top: 16px;
+        gap: 10px;
         flex-wrap: wrap;
     }
 
     .view-btn {
-        padding: 10px 16px;
-        border: 2px solid #e0e0e0;
+        padding: 10px 18px;
+        border: 1px solid #e5e7eb;
         background: white;
         border-radius: 10px;
         cursor: pointer;
         font-size: 13px;
         font-weight: 500;
         transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #6b7280;
     }
 
     .view-btn:hover {
-        border-color: #0984e3;
+        border-color: #22c55e;
+        color: #22c55e;
     }
 
     .view-btn.active {
-        background: #0984e3;
+        background: #22c55e;
         color: white;
-        border-color: #0984e3;
+        border-color: #22c55e;
     }
 
     .view-container {
@@ -134,28 +194,32 @@
     /* Cards Grid */
     .menu-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 16px;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 20px;
     }
 
     .menu-card {
         background: white;
         border-radius: 16px;
         padding: 20px;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-        border-top: 4px solid;
+        border: 1px solid #f0f0f0;
+        border-left: 4px solid #22c55e;
+        transition: all 0.2s;
     }
 
-    .menu-card:nth-child(5n+1) { border-top-color: #ff6b6b; }
-    .menu-card:nth-child(5n+2) { border-top-color: #ffd93d; }
-    .menu-card:nth-child(5n+3) { border-top-color: #6bcb77; }
-    .menu-card:nth-child(5n+4) { border-top-color: #4d96ff; }
-    .menu-card:nth-child(5n+5) { border-top-color: #9b59b6; }
+    .menu-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .menu-card:nth-child(5n+2) { border-left-color: #eab308; }
+    .menu-card:nth-child(5n+3) { border-left-color: #3b82f6; }
+    .menu-card:nth-child(5n+4) { border-left-color: #8b5cf6; }
+    .menu-card:nth-child(5n+5) { border-left-color: #ec4899; }
 
     .menu-card-title {
-        font-size: 16px;
+        font-size: 15px;
         font-weight: 600;
-        color: #2d3436;
+        color: #1f2937;
         margin-bottom: 12px;
         display: flex;
         justify-content: space-between;
@@ -163,17 +227,26 @@
     }
 
     .menu-card-badge {
-        font-size: 10px;
-        background: #f1f2f6;
-        padding: 4px 8px;
+        font-size: 11px;
+        padding: 4px 10px;
         border-radius: 6px;
-        color: #636e72;
+        font-weight: 500;
+    }
+
+    .menu-card-badge.pdf {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .menu-card-badge.html {
+        background: #f3e8ff;
+        color: #7c3aed;
     }
 
     .menu-card-content {
         font-size: 13px;
-        color: #636e72;
-        line-height: 1.5;
+        color: #6b7280;
+        line-height: 1.6;
         white-space: pre-wrap;
         max-height: 200px;
         overflow-y: auto;
@@ -182,24 +255,35 @@
     /* Status Table (Order-style) */
     .status-header {
         padding: 16px 20px;
-        border-bottom: 1px solid #f1f2f6;
+        border-bottom: 1px solid #f0f0f0;
+        background: #f9fafb;
+    }
+
+    .search-box {
         display: flex;
-        gap: 12px;
         align-items: center;
+        gap: 10px;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 0 14px;
+        max-width: 300px;
+    }
+
+    .search-box svg {
+        color: #9ca3af;
     }
 
     .status-search {
         flex: 1;
-        padding: 10px 14px;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        font-size: 13px;
-        max-width: 300px;
+        padding: 12px 0;
+        border: none;
+        font-size: 14px;
+        background: transparent;
     }
 
     .status-search:focus {
         outline: none;
-        border-color: #0984e3;
     }
 
     .status-table {
@@ -212,22 +296,22 @@
         padding: 14px 20px;
         font-size: 12px;
         font-weight: 600;
-        color: #636e72;
+        color: #6b7280;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        border-bottom: 1px solid #f1f2f6;
-        background: #fafbfc;
+        border-bottom: 1px solid #f0f0f0;
+        background: #f9fafb;
     }
 
     .status-table td {
         padding: 16px 20px;
-        border-bottom: 1px solid #f1f2f6;
-        font-size: 13px;
-        color: #2d3436;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 14px;
+        color: #374151;
     }
 
     .status-table tr:hover {
-        background: #fafbfc;
+        background: #f9fafb;
     }
 
     .status-table tr:last-child td {
@@ -235,8 +319,9 @@
     }
 
     .status-id {
-        color: #636e72;
+        color: #9ca3af;
         font-weight: 500;
+        font-family: monospace;
     }
 
     .status-name {
@@ -244,55 +329,56 @@
     }
 
     .status-badge {
-        display: inline-block;
-        padding: 4px 10px;
-        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 12px;
+        border-radius: 20px;
         font-size: 12px;
         font-weight: 500;
     }
 
     .badge-success {
-        background: #e8f5e9;
-        color: #2e7d32;
-    }
-
-    .badge-pending {
-        background: #fff8e1;
-        color: #f57c00;
+        background: #dcfce7;
+        color: #16a34a;
     }
 
     .badge-error {
-        background: #ffebee;
-        color: #c62828;
+        background: #fee2e2;
+        color: #dc2626;
     }
 
     .badge-pdf {
-        background: #e3f2fd;
-        color: #1565c0;
+        background: #dbeafe;
+        color: #1d4ed8;
     }
 
     .badge-html {
-        background: #f3e5f5;
-        color: #7b1fa2;
+        background: #f3e8ff;
+        color: #7c3aed;
     }
 
     .status-time {
-        color: #0984e3;
+        color: #6b7280;
         font-size: 13px;
     }
 
     .status-view-btn {
-        background: none;
+        background: #f3f4f6;
         border: none;
-        color: #636e72;
+        color: #6b7280;
         cursor: pointer;
-        padding: 6px;
-        font-size: 16px;
-        transition: color 0.2s;
+        padding: 8px 14px;
+        font-size: 13px;
+        border-radius: 8px;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
     }
 
     .status-view-btn:hover {
-        color: #0984e3;
+        background: #22c55e;
+        color: white;
     }
 
     /* Modal */
@@ -303,10 +389,11 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0,0,0,0.5);
+        background: rgba(0,0,0,0.4);
         z-index: 1000;
         align-items: center;
         justify-content: center;
+        backdrop-filter: blur(4px);
     }
 
     .modal.active {
@@ -320,12 +407,12 @@
         width: 90%;
         max-height: 80vh;
         overflow: hidden;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        box-shadow: 0 20px 60px rgba(0,0,0,0.2);
     }
 
     .modal-header {
         padding: 20px;
-        border-bottom: 1px solid #f1f2f6;
+        border-bottom: 1px solid #f0f0f0;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -334,21 +421,26 @@
     .modal-header h3 {
         margin: 0;
         font-size: 18px;
-        color: #2d3436;
+        font-weight: 600;
+        color: #1f2937;
     }
 
     .modal-close {
-        background: none;
+        background: #f3f4f6;
         border: none;
-        font-size: 20px;
         cursor: pointer;
-        color: #636e72;
-        padding: 4px 8px;
-        border-radius: 6px;
+        color: #6b7280;
+        padding: 8px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
     }
 
     .modal-close:hover {
-        background: #f1f2f6;
+        background: #e5e7eb;
+        color: #374151;
     }
 
     .modal-body {
@@ -356,9 +448,9 @@
         max-height: 60vh;
         overflow-y: auto;
         font-size: 14px;
-        line-height: 1.6;
+        line-height: 1.7;
         white-space: pre-wrap;
-        color: #636e72;
+        color: #6b7280;
     }
 
     /* Table View */
@@ -369,49 +461,59 @@
 
     .menu-table th {
         text-align: left;
-        padding: 12px;
-        background: #f8f9fa;
-        font-size: 13px;
+        padding: 14px 20px;
+        background: #f9fafb;
+        font-size: 12px;
         font-weight: 600;
-        color: #2d3436;
-        border-bottom: 2px solid #e0e0e0;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid #f0f0f0;
     }
 
     .menu-table td {
-        padding: 12px;
-        border-bottom: 1px solid #f1f2f6;
-        font-size: 13px;
+        padding: 16px 20px;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 14px;
         vertical-align: top;
     }
 
     .menu-table tr:hover {
-        background: #f8f9fa;
+        background: #f9fafb;
     }
 
     .table-restaurant {
         font-weight: 600;
-        color: #2d3436;
+        color: #1f2937;
         white-space: nowrap;
     }
 
     .table-menu {
-        color: #636e72;
+        color: #6b7280;
         max-width: 500px;
         white-space: pre-wrap;
         max-height: 150px;
         overflow-y: auto;
+        line-height: 1.6;
     }
 
     .table-source {
-        font-size: 11px;
-        color: #b2bec3;
+        font-size: 12px;
+        color: #9ca3af;
     }
 
     /* Compact View */
     .compact-item {
         padding: 16px 0;
-        border-bottom: 1px solid #f1f2f6;
+        border-bottom: 1px solid #f0f0f0;
         cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .compact-item:hover {
+        background: #f9fafb;
+        margin: 0 -20px;
+        padding: 16px 20px;
     }
 
     .compact-item:last-child {
@@ -427,8 +529,10 @@
 
     .compact-name {
         font-weight: 600;
-        color: #2d3436;
+        color: #1f2937;
         font-size: 14px;
+        display: flex;
+        align-items: center;
     }
 
     .compact-dot {
@@ -436,41 +540,48 @@
         height: 10px;
         border-radius: 50%;
         display: inline-block;
-        margin-right: 8px;
+        margin-right: 10px;
     }
 
-    .compact-item:nth-child(5n+1) .compact-dot { background: #ff6b6b; }
-    .compact-item:nth-child(5n+2) .compact-dot { background: #ffd93d; }
-    .compact-item:nth-child(5n+3) .compact-dot { background: #6bcb77; }
-    .compact-item:nth-child(5n+4) .compact-dot { background: #4d96ff; }
-    .compact-item:nth-child(5n+5) .compact-dot { background: #9b59b6; }
+    .compact-item:nth-child(5n+1) .compact-dot { background: #22c55e; }
+    .compact-item:nth-child(5n+2) .compact-dot { background: #eab308; }
+    .compact-item:nth-child(5n+3) .compact-dot { background: #3b82f6; }
+    .compact-item:nth-child(5n+4) .compact-dot { background: #8b5cf6; }
+    .compact-item:nth-child(5n+5) .compact-dot { background: #ec4899; }
 
     .compact-preview {
         font-size: 13px;
-        color: #636e72;
+        color: #6b7280;
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
+        margin-left: 20px;
     }
 
     .compact-expand {
         font-size: 12px;
-        color: #0984e3;
+        color: #22c55e;
         margin-top: 8px;
+        margin-left: 20px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
     }
 
     .compact-full {
         display: none;
         margin-top: 12px;
-        padding: 12px;
-        background: #f8f9fa;
-        border-radius: 8px;
+        margin-left: 20px;
+        padding: 16px;
+        background: #f9fafb;
+        border-radius: 10px;
         font-size: 13px;
-        color: #636e72;
+        color: #6b7280;
         white-space: pre-wrap;
         max-height: 300px;
         overflow-y: auto;
+        line-height: 1.6;
     }
 
     .compact-item.expanded .compact-full {
@@ -485,18 +596,26 @@
         display: none;
     }
 
-    @media (max-width: 600px) {
+    @media (max-width: 768px) {
         .menu-grid {
             grid-template-columns: 1fr;
         }
 
         .status-table th:nth-child(3),
-        .status-table td:nth-child(3) {
+        .status-table td:nth-child(3),
+        .status-table th:nth-child(5),
+        .status-table td:nth-child(5) {
             display: none;
         }
 
-        .menu-table {
-            font-size: 12px;
+        .view-toggle {
+            flex-wrap: wrap;
+        }
+
+        .view-btn {
+            flex: 1;
+            min-width: 100px;
+            justify-content: center;
         }
     }
 </style>
@@ -517,6 +636,17 @@
     const statusSearch = document.getElementById('statusSearch');
 
     let allMenus = [];
+
+    // Update date/time
+    function updateDateTime() {
+        const now = new Date();
+        const options = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
+        const dateStr = now.toLocaleDateString('sv-SE', options);
+        const timeStr = now.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('currentDateTime').textContent = `${dateStr}    ${timeStr}`;
+    }
+    updateDateTime();
+    setInterval(updateDateTime, 60000);
 
     // View switching
     document.querySelectorAll('.view-btn').forEach(btn => {
@@ -549,28 +679,42 @@
         if (e.target === modal) closeModal();
     });
 
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModal();
+    });
+
     function getSourceBadge(source) {
+        if (!source) return '<span class="menu-card-badge html">HTML</span>';
+        if (source.toLowerCase().includes('pdf')) return '<span class="menu-card-badge pdf">PDF</span>';
+        return '<span class="menu-card-badge html">HTML</span>';
+    }
+
+    function getStatusBadge(success) {
+        if (success) return '<span class="status-badge badge-success">✓ OK</span>';
+        return '<span class="status-badge badge-error">✕ Fel</span>';
+    }
+
+    function getSourceBadgeTable(source) {
         if (!source) return '<span class="status-badge badge-html">HTML</span>';
         if (source.toLowerCase().includes('pdf')) return '<span class="status-badge badge-pdf">PDF</span>';
         return '<span class="status-badge badge-html">HTML</span>';
     }
 
-    function getStatusBadge(success) {
-        if (success) return '<span class="status-badge badge-success">OK</span>';
-        return '<span class="status-badge badge-error">Fel</span>';
-    }
-
     function renderStatusTable(menus) {
         statusTable.innerHTML = menus.map((menu, i) => `
             <tr>
-                <td class="status-id">#${1000 + i}</td>
+                <td class="status-id">#${(1000 + i).toString().padStart(4, '0')}</td>
                 <td class="status-name">${escapeHtml(menu.name)}</td>
-                <td>${getSourceBadge(menu.source)}</td>
+                <td>${getSourceBadgeTable(menu.source)}</td>
                 <td>${getStatusBadge(menu.success)}</td>
                 <td class="status-time">${menu.scraped_at || '-'}</td>
                 <td>
-                    <button class="status-view-btn" onclick="openModal('${escapeHtml(menu.name)}', allMenus[${i}].menu)" title="Visa meny">
-                        👁️
+                    <button class="status-view-btn" onclick="openModal('${escapeHtml(menu.name)}', allMenus[${allMenus.indexOf(menu)}].menu)">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        Visa
                     </button>
                 </td>
             </tr>
@@ -601,15 +745,18 @@
             allMenus = await response.json();
 
             // Cards View
-            menuGrid.innerHTML = allMenus.map(menu => `
-                <div class="menu-card">
-                    <div class="menu-card-title">
-                        ${escapeHtml(menu.name)}
-                        <span class="menu-card-badge">${menu.source ? escapeHtml(menu.source.substring(0, 15)) : 'HTML'}</span>
+            menuGrid.innerHTML = allMenus.map(menu => {
+                const isPdf = menu.source && menu.source.toLowerCase().includes('pdf');
+                return `
+                    <div class="menu-card">
+                        <div class="menu-card-title">
+                            ${escapeHtml(menu.name)}
+                            <span class="menu-card-badge ${isPdf ? 'pdf' : 'html'}">${isPdf ? 'PDF' : 'HTML'}</span>
+                        </div>
+                        <div class="menu-card-content">${escapeHtml(menu.menu)}</div>
                     </div>
-                    <div class="menu-card-content">${escapeHtml(menu.menu)}</div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
 
             // Status Table
             renderStatusTable(allMenus);
@@ -619,7 +766,7 @@
                 <tr>
                     <td class="table-restaurant">${escapeHtml(menu.name)}</td>
                     <td class="table-menu">${escapeHtml(menu.menu)}</td>
-                    <td class="table-source">${menu.source ? escapeHtml(menu.source.substring(0, 20)) : '-'}</td>
+                    <td class="table-source">${menu.source ? escapeHtml(menu.source.substring(0, 25)) : '-'}</td>
                 </tr>
             `).join('');
 
@@ -630,13 +777,18 @@
                         <span class="compact-name"><span class="compact-dot"></span>${escapeHtml(menu.name)}</span>
                     </div>
                     <div class="compact-preview">${escapeHtml(getPreview(menu.menu))}</div>
-                    <div class="compact-expand">Klicka för att visa mer ▼</div>
+                    <div class="compact-expand">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M6 9l6 6 6-6"/>
+                        </svg>
+                        Visa mer
+                    </div>
                     <div class="compact-full">${escapeHtml(menu.menu)}</div>
                 </div>
             `).join('');
 
         } catch (error) {
-            menuGrid.innerHTML = '<div class="error">Kunde inte hämta menyer</div>';
+            menuGrid.innerHTML = '<div class="error-msg">Kunde inte hämta menyer</div>';
         }
 
         loading.style.display = 'none';
