@@ -559,7 +559,8 @@
             }
 
             const response = await fetch('/api/menus' + (forceRefresh ? '?refresh=true' : ''));
-            allMenus = await response.json();
+            const data = await response.json();
+            allMenus = data.menus || data;  // Support both new and old format
 
             // Cards View
             menuGrid.innerHTML = allMenus.map(menu => {
