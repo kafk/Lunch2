@@ -41,8 +41,16 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 32px;
+            margin-bottom: 8px;
             font-size: 20px;
+        }
+
+        .sidebar-version {
+            font-size: 9px;
+            color: #9ca3af;
+            text-align: center;
+            margin-bottom: 24px;
+            font-weight: 500;
         }
 
         .sidebar-nav {
@@ -738,15 +746,6 @@
             opacity: 0.5;
         }
 
-        /* Version */
-        .version {
-            text-align: center;
-            color: #9ca3af;
-            font-size: 11px;
-            margin-top: 24px;
-            padding: 10px;
-        }
-
         /* Responsive */
         @media (max-width: 1200px) {
             .dashboard-grid {
@@ -890,6 +889,7 @@
     <!-- Sidebar -->
     <nav class="sidebar">
         <div class="sidebar-logo">🍽️</div>
+        <div class="sidebar-version">v3.3.0</div>
         <div class="sidebar-nav">
             <a href="/" class="sidebar-link {% if request.endpoint == 'index' %}active{% endif %}" title="Lunch">
                 <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -926,8 +926,6 @@
     <!-- Main Content -->
     <main class="main-content">
         {% block content %}{% endblock %}
-
-        <div class="version">v3.3.0</div>
     </main>
 
     {% block scripts %}{% endblock %}
