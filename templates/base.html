@@ -950,7 +950,9 @@
 
     <!-- Sidebar -->
     <nav class="sidebar">
-        <div class="sidebar-logo">🍽️</div>
+        <div class="sidebar-logo">
+            <img src="{{ url_for('static', filename='lunch-icon.svg') }}" alt="Lunch" style="width: 24px; height: 24px; filter: brightness(0) invert(1);">
+        </div>
         <div class="sidebar-version">v{{ version }}</div>
         <div class="sidebar-nav">
             <a href="/" class="sidebar-link {% if request.endpoint == 'index' %}active{% endif %}" title="Lunch">

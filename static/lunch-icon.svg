@@ -1,0 +1,13 @@
+<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+  <!-- Plate (outer circle) -->
+  <circle cx="50" cy="50" r="30" />
+  <!-- Plate (inner circle) -->
+  <circle cx="50" cy="50" r="18" />
+  <!-- Fork (left side) -->
+  <path d="M20 25 L20 50 Q20 55 25 55 L25 75" />
+  <path d="M15 25 L15 38" />
+  <path d="M20 25 L20 38" />
+  <path d="M25 25 L25 38" />
+  <!-- Knife (right side) -->
+  <path d="M80 25 Q85 35 80 50 L80 55 Q80 55 75 55 L75 75" />
+</svg>
