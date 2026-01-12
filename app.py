@@ -18,7 +18,7 @@ except ImportError:
 
 app = Flask(__name__)
 
-VERSION = '3.4.9'
+VERSION = '3.4.10'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 
@@ -210,7 +210,10 @@ def get_cached_menus():
             if cache_doc.exists:
                 data = cache_doc.to_dict()
                 if data.get('date') == today:
-                    return data.get('menus', [])
+                    return {
+                        'menus': data.get('menus', []),
+                        'updated_at': data.get('updated_at')
+                    }
         except Exception as e:
             print(f"Cache read error: {e}")
     return None
@@ -824,7 +827,11 @@ def get_menus():
     # Save to cache
     save_menus_to_cache(menus)
 
-    return jsonify(menus)
+    # Return with timestamp
+    return jsonify({
+        'menus': menus,
+        'updated_at': datetime.now().isoformat()
+    })
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

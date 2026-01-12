@@ -161,7 +161,9 @@
             `).join('');
 
             const response = await fetch('/api/menus' + (forceRefresh ? '?refresh=true' : ''));
-            const menus = await response.json();
+            const data = await response.json();
+            const menus = data.menus || data;  // Support both new and old format
+            const updatedAt = data.updated_at;
 
             menuContainer.innerHTML = menus.map((menu, i) => {
                 const isPdf = menu.source && menu.source.toLowerCase().includes('pdf');
@@ -189,7 +191,7 @@
                 `;
             }).join('');
 
-            updateStats(menus, urls);
+            updateStats(menus, urls, updatedAt);
 
         } catch (error) {
             menuContainer.innerHTML = '<div class="error-msg">Kunde inte hämta menyer. Försök igen.</div>';
@@ -199,7 +201,7 @@
         refreshBtn.disabled = false;
     }
 
-    function updateStats(menus, urls) {
+    function updateStats(menus, urls, updatedAt) {
         const total = urls.length;
         const successful = menus.filter(m => m.success).length;
         const failed = total - successful;
@@ -211,9 +213,10 @@
         document.getElementById('pdfCount').textContent = pdfs;
         document.getElementById('htmlCount').textContent = htmls;
 
-        const now = new Date();
-        document.getElementById('lastUpdateTime').textContent = now.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
-        document.getElementById('lastUpdateDate').textContent = now.toLocaleDateString('sv-SE');
+        // Use the actual scraping timestamp, not page load time
+        const timestamp = updatedAt ? new Date(updatedAt) : new Date();
+        document.getElementById('lastUpdateTime').textContent = timestamp.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('lastUpdateDate').textContent = timestamp.toLocaleDateString('sv-SE');
 
         // Alerts
         if (failed > 0) {
