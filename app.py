@@ -18,6 +18,7 @@ except ImportError:
 
 app = Flask(__name__)
 
+VERSION = '3.4.1'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 
@@ -721,17 +722,17 @@ def scrape_url(url, name):
 @app.route('/')
 def index():
     """Huvudsida - visa lunchmenyer."""
-    return render_template('index.html')
+    return render_template('index.html', version=VERSION)
 
 @app.route('/manage')
 def manage():
     """Hantera URL:er."""
-    return render_template('manage.html')
+    return render_template('manage.html', version=VERSION)
 
 @app.route('/display')
 def display():
     """Alternativ vy för lunchmenyer."""
-    return render_template('display.html')
+    return render_template('display.html', version=VERSION)
 
 @app.route('/api/urls', methods=['GET'])
 def get_urls():
@@ -800,6 +801,11 @@ def toggle_url(index):
 def get_storage():
     """Returnera information om lagring."""
     return jsonify(get_storage_info())
+
+@app.route('/api/version', methods=['GET'])
+def get_version():
+    """Returnera aktuell version."""
+    return jsonify({'version': VERSION})
 
 @app.route('/api/cleanup', methods=['POST'])
 def cleanup_duplicates():

@@ -53,6 +53,58 @@
             font-weight: 500;
         }
 
+        .version-banner {
+            position: fixed;
+            top: 0;
+            left: 72px;
+            right: 0;
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #92400e;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .version-banner a {
+            color: #d97706;
+            font-weight: 600;
+            text-decoration: underline;
+        }
+
+        .version-banner a:hover {
+            color: #b45309;
+        }
+
+        .version-banner-close {
+            position: absolute;
+            right: 16px;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #92400e;
+            padding: 4px 8px;
+            line-height: 1;
+        }
+
+        .version-banner-close:hover {
+            color: #78350f;
+        }
+
+        @media (max-width: 768px) {
+            .version-banner {
+                left: 0;
+                font-size: 12px;
+                padding: 10px 40px 10px 16px;
+            }
+        }
+
         .sidebar-nav {
             display: flex;
             flex-direction: column;
@@ -886,10 +938,20 @@
     </style>
 </head>
 <body>
+    <!-- Version Update Banner -->
+    <div id="versionBanner" class="version-banner" style="display: none;">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 8v4M12 16h.01"/>
+        </svg>
+        <span>En ny version finns tillgänglig! <a href="javascript:location.reload(true)">Ladda om</a> för att uppdatera.</span>
+        <button onclick="dismissVersionBanner()" class="version-banner-close">&times;</button>
+    </div>
+
     <!-- Sidebar -->
     <nav class="sidebar">
         <div class="sidebar-logo">🍽️</div>
-        <div class="sidebar-version">v3.4.0</div>
+        <div class="sidebar-version">v{{ version }}</div>
         <div class="sidebar-nav">
             <a href="/" class="sidebar-link {% if request.endpoint == 'index' %}active{% endif %}" title="Lunch">
                 <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -929,5 +991,40 @@
     </main>
 
     {% block scripts %}{% endblock %}
+
+    <script>
+        // Version check
+        const currentVersion = '{{ version }}';
+
+        async function checkVersion() {
+            try {
+                const response = await fetch('/api/version');
+                const data = await response.json();
+                const serverVersion = data.version;
+
+                // Get stored version from localStorage
+                const storedVersion = localStorage.getItem('appVersion');
+
+                // If we have a stored version and it's different from server, show banner
+                if (storedVersion && storedVersion !== serverVersion) {
+                    document.getElementById('versionBanner').style.display = 'flex';
+                }
+
+                // Update stored version to current page version
+                localStorage.setItem('appVersion', currentVersion);
+            } catch (error) {
+                console.log('Version check failed:', error);
+            }
+        }
+
+        function dismissVersionBanner() {
+            document.getElementById('versionBanner').style.display = 'none';
+            // Update stored version to server version
+            localStorage.setItem('appVersion', currentVersion);
+        }
+
+        // Check version on page load
+        checkVersion();
+    </script>
 </body>
 </html>
