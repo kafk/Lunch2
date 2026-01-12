@@ -312,30 +312,36 @@ def format_menu_text(text):
         'Vi finns på', 'Besök oss', 'Välkommen till oss', 'Se karta',
         'Öppet idag', 'Stängt idag', 'Lunchservering', 'Köket stänger',
 
-        # Catering och beställningsrutiner
+        # Catering och beställningsrutiner (spirafood specifikt)
         'All prices ex vat', 'Alla priser exkl', 'Alla priser inkl',
         'Ordering routines', 'Beställningsrutiner', 'Order by e-mail',
-        'Step 1', 'Steg 1', 'request', 'confirmation',
         'Contact person', 'Kontaktperson', 'EBD data', 'Parma ID',
         'placing PO', 'purchase order', 'delivery/pick up',
         'Amount of guests', 'Antal gäster', 'special diets',
+        'SPIRA answers', 'Spira food', 'volvo@',
 
         # Företagsinfo
-        'Volvo Cars', 'Volvo Group', 'SPIRA answers', 'Spira food'
+        'Volvo Cars', 'Volvo Group',
+
+        # Extra footer-indikatorer
+        'ex vat', 'exkl moms', 'inkl moms', 'moms ingår',
+        'by e mail', 'by email', 'via e-post', 'via mail',
+        'Step 1', 'Step 2', 'Steg 1', 'Steg 2'
     ]
 
     # "Adress" som egen rad (inte som del av annat ord)
     adress_match = re.search(r'\n\s*Adress\s*\n', text, re.IGNORECASE)
-    if adress_match and adress_match.start() > 100:
+    if adress_match and adress_match.start() > 80:
         text = text[:adress_match.start()]
+
     for marker in footer_markers:
         # Case-insensitive sökning
         pattern = re.compile(re.escape(marker), re.IGNORECASE)
         match = pattern.search(text)
-        if match and match.start() > 100:  # Bara klipp om vi har minst 100 tecken före
+        if match and match.start() > 80:  # Lägre tröskel för mer aggressiv filtrering
             text = text[:match.start()]
 
-    # Regex-baserad footer-detektion
+    # Regex-baserad footer-detektion - AGGRESSIV
     footer_patterns = [
         r'\b\d{3}\s*\d{2}\s*\d{2}\b',  # Telefonnummer (XXX XX XX)
         r'\b0\d{1,3}-\d{5,8}\b',  # Telefonnummer (0XX-XXXXXXX)
@@ -345,11 +351,28 @@ def format_menu_text(text):
         r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',  # E-postadress
         r'Org\.?\s*nr\.?:?\s*\d{6}-\d{4}',  # Organisationsnummer
         r'ID\s*\d{5,}',  # ID-nummer (t.ex. Parma ID)
+        r'\d{10,}',  # Långa nummer (telefon, org.nr etc)
     ]
     for pattern in footer_patterns:
         match = re.search(pattern, text, re.IGNORECASE)
-        if match and match.start() > 150:  # Lite högre tröskel för regex
+        if match and match.start() > 80:  # Lägre tröskel
             text = text[:match.start()]
+
+    # EXTRA: Ta bort allt efter sista veckodagen om det finns footer-innehåll kvar
+    last_weekday_match = None
+    for day in ['fredag', 'torsdag', 'onsdag', 'tisdag', 'måndag']:
+        match = re.search(rf'\b{day}\b.*?(?=\n\n|\Z)', text, re.IGNORECASE | re.DOTALL)
+        if match:
+            last_weekday_match = match
+            break
+
+    if last_weekday_match:
+        # Kolla om det finns misstänkt footer-innehåll efter sista veckodagen
+        after_weekday = text[last_weekday_match.end():]
+        footer_indicators = ['@', 'http', 'www.', '.se', '.com', 'tel:', 'telefon', 'adress', 'kontakt']
+        if any(ind in after_weekday.lower() for ind in footer_indicators):
+            # Klipp bort allt efter sista veckodagens innehåll
+            text = text[:last_weekday_match.end()]
 
     # Ta bort vanliga navigationsord (hela rader som bara innehåller dessa)
     nav_words = [
