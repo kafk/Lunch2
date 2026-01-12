@@ -208,9 +208,10 @@
     }
 
     function updateStats(menus, urls, updatedAt) {
-        const total = urls.length;
+        const enabledUrls = urls.filter(u => u.enabled !== false);
+        const total = enabledUrls.length;
         const successful = menus.filter(m => m.success).length;
-        const failed = total - successful;
+        const failed = total - successful;  // Only count enabled restaurants that failed
         const pdfs = menus.filter(m => m.source && m.source.toLowerCase().includes('pdf')).length;
         const htmls = successful - pdfs;
 
@@ -224,7 +225,7 @@
         document.getElementById('lastUpdateTime').textContent = timestamp.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
         document.getElementById('lastUpdateDate').textContent = timestamp.toLocaleDateString('sv-SE');
 
-        // Alerts
+        // Alerts - only for enabled restaurants that failed
         if (failed > 0) {
             document.getElementById('alertBadge').style.display = 'flex';
             document.getElementById('alertCount').textContent = `${failed} Varning${failed > 1 ? 'ar' : ''}`;

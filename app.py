@@ -18,7 +18,7 @@ except ImportError:
 
 app = Flask(__name__)
 
-VERSION = '3.4.15'
+VERSION = '3.4.16'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 
