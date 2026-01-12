@@ -476,7 +476,26 @@ def find_lunch_content(soup, url):
 
     found_sections = []
 
-    # Sök i olika element
+    # FÖRST: Sök efter sektioner som innehåller FLERA veckodagar (troligen veckomeny)
+    for element in soup.find_all(['div', 'section', 'article', 'main']):
+        text = element.get_text(separator=' ', strip=True).lower()
+        # Räkna hur många veckodagar som finns i denna sektion
+        weekday_count = sum(1 for day in weekdays_sv if day in text)
+        if weekday_count >= 3:  # Om minst 3 veckodagar finns, det är troligen veckomenyn
+            content = element.get_text(separator='\n', strip=True)
+            if len(content) > 100 and len(content) < 10000:  # Rimlig storlek för en veckomeny
+                found_sections.append({
+                    'keyword': 'veckomeny',
+                    'content': content[:4000],
+                    'weekday_count': weekday_count
+                })
+
+    # Sortera efter antal veckodagar (fler = bättre)
+    if found_sections:
+        found_sections.sort(key=lambda x: x.get('weekday_count', 0), reverse=True)
+        return found_sections
+
+    # FALLBACK: Om inga veckodagar hittades, använd vanlig keyword-sökning
     for element in soup.find_all(['div', 'section', 'article', 'main', 'p', 'ul', 'table']):
         text = element.get_text(separator=' ', strip=True).lower()
         for keyword in lunch_keywords:
