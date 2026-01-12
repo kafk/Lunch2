@@ -38,6 +38,13 @@
             </svg>
             Kort
         </button>
+        <button class="view-btn" data-view="list">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <rect x="3" y="3" width="18" height="7" rx="1"/>
+                <rect x="3" y="14" width="18" height="7" rx="1"/>
+            </svg>
+            Lista
+        </button>
         <button class="view-btn" data-view="table">
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <rect x="3" y="3" width="18" height="18" rx="2"/>
@@ -69,6 +76,12 @@
     <div class="menu-grid" id="menuGrid"></div>
 </div>
 
+<!-- List View (same as main page) -->
+<div id="listView" class="view-container">
+    <div class="card">
+        <div class="menu-list" id="menuList"></div>
+    </div>
+</div>
 
 <!-- Table View -->
 <div id="tableView" class="view-container">
@@ -483,6 +496,7 @@
 {% block scripts %}
 <script>
     const menuGrid = document.getElementById('menuGrid');
+    const menuList = document.getElementById('menuList');
     const menuTable = document.getElementById('menuTable').querySelector('tbody');
     const compactList = document.getElementById('compactList');
     const loading = document.getElementById('loading');
@@ -543,6 +557,7 @@
         refreshBtn.disabled = true;
         loading.style.display = 'block';
         menuGrid.innerHTML = '';
+        menuList.innerHTML = '';
         menuTable.innerHTML = '';
         compactList.innerHTML = '';
         emptyState.style.display = 'none';
@@ -572,6 +587,27 @@
                             <span class="menu-card-badge ${isPdf ? 'pdf' : 'html'}">${isPdf ? 'PDF' : 'HTML'}</span>
                         </div>
                         <div class="menu-card-content">${escapeHtml(menu.menu)}</div>
+                    </div>
+                `;
+            }).join('');
+
+            // List View (same as main page)
+            menuList.innerHTML = allMenus.map(menu => {
+                const isPdf = menu.source && menu.source.toLowerCase().includes('pdf');
+                return `
+                    <div class="menu-item">
+                        <div class="menu-item-header">
+                            <span class="menu-item-name">${escapeHtml(menu.name)}</span>
+                            <span class="menu-item-badge ${isPdf ? 'pdf' : 'html'}">${isPdf ? 'PDF' : 'HTML'}</span>
+                        </div>
+                        <div class="menu-item-content">${escapeHtml(menu.menu)}</div>
+                        <div class="menu-item-footer">
+                            <span class="menu-item-time">${menu.scraped_at || ''}</span>
+                            <div class="menu-item-status">
+                                <span class="status-dot ${menu.success ? 'success' : 'error'}"></span>
+                                <a href="${escapeHtml(menu.url)}" target="_blank" style="color: #22c55e;">Besök →</a>
+                            </div>
+                        </div>
                     </div>
                 `;
             }).join('');
