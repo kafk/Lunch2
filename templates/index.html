@@ -102,22 +102,6 @@
             </div>
         </div>
 
-        <!-- Status Overview -->
-        <div class="card">
-            <div class="card-header">
-                <span class="card-title">Status</span>
-            </div>
-            <div class="progress-container">
-                <div class="progress-header">
-                    <span class="progress-label" id="progressPercent">0%</span>
-                    <span class="progress-count" id="progressCount">0/0 Klar</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
-                </div>
-            </div>
-            <div class="task-list" id="statusList"></div>
-        </div>
     </div>
 </div>
 {% endblock %}
@@ -129,7 +113,6 @@
     const refreshBtn = document.getElementById('refreshBtn');
     const emptyState = document.getElementById('emptyState');
     const restaurantList = document.getElementById('restaurantList');
-    const statusList = document.getElementById('statusList');
 
     // Update date/time
     function updateDateTime() {
@@ -232,12 +215,6 @@
         document.getElementById('lastUpdateTime').textContent = now.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
         document.getElementById('lastUpdateDate').textContent = now.toLocaleDateString('sv-SE');
 
-        // Progress
-        const percent = total > 0 ? Math.round(successful/total*100) : 0;
-        document.getElementById('progressPercent').textContent = percent + '%';
-        document.getElementById('progressCount').textContent = `${successful}/${total} Klar`;
-        document.getElementById('progressFill').style.width = percent + '%';
-
         // Alerts
         if (failed > 0) {
             document.getElementById('alertBadge').style.display = 'flex';
@@ -245,20 +222,6 @@
         } else {
             document.getElementById('alertBadge').style.display = 'none';
         }
-
-        // Status list
-        statusList.innerHTML = menus.map(menu => `
-            <div class="task-item">
-                <div class="task-check ${menu.success ? 'done' : ''}">
-                    ${menu.success ? '✓' : ''}
-                </div>
-                <div class="task-content">
-                    <div class="task-title">${escapeHtml(menu.name)}</div>
-                    <div class="task-desc">${menu.success ? 'Meny hämtad' : 'Kunde inte hämta'}</div>
-                    <div class="task-time">${menu.scraped_at}</div>
-                </div>
-            </div>
-        `).join('');
     }
 
     function escapeHtml(text) {
