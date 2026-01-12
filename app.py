@@ -18,7 +18,7 @@ except ImportError:
 
 app = Flask(__name__)
 
-VERSION = '3.4.7'
+VERSION = '3.4.8'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 
@@ -272,8 +272,7 @@ def format_menu_text(text):
 
         # Kontakt och adress
         'Kontakta oss', 'Öppettider:', 'Vägbeskrivning',
-        'Hitta till oss', 'Hitta hit', 'Se hela menyn',
-        'Vår Meny', 'Besöksadress', 'Postadress',
+        'Hitta till oss', 'Hitta hit', 'Besöksadress', 'Postadress',
 
         # Copyright och juridiskt
         'Copyright', '©', 'Alla rättigheter', 'Integritetspolicy',
