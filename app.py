@@ -199,6 +199,35 @@ def get_storage_info():
         'storage_type': 'Firebase Firestore' if db else 'Local JSON'
     }
 
+def get_cached_menus():
+    """Hämta cachade menyer om de är från idag."""
+    today = datetime.now().strftime('%Y-%m-%d')
+
+    if db:
+        try:
+            cache_doc = db.collection('menu_cache').document('daily').get()
+            if cache_doc.exists:
+                data = cache_doc.to_dict()
+                if data.get('date') == today:
+                    return data.get('menus', [])
+        except Exception as e:
+            print(f"Cache read error: {e}")
+    return None
+
+def save_menus_to_cache(menus):
+    """Spara menyer till cache."""
+    today = datetime.now().strftime('%Y-%m-%d')
+
+    if db:
+        try:
+            db.collection('menu_cache').document('daily').set({
+                'date': today,
+                'menus': menus,
+                'updated_at': datetime.now().isoformat()
+            })
+        except Exception as e:
+            print(f"Cache write error: {e}")
+
 def format_menu_text(text):
     """Formatera menytext för bättre läsbarhet."""
     # Ta bort rader med URL:er
@@ -699,6 +728,16 @@ def cleanup_duplicates():
 @app.route('/api/menus', methods=['GET'])
 def get_menus():
     """Scrapa alla aktiverade URL:er och returnera menyerna."""
+    # Check if refresh is requested
+    force_refresh = request.args.get('refresh', 'false').lower() == 'true'
+
+    # Try to get cached menus if not forcing refresh
+    if not force_refresh:
+        cached = get_cached_menus()
+        if cached:
+            return jsonify(cached)
+
+    # Scrape fresh data
     urls = load_urls()
     menus = []
 
@@ -707,6 +746,9 @@ def get_menus():
         if url_data.get('enabled', True):
             result = scrape_url(url_data['url'], url_data['name'])
             menus.append(result)
+
+    # Save to cache
+    save_menus_to_cache(menus)
 
     return jsonify(menus)
 

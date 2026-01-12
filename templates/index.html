@@ -61,7 +61,7 @@
         <div class="card">
             <div class="card-header">
                 <span class="card-title">Dagens Lunchmenyer</span>
-                <button class="btn btn-sm" id="refreshBtn" onclick="loadMenus()">
+                <button class="btn btn-sm" id="refreshBtn" onclick="loadMenus(true)">
                     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M23 4v6h-6M1 20v-6h6"/>
                         <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
@@ -142,7 +142,7 @@
     updateDateTime();
     setInterval(updateDateTime, 60000);
 
-    async function loadMenus() {
+    async function loadMenus(forceRefresh = false) {
         refreshBtn.disabled = true;
         loading.style.display = 'block';
         menuContainer.innerHTML = '';
@@ -177,7 +177,7 @@
                 </div>
             `).join('');
 
-            const response = await fetch('/api/menus');
+            const response = await fetch('/api/menus' + (forceRefresh ? '?refresh=true' : ''));
             const menus = await response.json();
 
             menuContainer.innerHTML = menus.map((menu, i) => {
