@@ -18,7 +18,7 @@ except ImportError:
 
 app = Flask(__name__)
 
-VERSION = '3.4.4'
+VERSION = '3.4.5'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 
@@ -383,11 +383,7 @@ def format_menu_text(text):
         'ÖPPETTIDER', 'HITTA HIT', 'FIND US', 'PRESENTKORT', 'GIFT CARD',
         'LUNCH', 'LUNCHMENY', 'THE GRILL', 'INSTAGRAM', 'FACEBOOK', 'FÖLJ OSS',
         'ITALIAN CUISINE', 'PIZZA & PASTA', 'VÄLKOMMEN', 'DAGENS LUNCH',
-        'BOKNING', 'FOODORA', '<', '>', 'SÖK', 'WEBBPLATSSÖK', 'SÖK EFTER:',
-        # Volvo-specifika navigationslänkar
-        'VOLVO SALAD OF THE WEEK', 'VOLVO CATERING', 'VOLVO CATERING BREAKFAST/FIKA',
-        'VOLVO CATERING LUNCH / MEATING', 'VOLVO CATERING LUNCH/MEETING',
-        'VOLVO LUNCH CATERING', 'TEAM SPIRA', 'HÅLLBARHET', 'GRAND CENTRAL LUNCHMENY'
+        'BOKNING', 'FOODORA', '<', '>', 'SÖK', 'WEBBPLATSSÖK', 'SÖK EFTER:'
     ]
 
     lines = text.split('\n')
@@ -403,15 +399,6 @@ def format_menu_text(text):
     menu_week_match = re.search(r'(Meny vecka \d+)', text, re.IGNORECASE)
     if menu_week_match:
         text = text[menu_week_match.start():]
-
-    # VIKTIG: Om texten innehåller veckodagar, klipp bort allt innan första veckodagen
-    # Detta tar bort navigation/header-menyer som "lunchmeny", "volvo catering" etc.
-    first_weekday_match = re.search(r'\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag)\b', text, re.IGNORECASE)
-    if first_weekday_match:
-        # Kolla att det finns minst 2 veckodagar (det är en veckomeny)
-        weekday_count = len(re.findall(r'\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag)\b', text, re.IGNORECASE))
-        if weekday_count >= 2:
-            text = text[first_weekday_match.start():]
 
     # Veckodagar - lägg till radbrytning före
     weekdays = ['MÅNDAG', 'TISDAG', 'ONSDAG', 'TORSDAG', 'FREDAG', 'LÖRDAG', 'SÖNDAG']
