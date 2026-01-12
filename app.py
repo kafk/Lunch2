@@ -265,15 +265,63 @@ def format_menu_text(text):
     # Klipp bort footer-innehåll efter dessa nyckelord
     # Men bara om de hittas efter minst 100 tecken (så vi inte klipper för tidigt)
     footer_markers = [
-        'Bordsbokning', 'Hemkörning', 'Avhämtning',
-        'Copyright ©', 'Kontakta oss för', 'Öppettider:',
-        'Vägbeskrivning', 'Foodora', 'Hungrig.se',
-        'Uber Eats', 'Wolt', 'Just Eat',
-        'Hitta till oss', 'Hitta hit', 'Se hela menyn',
-        'Vår Meny', 'Add Your Heading', 'Lorem ipsum',
-        'Fina Råvaror', 'Kville Saluhall', 'Gustaf Dalénsgatan',
-        'Dagens Lunch V.', 'Tema av', 'Colorlib', 'drivs med', 'WordPress',
-        'catering@', '@bistrot', '@gmail', '@hotmail'
+        # Beställning och leverans
+        'Bordsbokning', 'Hemkörning', 'Avhämtning', 'Beställ online', 'Beställ här',
+        'Foodora', 'Hungrig.se', 'Uber Eats', 'Wolt', 'Just Eat', 'Bolt Food',
+
+        # Kontakt och adress
+        'Kontakta oss', 'Öppettider', 'Vägbeskrivning', 'Hitta till oss', 'Hitta hit',
+        'Besöksadress', 'Postadress', 'Telefon:', 'Tel:', 'E-post:', 'Email:',
+        'Kontaktuppgifter', 'Kontaktinformation', 'Skriv till oss', 'Ring oss',
+
+        # Navigation och länkar
+        'Se hela menyn', 'Vår Meny', 'Läs mer', 'Tillbaka till',
+        'Gå till toppen', 'Till toppen', 'Back to top',
+
+        # Sociala medier
+        'Följ oss', 'Follow us', 'Facebook', 'Instagram', 'Twitter', 'LinkedIn',
+        'TikTok', 'YouTube', 'Pinterest', 'Snapchat',
+
+        # Copyright och juridiskt
+        'Copyright', 'All rights reserved', 'Alla rättigheter', '©',
+        'Integritetspolicy', 'Privacy Policy', 'Cookie', 'GDPR', 'Personuppgifter',
+        'Användarvillkor', 'Terms of Service', 'Villkor',
+
+        # Webbplats och teknik
+        'Tema av', 'Theme by', 'Colorlib', 'drivs med', 'WordPress', 'Powered by',
+        'Designed by', 'Webbyrå', 'Webbdesign', 'Web design', 'Utvecklat av',
+        'Built with', 'Made with', 'Skapat av',
+
+        # E-postadresser
+        'catering@', '@bistrot', '@gmail', '@hotmail', '@outlook', '@yahoo',
+        '@restaurang', '@lunch', '@mat', 'info@', 'kontakt@', 'bokning@',
+
+        # Platser och adresser (allmänna)
+        'Fina Råvaror', 'Kville Saluhall', 'Gustaf Dalénsgatan', 'Dagens Lunch V.',
+        'Add Your Heading', 'Lorem ipsum',
+
+        # Nyhetsbrev och prenumeration
+        'Nyhetsbrev', 'Newsletter', 'Prenumerera', 'Subscribe', 'Anmäl dig',
+
+        # Övrigt footer-innehåll
+        'Alla rättigheter reserverade', 'Org.nr', 'Organisationsnummer',
+        'Bankgiro', 'Plusgiro', 'Swish', 'Betala med',
+        'Sitemap', 'Webbkarta', 'Tillgänglighet', 'Accessibility',
+
+        # Vanliga svenska footer-fraser
+        'Vi finns på', 'Besök oss', 'Välkommen till oss', 'Se karta',
+        'Öppet idag', 'Stängt idag', 'Lunchservering', 'Köket stänger',
+
+        # Catering och beställningsrutiner
+        'All prices ex vat', 'Alla priser exkl', 'Alla priser inkl',
+        'Ordering routines', 'Beställningsrutiner', 'Order by e-mail',
+        'Step 1', 'Steg 1', 'request', 'confirmation',
+        'Contact person', 'Kontaktperson', 'EBD data', 'Parma ID',
+        'placing PO', 'purchase order', 'delivery/pick up',
+        'Amount of guests', 'Antal gäster', 'special diets',
+
+        # Företagsinfo
+        'Volvo Cars', 'Volvo Group', 'SPIRA answers', 'Spira food'
     ]
 
     # "Adress" som egen rad (inte som del av annat ord)
@@ -285,6 +333,22 @@ def format_menu_text(text):
         pattern = re.compile(re.escape(marker), re.IGNORECASE)
         match = pattern.search(text)
         if match and match.start() > 100:  # Bara klipp om vi har minst 100 tecken före
+            text = text[:match.start()]
+
+    # Regex-baserad footer-detektion
+    footer_patterns = [
+        r'\b\d{3}\s*\d{2}\s*\d{2}\b',  # Telefonnummer (XXX XX XX)
+        r'\b0\d{1,3}-\d{5,8}\b',  # Telefonnummer (0XX-XXXXXXX)
+        r'\+46\s*\d',  # Svenska telefonnummer med landkod
+        r'\b\d{3}\s*\d{2}\s+[A-ZÅÄÖ][a-zåäöé]+\b',  # Postnummer + stad (123 45 Göteborg)
+        r'SE-\d{3}\s*\d{2}',  # Svenskt postnummer med prefix
+        r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',  # E-postadress
+        r'Org\.?\s*nr\.?:?\s*\d{6}-\d{4}',  # Organisationsnummer
+        r'ID\s*\d{5,}',  # ID-nummer (t.ex. Parma ID)
+    ]
+    for pattern in footer_patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match and match.start() > 150:  # Lite högre tröskel för regex
             text = text[:match.start()]
 
     # Ta bort vanliga navigationsord (hela rader som bara innehåller dessa)
