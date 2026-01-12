@@ -476,6 +476,131 @@
         .status-dot.error { background: #ef4444; }
         .status-dot.warning { background: #f59e0b; }
 
+        /* Compact View */
+        .compact-list {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .compact-item {
+            padding: 16px 0;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .compact-item:hover {
+            background: #f9fafb;
+            margin: 0 -20px;
+            padding: 16px 20px;
+        }
+
+        .compact-item:last-child {
+            border-bottom: none;
+        }
+
+        .compact-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .compact-name {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+        }
+
+        .compact-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        .compact-item:nth-child(5n+1) .compact-dot { background: #22c55e; }
+        .compact-item:nth-child(5n+2) .compact-dot { background: #eab308; }
+        .compact-item:nth-child(5n+3) .compact-dot { background: #3b82f6; }
+        .compact-item:nth-child(5n+4) .compact-dot { background: #8b5cf6; }
+        .compact-item:nth-child(5n+5) .compact-dot { background: #ec4899; }
+
+        .compact-preview {
+            font-size: 13px;
+            color: #6b7280;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            margin-left: 20px;
+        }
+
+        .compact-expand {
+            font-size: 12px;
+            color: #22c55e;
+            margin-top: 8px;
+            margin-left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .compact-expand:hover {
+            color: #16a34a;
+        }
+
+        .compact-full {
+            display: none;
+            margin-top: 12px;
+            margin-left: 20px;
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 10px;
+            font-size: 13px;
+            color: #6b7280;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            line-height: 1.6;
+        }
+
+        .compact-item.expanded .compact-full {
+            display: block;
+        }
+
+        .compact-item.expanded .compact-preview {
+            display: none;
+        }
+
+        .compact-item.expanded .compact-expand {
+            color: #6b7280;
+            margin-top: 12px;
+        }
+
+        .compact-item.expanded .compact-expand svg {
+            transform: rotate(180deg);
+        }
+
+        .compact-link {
+            color: #9ca3af;
+            text-decoration: none;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+        }
+
+        .compact-link:hover {
+            color: #22c55e;
+            background: #f0fdf4;
+        }
+
         /* Device List */
         .device-list {
             display: flex;
