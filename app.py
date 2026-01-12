@@ -18,7 +18,7 @@ except ImportError:
 
 app = Flask(__name__)
 
-VERSION = '3.4.8'
+VERSION = '3.4.9'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 
@@ -262,6 +262,14 @@ def format_menu_text(text):
     # Ta bort rader med telefonnummer och footer med ||
     text = re.sub(r'^.*\|\|.*\d{2,3}[\s-]?\d{2,3}[\s-]?\d{2,4}.*$\n?', '', text, flags=re.MULTILINE)
     text = re.sub(r'^.*\|\|\s*$\n?', '', text, flags=re.MULTILINE)  # Rader som slutar med ||
+
+    # VIKTIG: Klipp bort allt FÖRE första veckodagen INNAN footer-filtrering
+    # Detta säkerställer att navigation inte triggar footer-markörer
+    first_weekday_early = re.search(r'\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag)\b', text, re.IGNORECASE)
+    if first_weekday_early:
+        weekday_count = len(re.findall(r'\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag)\b', text, re.IGNORECASE))
+        if weekday_count >= 2:
+            text = text[first_weekday_early.start():]
 
     # Klipp bort footer-innehåll efter dessa nyckelord
     # Men bara om de hittas efter minst 100 tecken (så vi inte klipper för tidigt)
