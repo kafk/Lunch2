@@ -18,7 +18,7 @@ except ImportError:
 
 app = Flask(__name__)
 
-VERSION = '3.4.13'
+VERSION = '3.4.14'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 
@@ -339,7 +339,11 @@ def format_menu_text(text):
         'VOLVO CATERING BREAKFAST/FIKA', 'VOLVO CATERING LUNCH / MEATING',
         'VOLVO CATERING LUNCH/MEETING', 'TEAM SPIRA', 'HÅLLBARHET',
         'GRAND CENTRAL LUNCHMENY', 'CATERING GRAND CENTRAL BY SPIRA',
-        'VILLKOR', 'MAKE YOUR CHOICE,'
+        'VILLKOR', 'MAKE YOUR CHOICE,',
+        # Sociala medier och andra nav-länkar
+        'EVENTKALENDER', 'STREETFOOD MARKET',
+        'LINK TO FACEBOOK', 'LINK TO INSTAGRAM', 'LINK TO TWITTER',
+        'LINK TO LINKEDIN', 'LINK TO YOUTUBE'
     ]
 
     lines = text.split('\n')
