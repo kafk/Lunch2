@@ -38,13 +38,6 @@
             </svg>
             Kort
         </button>
-        <button class="view-btn" data-view="status">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path d="M9 11l3 3L22 4"/>
-                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-            </svg>
-            Status
-        </button>
         <button class="view-btn" data-view="table">
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <rect x="3" y="3" width="18" height="18" rx="2"/>
@@ -76,33 +69,6 @@
     <div class="menu-grid" id="menuGrid"></div>
 </div>
 
-<!-- Status View (Order-style) -->
-<div id="statusView" class="view-container">
-    <div class="card" style="padding: 0; overflow: hidden;">
-        <div class="status-header">
-            <div class="search-box">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <circle cx="11" cy="11" r="8"/>
-                    <path d="M21 21l-4.35-4.35"/>
-                </svg>
-                <input type="text" class="status-search" placeholder="Sök restaurang..." id="statusSearch">
-            </div>
-        </div>
-        <table class="status-table" id="statusTable">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Restaurang</th>
-                    <th>Källa</th>
-                    <th>Status</th>
-                    <th>Uppdaterad</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
-</div>
 
 <!-- Table View -->
 <div id="tableView" class="view-container">
@@ -250,135 +216,6 @@
         white-space: pre-wrap;
         max-height: 200px;
         overflow-y: auto;
-    }
-
-    /* Status Table (Order-style) */
-    .status-header {
-        padding: 16px 20px;
-        border-bottom: 1px solid #f0f0f0;
-        background: #f9fafb;
-    }
-
-    .search-box {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 10px;
-        padding: 0 14px;
-        max-width: 300px;
-    }
-
-    .search-box svg {
-        color: #9ca3af;
-    }
-
-    .status-search {
-        flex: 1;
-        padding: 12px 0;
-        border: none;
-        font-size: 14px;
-        background: transparent;
-    }
-
-    .status-search:focus {
-        outline: none;
-    }
-
-    .status-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    .status-table th {
-        text-align: left;
-        padding: 14px 20px;
-        font-size: 12px;
-        font-weight: 600;
-        color: #6b7280;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        border-bottom: 1px solid #f0f0f0;
-        background: #f9fafb;
-    }
-
-    .status-table td {
-        padding: 16px 20px;
-        border-bottom: 1px solid #f0f0f0;
-        font-size: 14px;
-        color: #374151;
-    }
-
-    .status-table tr:hover {
-        background: #f9fafb;
-    }
-
-    .status-table tr:last-child td {
-        border-bottom: none;
-    }
-
-    .status-id {
-        color: #9ca3af;
-        font-weight: 500;
-        font-family: monospace;
-    }
-
-    .status-name {
-        font-weight: 600;
-    }
-
-    .status-badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 5px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 500;
-    }
-
-    .badge-success {
-        background: #dcfce7;
-        color: #16a34a;
-    }
-
-    .badge-error {
-        background: #fee2e2;
-        color: #dc2626;
-    }
-
-    .badge-pdf {
-        background: #dbeafe;
-        color: #1d4ed8;
-    }
-
-    .badge-html {
-        background: #f3e8ff;
-        color: #7c3aed;
-    }
-
-    .status-time {
-        color: #6b7280;
-        font-size: 13px;
-    }
-
-    .status-view-btn {
-        background: #f3f4f6;
-        border: none;
-        color: #6b7280;
-        cursor: pointer;
-        padding: 8px 14px;
-        font-size: 13px;
-        border-radius: 8px;
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .status-view-btn:hover {
-        background: #22c55e;
-        color: white;
     }
 
     /* Modal */
@@ -630,13 +467,6 @@
             grid-template-columns: 1fr;
         }
 
-        .status-table th:nth-child(3),
-        .status-table td:nth-child(3),
-        .status-table th:nth-child(5),
-        .status-table td:nth-child(5) {
-            display: none;
-        }
-
         .view-toggle {
             flex-wrap: wrap;
         }
@@ -654,7 +484,6 @@
 <script>
     const menuGrid = document.getElementById('menuGrid');
     const menuTable = document.getElementById('menuTable').querySelector('tbody');
-    const statusTable = document.getElementById('statusTable').querySelector('tbody');
     const compactList = document.getElementById('compactList');
     const loading = document.getElementById('loading');
     const refreshBtn = document.getElementById('refreshBtn');
@@ -662,7 +491,6 @@
     const modal = document.getElementById('menuModal');
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
-    const statusSearch = document.getElementById('statusSearch');
 
     let allMenus = [];
 
@@ -685,13 +513,6 @@
             btn.classList.add('active');
             document.getElementById(btn.dataset.view + 'View').classList.add('active');
         });
-    });
-
-    // Search filter
-    statusSearch.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase();
-        const filtered = allMenus.filter(m => m.name.toLowerCase().includes(query));
-        renderStatusTable(filtered);
     });
 
     function openModal(name, content) {
@@ -718,44 +539,11 @@
         return '<span class="menu-card-badge html">HTML</span>';
     }
 
-    function getStatusBadge(success) {
-        if (success) return '<span class="status-badge badge-success">✓ OK</span>';
-        return '<span class="status-badge badge-error">✕ Fel</span>';
-    }
-
-    function getSourceBadgeTable(source) {
-        if (!source) return '<span class="status-badge badge-html">HTML</span>';
-        if (source.toLowerCase().includes('pdf')) return '<span class="status-badge badge-pdf">PDF</span>';
-        return '<span class="status-badge badge-html">HTML</span>';
-    }
-
-    function renderStatusTable(menus) {
-        statusTable.innerHTML = menus.map((menu, i) => `
-            <tr>
-                <td class="status-id">#${(1000 + i).toString().padStart(4, '0')}</td>
-                <td class="status-name">${escapeHtml(menu.name)}</td>
-                <td>${getSourceBadgeTable(menu.source)}</td>
-                <td>${getStatusBadge(menu.success)}</td>
-                <td class="status-time">${menu.scraped_at || '-'}</td>
-                <td>
-                    <button class="status-view-btn" onclick="openModal('${escapeHtml(menu.name)}', allMenus[${allMenus.indexOf(menu)}].menu)">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                            <circle cx="12" cy="12" r="3"/>
-                        </svg>
-                        Visa
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-    }
-
     async function loadMenus(forceRefresh = false) {
         refreshBtn.disabled = true;
         loading.style.display = 'block';
         menuGrid.innerHTML = '';
         menuTable.innerHTML = '';
-        statusTable.innerHTML = '';
         compactList.innerHTML = '';
         emptyState.style.display = 'none';
 
@@ -786,9 +574,6 @@
                     </div>
                 `;
             }).join('');
-
-            // Status Table
-            renderStatusTable(allMenus);
 
             // Regular Table View
             menuTable.innerHTML = allMenus.map(menu => `
