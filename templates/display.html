@@ -579,7 +579,6 @@
         font-size: 13px;
         color: #6b7280;
         white-space: pre-wrap;
-        max-height: 300px;
         overflow-y: auto;
         line-height: 1.6;
     }
@@ -593,7 +592,37 @@
     }
 
     .compact-item.expanded .compact-expand {
-        display: none;
+        color: #6b7280;
+        margin-top: 12px;
+    }
+
+    .compact-item.expanded .compact-expand svg {
+        transform: rotate(180deg);
+    }
+
+    .compact-expand {
+        cursor: pointer;
+    }
+
+    .compact-expand:hover {
+        color: #16a34a;
+    }
+
+    .compact-link {
+        color: #9ca3af;
+        text-decoration: none;
+        padding: 4px 8px;
+        border-radius: 6px;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+    }
+
+    .compact-link:hover {
+        color: #22c55e;
+        background: #f0fdf4;
     }
 
     @media (max-width: 768px) {
@@ -772,16 +801,24 @@
 
             // Compact View
             compactList.innerHTML = allMenus.map((menu, i) => `
-                <div class="compact-item" onclick="this.classList.toggle('expanded')">
+                <div class="compact-item" onclick="toggleCompact(this, event)">
                     <div class="compact-header">
                         <span class="compact-name"><span class="compact-dot"></span>${escapeHtml(menu.name)}</span>
+                        <a href="${escapeHtml(menu.url)}" target="_blank" class="compact-link" onclick="event.stopPropagation()">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                                <polyline points="15 3 21 3 21 9"/>
+                                <line x1="10" y1="14" x2="21" y2="3"/>
+                            </svg>
+                            Besök
+                        </a>
                     </div>
                     <div class="compact-preview">${escapeHtml(getPreview(menu.menu))}</div>
                     <div class="compact-expand">
                         <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path d="M6 9l6 6 6-6"/>
                         </svg>
-                        Visa mer
+                        <span class="expand-text">Visa mer</span>
                     </div>
                     <div class="compact-full">${escapeHtml(menu.menu)}</div>
                 </div>
@@ -804,6 +841,16 @@
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    function toggleCompact(element, event) {
+        element.classList.toggle('expanded');
+        const expandText = element.querySelector('.expand-text');
+        if (element.classList.contains('expanded')) {
+            expandText.textContent = 'Visa mindre';
+        } else {
+            expandText.textContent = 'Visa mer';
+        }
     }
 
     loadMenus();
