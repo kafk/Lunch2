@@ -18,7 +18,7 @@ except ImportError:
 
 app = Flask(__name__)
 
-VERSION = '3.4.16'
+VERSION = '3.4.17'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 
@@ -526,12 +526,31 @@ def find_lunch_content(soup, url):
     """Försök hitta lunch-relaterat innehåll."""
     today = datetime.now()
     weekdays_sv = ['måndag', 'tisdag', 'onsdag', 'torsdag', 'fredag', 'lördag', 'söndag']
+    weekdays_en = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
     today_name = weekdays_sv[today.weekday()]
 
     # Sök efter lunch-relaterade sektioner
     lunch_keywords = ['lunch', 'meny', 'menu', 'dagens', 'veckomeny', 'veckans', today_name]
 
     found_sections = []
+
+    # SPECIAL: Sök efter sektioner med engelska veckodags-ID:n (t.ex. Kooperativet)
+    weekday_sections = []
+    for day_en, day_sv in zip(weekdays_en[:5], weekdays_sv[:5]):  # Bara vardagar
+        section = soup.find(id=day_en)
+        if section:
+            content = section.get_text(separator='\n', strip=True)
+            if content:
+                weekday_sections.append(content)
+
+    if len(weekday_sections) >= 3:
+        # Hittade sektioner med engelska ID:n - kombinera dem
+        combined = '\n\n'.join(weekday_sections)
+        return [{
+            'keyword': 'veckomeny',
+            'content': combined[:6000],
+            'weekday_count': len(weekday_sections)
+        }]
 
     # FÖRST: Sök efter sektioner som innehåller FLERA veckodagar (troligen veckomeny)
     for element in soup.find_all(['div', 'section', 'article', 'main']):
