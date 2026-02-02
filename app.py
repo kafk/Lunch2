@@ -7,6 +7,17 @@ import re
 from datetime import datetime
 from io import BytesIO
 from pypdf import PdfReader
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    from backports.zoneinfo import ZoneInfo
+
+# Svensk tidszon
+SWEDISH_TZ = ZoneInfo('Europe/Stockholm')
+
+def swedish_now():
+    """Returnera aktuell tid i svensk tidszon."""
+    return datetime.now(SWEDISH_TZ)
 
 # Firebase imports
 try:
@@ -18,7 +29,7 @@ except ImportError:
 
 app = Flask(__name__)
 
-VERSION = '3.4.20'
+VERSION = '3.4.21'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 
@@ -670,7 +681,7 @@ def scrape_url(url, name):
                 'menu': menu_text,
                 'success': True,
                 'source': 'PDF',
-                'scraped_at': datetime.now().strftime('%Y-%m-%d %H:%M')
+                'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
             }
 
         response = requests.get(url, headers=headers, timeout=10)
@@ -695,7 +706,7 @@ def scrape_url(url, name):
                         'menu': pdf_text,
                         'success': True,
                         'source': f"PDF: {pdf_links[0]['url']}",
-                        'scraped_at': datetime.now().strftime('%Y-%m-%d %H:%M')
+                        'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
                     }
             except Exception:
                 pass  # Fallback till HTML-scraping
@@ -720,7 +731,7 @@ def scrape_url(url, name):
                         'menu': iframe_text,
                         'success': True,
                         'source': f"iframe ({menu_iframe['service']}): {menu_iframe['url']}",
-                        'scraped_at': datetime.now().strftime('%Y-%m-%d %H:%M')
+                        'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
                     }
             except Exception:
                 pass  # Fallback till vanlig HTML-scraping
@@ -747,7 +758,7 @@ def scrape_url(url, name):
                                 'menu': pdf_text,
                                 'success': True,
                                 'source': f"PDF från {lunch_page_url}",
-                                'scraped_at': datetime.now().strftime('%Y-%m-%d %H:%M')
+                                'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
                             }
                     except Exception:
                         pass
@@ -766,7 +777,7 @@ def scrape_url(url, name):
                         'menu': lunch_text,
                         'success': True,
                         'source': f"Lunch-sida: {lunch_page_url}",
-                        'scraped_at': datetime.now().strftime('%Y-%m-%d %H:%M')
+                        'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
                     }
             except Exception:
                 pass  # Fallback till huvudsidan
@@ -790,7 +801,7 @@ def scrape_url(url, name):
             'menu': menu_text,
             'success': True,
             'source': 'HTML',
-            'scraped_at': datetime.now().strftime('%Y-%m-%d %H:%M')
+            'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
         }
     except requests.RequestException as e:
         return {
@@ -798,7 +809,7 @@ def scrape_url(url, name):
             'url': url,
             'menu': f'Kunde inte hämta sidan: {str(e)}',
             'success': False,
-            'scraped_at': datetime.now().strftime('%Y-%m-%d %H:%M')
+            'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
         }
 
 @app.route('/')
