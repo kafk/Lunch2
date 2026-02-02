@@ -29,7 +29,7 @@ except ImportError:
 
 app = Flask(__name__)
 
-VERSION = '3.4.28'
+VERSION = '3.4.29'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 
@@ -779,29 +779,34 @@ def scrape_url(url, name):
                 pass  # Fallback till HTML-scraping
 
         # Leta efter iframe med menyinnehåll (t.ex. Mashie, Kvartersmenyn)
-        menu_iframe = find_menu_iframe(soup, url)
-        if menu_iframe:
-            try:
-                iframe_response = requests.get(menu_iframe['url'], headers=headers, timeout=10)
-                iframe_response.raise_for_status()
-                if iframe_response.encoding == 'ISO-8859-1':
-                    iframe_response.encoding = iframe_response.apparent_encoding
-                iframe_soup = BeautifulSoup(iframe_response.text, 'lxml')
+        # Men INTE om vi redan är på en meny-tjänst-sida (annars följer vi fel länkar)
+        menu_services_in_url = ['mashie', 'matildaplatform', 'kvartersmenyn', 'sodexo']
+        already_on_menu_service = any(service in url.lower() for service in menu_services_in_url)
 
-                # Extrahera text från iframe
-                iframe_text = iframe_soup.get_text(separator='\n', strip=True)
-                iframe_text = format_menu_text(iframe_text)
-                if iframe_text and len(iframe_text) > 50:
-                    return {
-                        'name': name,
-                        'url': url,
-                        'menu': iframe_text,
-                        'success': True,
-                        'source': f"iframe ({menu_iframe['service']}): {menu_iframe['url']}",
-                        'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
-                    }
-            except Exception:
-                pass  # Fallback till vanlig HTML-scraping
+        if not already_on_menu_service:
+            menu_iframe = find_menu_iframe(soup, url)
+            if menu_iframe:
+                try:
+                    iframe_response = requests.get(menu_iframe['url'], headers=headers, timeout=10)
+                    iframe_response.raise_for_status()
+                    if iframe_response.encoding == 'ISO-8859-1':
+                        iframe_response.encoding = iframe_response.apparent_encoding
+                    iframe_soup = BeautifulSoup(iframe_response.text, 'lxml')
+
+                    # Extrahera text från iframe
+                    iframe_text = iframe_soup.get_text(separator='\n', strip=True)
+                    iframe_text = format_menu_text(iframe_text)
+                    if iframe_text and len(iframe_text) > 50:
+                        return {
+                            'name': name,
+                            'url': url,
+                            'menu': iframe_text,
+                            'success': True,
+                            'source': f"iframe ({menu_iframe['service']}): {menu_iframe['url']}",
+                            'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+                        }
+                except Exception:
+                    pass  # Fallback till vanlig HTML-scraping
 
         # Leta efter länk till lunch-undersida och följ den
         lunch_page_url = find_lunch_page_link(soup, url)
