@@ -29,7 +29,7 @@ except ImportError:
 
 app = Flask(__name__)
 
-VERSION = '3.4.23'
+VERSION = '3.4.24'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 
@@ -514,14 +514,16 @@ def find_lunch_page_link(soup, base_url):
     return None
 
 def find_menu_iframe(soup, base_url):
-    """Hitta iframe med menyinnehåll (t.ex. Mashie, Kvartersmenyn)."""
+    """Hitta iframe eller länk till menyinnehåll (t.ex. Mashie, Kvartersmenyn)."""
     from urllib.parse import urljoin
 
     # Kända meny-tjänster som använder iframes
-    menu_services = ['mashie', 'kvartersmenyn', 'sodexo', 'menyi', 'meny.dinesoft']
+    menu_services = ['mashie', 'kvartersmenyn', 'sodexo', 'menyi', 'meny.dinesoft', 'mpi.mashie']
 
+    # Sök först i iframes
     for iframe in soup.find_all('iframe'):
-        src = iframe.get('src', '')
+        # Kolla både src och data-src (lazy loading)
+        src = iframe.get('src', '') or iframe.get('data-src', '')
         if not src:
             continue
 
@@ -542,6 +544,37 @@ def find_menu_iframe(soup, base_url):
         # Kolla även efter lunch/meny i iframe-URL:en
         if 'lunch' in src_lower or 'meny' in src_lower or 'menu' in src_lower:
             return {'url': src, 'service': 'unknown'}
+
+    # Sök även efter direktlänkar till meny-tjänster
+    for link in soup.find_all('a', href=True):
+        href = link['href']
+        if not href:
+            continue
+
+        # Gör URL absolut
+        if href.startswith('//'):
+            href = 'https:' + href
+        elif href.startswith('/'):
+            href = urljoin(base_url, href)
+        elif not href.startswith('http'):
+            href = urljoin(base_url, href)
+
+        href_lower = href.lower()
+        for service in menu_services:
+            if service in href_lower:
+                return {'url': href, 'service': service}
+
+    # Sök i sidans HTML efter Mashie-URL:er (kan vara i script-taggar)
+    page_text = str(soup)
+    mashie_patterns = [
+        r'https?://mpi\.mashie\.[a-z]+/public/menu/[^"\'<>\s]+',
+        r'https?://[^"\'<>\s]*mashie[^"\'<>\s]*menu[^"\'<>\s]*'
+    ]
+    import re
+    for pattern in mashie_patterns:
+        match = re.search(pattern, page_text, re.IGNORECASE)
+        if match:
+            return {'url': match.group(0), 'service': 'mashie'}
 
     return None
 
