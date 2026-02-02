@@ -18,7 +18,7 @@ except ImportError:
 
 app = Flask(__name__)
 
-VERSION = '3.4.17'
+VERSION = '3.4.18'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 
@@ -534,6 +534,32 @@ def find_lunch_content(soup, url):
 
     found_sections = []
 
+    def is_opening_hours(text):
+        """Kolla om texten ser ut som öppettider (veckodagar + tider)."""
+        # Räkna tidsmönster som "10:30", "12:00 - 20:00"
+        time_patterns = len(re.findall(r'\d{1,2}[:.]\d{2}', text))
+        # Om det finns många tidsmönster relativt till textlängden, är det troligen öppettider
+        if time_patterns >= 5 and len(text) < 500:
+            return True
+        return False
+
+    def calculate_menu_score(text):
+        """Beräkna hur mycket texten ser ut som en meny."""
+        text_lower = text.lower()
+        score = 0
+        # Prismönster (t.ex. "120 kr", "99:-")
+        price_count = len(re.findall(r'\d+\s*kr|\d+:-', text_lower))
+        score += price_count * 10
+        # "Dagens" är typiskt för lunchmenyer
+        dagens_count = text_lower.count('dagens')
+        score += dagens_count * 5
+        # Maträttsord
+        food_words = ['kött', 'fisk', 'pasta', 'sallad', 'vegetarisk', 'vegan', 'kyckl', 'biff', 'grillad', 'stekt']
+        for word in food_words:
+            if word in text_lower:
+                score += 3
+        return score
+
     # SPECIAL: Sök efter sektioner med engelska veckodags-ID:n (t.ex. Kooperativet)
     weekday_sections = []
     for day_en, day_sv in zip(weekdays_en[:5], weekdays_sv[:5]):  # Bara vardagar
@@ -555,20 +581,27 @@ def find_lunch_content(soup, url):
     # FÖRST: Sök efter sektioner som innehåller FLERA veckodagar (troligen veckomeny)
     for element in soup.find_all(['div', 'section', 'article', 'main']):
         text = element.get_text(separator=' ', strip=True).lower()
+        content = element.get_text(separator='\n', strip=True)
+
+        # Hoppa över öppettider-sektioner
+        if is_opening_hours(content):
+            continue
+
         # Räkna hur många veckodagar som finns i denna sektion
         weekday_count = sum(1 for day in weekdays_sv if day in text)
         if weekday_count >= 3:  # Om minst 3 veckodagar finns, det är troligen veckomenyn
-            content = element.get_text(separator='\n', strip=True)
             if len(content) > 100 and len(content) < 10000:  # Rimlig storlek för en veckomeny
+                menu_score = calculate_menu_score(content)
                 found_sections.append({
                     'keyword': 'veckomeny',
                     'content': content[:4000],
-                    'weekday_count': weekday_count
+                    'weekday_count': weekday_count,
+                    'menu_score': menu_score
                 })
 
-    # Sortera efter antal veckodagar (fler = bättre)
+    # Sortera efter meny-poäng (högre = bättre), sedan antal veckodagar
     if found_sections:
-        found_sections.sort(key=lambda x: x.get('weekday_count', 0), reverse=True)
+        found_sections.sort(key=lambda x: (x.get('menu_score', 0), x.get('weekday_count', 0)), reverse=True)
         return found_sections
 
     # FALLBACK: Om inga veckodagar hittades, använd vanlig keyword-sökning
