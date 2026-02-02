@@ -18,7 +18,7 @@ except ImportError:
 
 app = Flask(__name__)
 
-VERSION = '3.4.18'
+VERSION = '3.4.19'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 
@@ -502,6 +502,38 @@ def find_lunch_page_link(soup, base_url):
                 return full_url
     return None
 
+def find_menu_iframe(soup, base_url):
+    """Hitta iframe med menyinnehåll (t.ex. Mashie, Kvartersmenyn)."""
+    from urllib.parse import urljoin
+
+    # Kända meny-tjänster som använder iframes
+    menu_services = ['mashie', 'kvartersmenyn', 'sodexo', 'menyi', 'meny.dinesoft']
+
+    for iframe in soup.find_all('iframe'):
+        src = iframe.get('src', '')
+        if not src:
+            continue
+
+        # Gör URL absolut
+        if src.startswith('//'):
+            src = 'https:' + src
+        elif src.startswith('/'):
+            src = urljoin(base_url, src)
+        elif not src.startswith('http'):
+            src = urljoin(base_url, src)
+
+        # Kolla om det är en känd meny-tjänst
+        src_lower = src.lower()
+        for service in menu_services:
+            if service in src_lower:
+                return {'url': src, 'service': service}
+
+        # Kolla även efter lunch/meny i iframe-URL:en
+        if 'lunch' in src_lower or 'meny' in src_lower or 'menu' in src_lower:
+            return {'url': src, 'service': 'unknown'}
+
+    return None
+
 def extract_menu_text(soup):
     """Extrahera relevant text från en sida."""
     # Ta bort script och style-element
@@ -667,6 +699,31 @@ def scrape_url(url, name):
                     }
             except Exception:
                 pass  # Fallback till HTML-scraping
+
+        # Leta efter iframe med menyinnehåll (t.ex. Mashie, Kvartersmenyn)
+        menu_iframe = find_menu_iframe(soup, url)
+        if menu_iframe:
+            try:
+                iframe_response = requests.get(menu_iframe['url'], headers=headers, timeout=10)
+                iframe_response.raise_for_status()
+                if iframe_response.encoding == 'ISO-8859-1':
+                    iframe_response.encoding = iframe_response.apparent_encoding
+                iframe_soup = BeautifulSoup(iframe_response.text, 'lxml')
+
+                # Extrahera text från iframe
+                iframe_text = iframe_soup.get_text(separator='\n', strip=True)
+                iframe_text = format_menu_text(iframe_text)
+                if iframe_text and len(iframe_text) > 50:
+                    return {
+                        'name': name,
+                        'url': url,
+                        'menu': iframe_text,
+                        'success': True,
+                        'source': f"iframe ({menu_iframe['service']}): {menu_iframe['url']}",
+                        'scraped_at': datetime.now().strftime('%Y-%m-%d %H:%M')
+                    }
+            except Exception:
+                pass  # Fallback till vanlig HTML-scraping
 
         # Leta efter länk till lunch-undersida och följ den
         lunch_page_url = find_lunch_page_link(soup, url)
