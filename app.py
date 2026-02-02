@@ -29,7 +29,7 @@ except ImportError:
 
 app = Flask(__name__)
 
-VERSION = '3.4.27'
+VERSION = '3.4.28'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 
@@ -551,12 +551,16 @@ def find_menu_iframe(soup, base_url):
         if not href:
             continue
 
+        # Skippa icke-HTTP-länkar (webcal, mailto, tel, etc.) och kalenderfiler
+        if not href.startswith(('http://', 'https://', '/')):
+            continue
+        if href.lower().endswith('.ics'):
+            continue
+
         # Gör URL absolut
         if href.startswith('//'):
             href = 'https:' + href
         elif href.startswith('/'):
-            href = urljoin(base_url, href)
-        elif not href.startswith('http'):
             href = urljoin(base_url, href)
 
         href_lower = href.lower()
