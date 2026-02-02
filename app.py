@@ -29,7 +29,7 @@ except ImportError:
 
 app = Flask(__name__)
 
-VERSION = '3.4.25'
+VERSION = '3.4.26'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 
@@ -213,7 +213,7 @@ def get_storage_info():
 
 def get_cached_menus():
     """Hämta cachade menyer om de är från idag."""
-    today = datetime.now().strftime('%Y-%m-%d')
+    today = swedish_now().strftime('%Y-%m-%d')
 
     if db:
         try:
@@ -231,14 +231,14 @@ def get_cached_menus():
 
 def save_menus_to_cache(menus):
     """Spara menyer till cache."""
-    today = datetime.now().strftime('%Y-%m-%d')
+    today = swedish_now().strftime('%Y-%m-%d')
 
     if db:
         try:
             db.collection('menu_cache').document('daily').set({
                 'date': today,
                 'menus': menus,
-                'updated_at': datetime.now().isoformat()
+                'updated_at': swedish_now().isoformat()
             })
         except Exception as e:
             print(f"Cache write error: {e}")
@@ -600,7 +600,7 @@ def extract_menu_text(soup):
 
 def find_lunch_content(soup, url):
     """Försök hitta lunch-relaterat innehåll."""
-    today = datetime.now()
+    today = swedish_now()
     weekdays_sv = ['måndag', 'tisdag', 'onsdag', 'torsdag', 'fredag', 'lördag', 'söndag']
     weekdays_en = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
     today_name = weekdays_sv[today.weekday()]
@@ -993,7 +993,7 @@ def get_menus():
     # Return with timestamp
     return jsonify({
         'menus': menus,
-        'updated_at': datetime.now().isoformat()
+        'updated_at': swedish_now().isoformat()
     })
 
 if __name__ == '__main__':
