@@ -29,7 +29,7 @@ except ImportError:
 
 app = Flask(__name__)
 
-VERSION = '3.4.26'
+VERSION = '3.4.27'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 
@@ -609,6 +609,34 @@ def find_lunch_content(soup, url):
     lunch_keywords = ['lunch', 'meny', 'menu', 'dagens', 'veckomeny', 'veckans', today_name]
 
     found_sections = []
+
+    # SPECIAL: Mashie/Matilda-sidor (app-daymenu-name class)
+    mashie_items = soup.find_all(class_='app-daymenu-name')
+    if mashie_items:
+        menu_parts = []
+        current_day = None
+        for panel in soup.find_all(class_='panel'):
+            heading = panel.find(class_='panel-heading')
+            if heading:
+                # Extrahera veckodag och datum
+                day_text = heading.get_text(separator=' ', strip=True)
+                menu_parts.append('\n' + day_text)
+
+            # Extrahera maträtter
+            for item in panel.find_all(class_='list-group-item-menu'):
+                category = item.find(class_='app-alternative-name')
+                dish = item.find(class_='app-daymenu-name')
+                if category and dish:
+                    cat_text = category.get_text(strip=True)
+                    dish_text = dish.get_text(strip=True)
+                    menu_parts.append(f"{cat_text}: {dish_text}")
+
+        if menu_parts:
+            return [{
+                'keyword': 'mashie',
+                'content': '\n'.join(menu_parts)[:6000],
+                'weekday_count': 5
+            }]
 
     def is_opening_hours(text):
         """Kolla om texten ser ut som öppettider (veckodagar + tider)."""
