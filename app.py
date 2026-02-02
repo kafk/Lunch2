@@ -18,7 +18,7 @@ except ImportError:
 
 app = Flask(__name__)
 
-VERSION = '3.4.19'
+VERSION = '3.4.20'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 
@@ -752,8 +752,12 @@ def scrape_url(url, name):
                     except Exception:
                         pass
 
-                # Hämta text från lunch-sidan
-                lunch_text = lunch_soup.get_text(separator='\n', strip=True)
+                # Använd find_lunch_content för att hitta menyn (filtrerar bort öppettider etc.)
+                lunch_sections = find_lunch_content(lunch_soup, lunch_page_url)
+                if lunch_sections:
+                    lunch_text = '\n\n'.join([s['content'] for s in lunch_sections[:3]])
+                else:
+                    lunch_text = lunch_soup.get_text(separator='\n', strip=True)
                 lunch_text = format_menu_text(lunch_text)
                 if lunch_text and len(lunch_text) > 50:
                     return {
