@@ -29,7 +29,7 @@ except ImportError:
 
 app = Flask(__name__)
 
-VERSION = '3.4.24'
+VERSION = '3.4.25'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 
@@ -518,7 +518,7 @@ def find_menu_iframe(soup, base_url):
     from urllib.parse import urljoin
 
     # Kända meny-tjänster som använder iframes
-    menu_services = ['mashie', 'kvartersmenyn', 'sodexo', 'menyi', 'meny.dinesoft', 'mpi.mashie']
+    menu_services = ['mashie', 'matildaplatform', 'kvartersmenyn', 'sodexo', 'menyi', 'meny.dinesoft', 'mpi.mashie']
 
     # Sök först i iframes
     for iframe in soup.find_all('iframe'):
