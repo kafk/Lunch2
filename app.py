@@ -29,7 +29,7 @@ except ImportError:
 
 app = Flask(__name__)
 
-VERSION = '3.4.29'
+VERSION = '3.4.30'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 
@@ -733,11 +733,18 @@ def find_lunch_content(soup, url):
 def scrape_url(url, name):
     """Scrapa en URL och returnera menyinformation."""
     try:
+        # Använd session för att hantera cookies automatiskt
+        session = requests.Session()
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'sv-SE,sv;q=0.9,en-US;q=0.8,en;q=0.7'
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'sv-SE,sv;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Referer': 'https://www.google.com/',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1'
         }
+        session.headers.update(headers)
 
         # Kolla om URL:en är en direkt PDF-länk
         if url.lower().endswith('.pdf'):
@@ -751,7 +758,7 @@ def scrape_url(url, name):
                 'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
             }
 
-        response = requests.get(url, headers=headers, timeout=10)
+        response = session.get(url, timeout=10)
         response.raise_for_status()
 
         # Försök detektera encoding
@@ -787,7 +794,7 @@ def scrape_url(url, name):
             menu_iframe = find_menu_iframe(soup, url)
             if menu_iframe:
                 try:
-                    iframe_response = requests.get(menu_iframe['url'], headers=headers, timeout=10)
+                    iframe_response = session.get(menu_iframe['url'], timeout=10)
                     iframe_response.raise_for_status()
                     if iframe_response.encoding == 'ISO-8859-1':
                         iframe_response.encoding = iframe_response.apparent_encoding
@@ -812,7 +819,7 @@ def scrape_url(url, name):
         lunch_page_url = find_lunch_page_link(soup, url)
         if lunch_page_url:
             try:
-                lunch_response = requests.get(lunch_page_url, headers=headers, timeout=10)
+                lunch_response = session.get(lunch_page_url, timeout=10)
                 lunch_response.raise_for_status()
                 if lunch_response.encoding == 'ISO-8859-1':
                     lunch_response.encoding = lunch_response.apparent_encoding
