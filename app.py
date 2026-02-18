@@ -450,6 +450,44 @@ def format_menu_text(text):
 
     return text
 
+def extract_today_section(text):
+    """Extrahera bara dagens sektion från en veckomeny.
+
+    Om texten har tydliga dagssektioner (Måndag, Tisdag, etc.) returneras
+    bara dagens sektion. Om ingen dagstruktur hittas (t.ex. en veckomeny
+    utan daguppdelning som MR Tomato) returneras texten orörd.
+    """
+    today = swedish_now()
+    weekdays_sv = ['MÅNDAG', 'TISDAG', 'ONSDAG', 'TORSDAG', 'FREDAG', 'LÖRDAG', 'SÖNDAG']
+    today_name = weekdays_sv[today.weekday()]
+
+    # Kolla om texten har veckodagssektioner (samma mönster som format_menu_text)
+    weekday_pattern = re.compile(
+        r'^(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)\s*$',
+        re.IGNORECASE | re.MULTILINE
+    )
+    matches = list(weekday_pattern.finditer(text))
+
+    if len(matches) < 2:
+        # Ingen dagstruktur hittad – returnera orörd (t.ex. MR Tomato)
+        return text
+
+    # Bygg dagssektioner
+    day_sections = {}
+    for i, match in enumerate(matches):
+        day_name = match.group(1).upper()
+        start = match.start()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        day_sections[day_name] = text[start:end].strip()
+
+    # Returnera bara dagens sektion om den finns
+    if today_name in day_sections:
+        return day_sections[today_name]
+
+    # Dagens dag saknas i menyn (t.ex. helg eller inte uppdaterad) – returnera hela texten
+    return text
+
+
 def extract_pdf_text(pdf_content):
     """Extrahera text från PDF-innehåll."""
     try:
@@ -1014,11 +1052,17 @@ def get_menus():
     """Scrapa alla aktiverade URL:er och returnera menyerna."""
     # Check if refresh is requested
     force_refresh = request.args.get('refresh', 'false').lower() == 'true'
+    # Om today_only=true, filtrera texten till bara dagens sektion
+    today_only = request.args.get('today_only', 'false').lower() == 'true'
 
     # Try to get cached menus if not forcing refresh
     if not force_refresh:
         cached = get_cached_menus()
         if cached:
+            if today_only:
+                for menu in cached.get('menus', []):
+                    if menu.get('success') and menu.get('menu'):
+                        menu['menu'] = extract_today_section(menu['menu'])
             return jsonify(cached)
 
     # Scrape fresh data
@@ -1033,6 +1077,11 @@ def get_menus():
 
     # Save to cache
     save_menus_to_cache(menus)
+
+    if today_only:
+        for menu in menus:
+            if menu.get('success') and menu.get('menu'):
+                menu['menu'] = extract_today_section(menu['menu'])
 
     # Return with timestamp
     return jsonify({

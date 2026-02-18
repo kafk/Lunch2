@@ -573,7 +573,9 @@
                 return;
             }
 
-            const response = await fetch('/api/menus' + (forceRefresh ? '?refresh=true' : ''));
+            const params = new URLSearchParams({ today_only: 'true' });
+            if (forceRefresh) params.set('refresh', 'true');
+            const response = await fetch('/api/menus?' + params.toString());
             const data = await response.json();
             allMenus = data.menus || data;  // Support both new and old format
 
