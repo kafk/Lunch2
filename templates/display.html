@@ -205,6 +205,18 @@
         align-items: center;
     }
 
+    .menu-card-name-link {
+        color: #1f2937;
+        text-decoration: none;
+        border-bottom: 1px solid transparent;
+        transition: color 0.15s, border-color 0.15s;
+    }
+
+    .menu-card-name-link:hover {
+        color: #7c3aed;
+        border-bottom-color: #7c3aed;
+    }
+
     .menu-card-badge {
         font-size: 11px;
         padding: 4px 10px;
@@ -585,7 +597,7 @@
                 return `
                     <div class="menu-card">
                         <div class="menu-card-title">
-                            ${escapeHtml(menu.name)}
+                            <a href="${escapeHtml(menu.url)}" target="_blank" class="menu-card-name-link">${escapeHtml(menu.name)}</a>
                             <span class="menu-card-badge ${isPdf ? 'pdf' : 'html'}">${isPdf ? 'PDF' : 'HTML'}</span>
                         </div>
                         <div class="menu-card-content">${escapeHtml(menu.menu)}</div>
