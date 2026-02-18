@@ -237,10 +237,17 @@
     .menu-card-content {
         font-size: 13px;
         color: #6b7280;
-        line-height: 1.6;
-        white-space: pre-wrap;
+        line-height: 1.5;
         max-height: 200px;
         overflow-y: auto;
+    }
+
+    .dish-block {
+        margin-bottom: 14px;
+    }
+
+    .dish-block:last-child {
+        margin-bottom: 0;
     }
 
     /* Modal */
@@ -600,7 +607,7 @@
                             <a href="${escapeHtml(menu.url)}" target="_blank" class="menu-card-name-link">${escapeHtml(menu.name)}</a>
                             <span class="menu-card-badge ${isPdf ? 'pdf' : 'html'}">${isPdf ? 'PDF' : 'HTML'}</span>
                         </div>
-                        <div class="menu-card-content">${escapeHtml(menu.menu)}</div>
+                        <div class="menu-card-content">${formatMenuContent(menu.menu)}</div>
                     </div>
                 `;
             }).join('');
@@ -671,6 +678,17 @@
     function getPreview(text) {
         const lines = text.split('\n').filter(l => l.trim());
         return lines.slice(0, 3).join(' • ');
+    }
+
+    function formatMenuContent(text) {
+        if (!text) return '';
+        // Dela upp på blanka rader (varje rätt är ett block)
+        const blocks = text.split(/\n\n+/);
+        return blocks
+            .map(block => block.trim())
+            .filter(block => block.length > 0)
+            .map(block => `<div class="dish-block">${escapeHtml(block).replace(/\n/g, '<br>')}</div>`)
+            .join('');
     }
 
     function escapeHtml(text) {
