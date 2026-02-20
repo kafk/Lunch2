@@ -385,10 +385,11 @@ def format_menu_text(text):
     for day in weekdays:
         text = re.sub(rf'(?<!\n)({day})', r'\n\n\1', text)
 
-    # Kategorier - lägg till radbrytning före
+    # Kategorier - lägg till blank rad före (case-insensitive, hanterar inline och enstaka radbrytning)
     categories = ['KÖTT', 'FISK', 'PASTA', 'SALLAD', 'BURGARE', 'VEGETARISKT', 'VEGAN', 'LUNCH']
     for cat in categories:
-        text = re.sub(rf'(?<!\n)({cat})', r'\n\n\1', text)
+        text = re.sub(rf'[ \t]+({cat}\b)', r'\n\n\1', text, flags=re.IGNORECASE)   # inline: "FREDAG KÖTT:" → "...\n\nKÖTT:"
+        text = re.sub(rf'(?<!\n)\n({cat}\b)', r'\n\n\1', text, flags=re.IGNORECASE) # enstaka radbrytning → dubbel
 
     # Lägg till radbrytning efter bullet points (❖)
     text = re.sub(r'(❖)', r'\n  \1', text)
