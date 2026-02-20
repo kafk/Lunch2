@@ -394,6 +394,10 @@ def format_menu_text(text):
     # Lägg till radbrytning efter bullet points (❖)
     text = re.sub(r'(❖)', r'\n  \1', text)
 
+    # Lägg till blank rad efter ingrediensrader (rader med " – " separator, t.ex. Bistro Lindholmen)
+    # Skapar \n\n efter varje ingrediensrad → nästa rättnamn börjar eget block
+    text = re.sub(r'^([^\n]* – [^\n]*)$', r'\1\n', text, flags=re.MULTILINE)
+
     # Lägg till radbrytning efter priser (t.ex. "129kr" eller "129 kr")
     text = re.sub(r'(\d+\s*kr(?:/\d+\s*kr)?)\s*(?=[A-ZÅÄÖ❖])', r'\1\n', text)
 

@@ -687,6 +687,10 @@
         text = text.replace(/[ \t]+([A-ZÅÄÖ]{3,}:)/g, '\n\n$1');   // inline
         text = text.replace(/\n([A-ZÅÄÖ]{3,}:)/g, '\n\n$1');         // enstaka radbrytning
 
+        // Blank rad efter ingrediensrader (Bistro-stil: "Ingrediens – Ingrediens – ...")
+        text = text.replace(/^([^\n]* – [^\n]*)$/gm, '$1\n');
+        text = text.replace(/\n{3,}/g, '\n\n');
+
         // Dela upp på blanka rader (varje rätt är ett block)
         const blocks = text.split(/\n\n+/);
         return blocks
