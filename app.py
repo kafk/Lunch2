@@ -321,7 +321,11 @@ def format_menu_text(text):
 
         # Övrigt
         'Add Your Heading', 'Lorem ipsum', 'Fina Råvaror',
-        'Kville Saluhall', 'Gustaf Dalénsgatan', 'Dagens Lunch V.'
+        'Kville Saluhall', 'Gustaf Dalénsgatan', 'Dagens Lunch V.',
+
+        # Divan och liknande footers
+        'INKL :', 'Med reservation för eventuella förändringar',
+        'OBS! Med reservation',
     ]
 
     # "Adress" som egen rad (inte som del av annat ord)
