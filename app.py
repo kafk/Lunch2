@@ -1056,6 +1056,21 @@ def cleanup_duplicates():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+def strip_menu_footers(text):
+    """Ta bort kända footer-fragment vid svarstid (hanterar även gammal cache)."""
+    # Klipper texten vid kända footer-markörer oavsett var de hittades
+    footer_patterns = [
+        r'\nINKL\s*:',
+        r'\nOBS!\s*Med reservation',
+        r'\nMed reservation för eventuella',
+    ]
+    for pattern in footer_patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match and match.start() > 50:
+            text = text[:match.start()]
+    return text.strip()
+
+
 @app.route('/api/menus', methods=['GET'])
 def get_menus():
     """Scrapa alla aktiverade URL:er och returnera menyerna."""
@@ -1064,14 +1079,19 @@ def get_menus():
     # Om today_only=true, filtrera texten till bara dagens sektion
     today_only = request.args.get('today_only', 'false').lower() == 'true'
 
+    def postprocess(menu_list):
+        """Applicera svarstids-transformationer på en menylist."""
+        for menu in menu_list:
+            if menu.get('success') and menu.get('menu'):
+                menu['menu'] = strip_menu_footers(menu['menu'])
+                if today_only:
+                    menu['menu'] = extract_today_section(menu['menu'])
+
     # Try to get cached menus if not forcing refresh
     if not force_refresh:
         cached = get_cached_menus()
         if cached:
-            if today_only:
-                for menu in cached.get('menus', []):
-                    if menu.get('success') and menu.get('menu'):
-                        menu['menu'] = extract_today_section(menu['menu'])
+            postprocess(cached.get('menus', []))
             return jsonify(cached)
 
     # Scrape fresh data
@@ -1087,10 +1107,7 @@ def get_menus():
     # Save to cache
     save_menus_to_cache(menus)
 
-    if today_only:
-        for menu in menus:
-            if menu.get('success') and menu.get('menu'):
-                menu['menu'] = extract_today_section(menu['menu'])
+    postprocess(menus)
 
     # Return with timestamp
     return jsonify({
