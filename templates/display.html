@@ -682,6 +682,11 @@
 
     function formatMenuContent(text) {
         if (!text) return '';
+        // Normalisera: lägg till blank rad före kategori-etiketter (KÖTT:, FISK:, etc.)
+        // för menyer där kategorin saknar radbrytning
+        text = text.replace(/[ \t]+([A-ZÅÄÖ]{3,}:)/g, '\n\n$1');   // inline
+        text = text.replace(/\n([A-ZÅÄÖ]{3,}:)/g, '\n\n$1');         // enstaka radbrytning
+
         // Dela upp på blanka rader (varje rätt är ett block)
         const blocks = text.split(/\n\n+/);
         return blocks
