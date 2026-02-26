@@ -130,6 +130,12 @@
 </div>
 
 <style>
+    /* Täck hela skärmen — override base.html max-width */
+    .main-content {
+        max-width: none;
+        width: calc(100vw - 72px);
+    }
+
     .view-toggle {
         display: flex;
         gap: 10px;
@@ -173,7 +179,7 @@
     /* Cards Grid */
     .menu-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(358px, 1fr));
         gap: 20px;
     }
 
@@ -717,5 +723,8 @@
     }
 
     loadMenus();
+
+    // Auto-uppdatera var 30:e minut (bra för display-läge)
+    setInterval(() => loadMenus(), 30 * 60 * 1000);
 </script>
 {% endblock %}
