@@ -695,6 +695,10 @@
 
         // Blank rad efter ingrediensrader (Bistro-stil: "Ingrediens – Ingrediens – ...")
         text = text.replace(/^([^\n]* – [^\n]*)$/gm, '$1\n');
+
+        // Varje ❖-rad är en egen rätt — ge dem eget block
+        text = text.replace(/\n(❖)/g, '\n\n$1');
+
         text = text.replace(/\n{3,}/g, '\n\n');
 
         // Dela upp på blanka rader (varje rätt är ett block)
