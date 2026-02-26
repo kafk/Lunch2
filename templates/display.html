@@ -697,7 +697,8 @@
         text = text.replace(/^([^\n]* – [^\n]*)$/gm, '$1\n');
 
         // Varje ❖-rad är en egen rätt — ge dem eget block
-        text = text.replace(/\n(❖)/g, '\n\n$1');
+        // (Python lägger till "\n  ❖" med 2 mellanslag, så matcha valfritt whitespace)
+        text = text.replace(/\n[ \t]*(❖)/g, '\n\n❖');
 
         // Rader som slutar med pris (t.ex. "165.-", "155:-") → eget block
         text = text.replace(/([\d]+[.:-]+[-]?)\n(?!\n)/g, '$1\n\n');
