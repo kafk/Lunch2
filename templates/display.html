@@ -699,6 +699,9 @@
         // Varje ❖-rad är en egen rätt — ge dem eget block
         text = text.replace(/\n(❖)/g, '\n\n$1');
 
+        // Rader som slutar med pris (t.ex. "165.-", "155:-") → eget block
+        text = text.replace(/([\d]+[.:-]+[-]?)\n(?!\n)/g, '$1\n\n');
+
         text = text.replace(/\n{3,}/g, '\n\n');
 
         // Dela upp på blanka rader (varje rätt är ett block)
