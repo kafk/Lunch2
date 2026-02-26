@@ -703,6 +703,14 @@
         // Rader som slutar med pris (t.ex. "165.-", "155:-") → eget block
         text = text.replace(/([\d]+[.:-]+[-]?)\n(?!\n)/g, '$1\n\n');
 
+        // Numrerade rätter (Divan-stil: " 1.Kolgrillad", "2.Kebab" etc.)
+        // Matchar siffra(or) + punkt + stor bokstav (ej tid som "11.00")
+        text = text.replace(/[ \n](\d+\.)([A-ZÅÄÖ])/g, '\n\n$1$2');
+
+        // Beskrivningsrad som slutar med punkt följd av ny rätt (MR Tomato-stil)
+        // t.ex. "kantarellsås.\nTortellini" → extra radbrytning
+        text = text.replace(/\.\n([A-ZÅÄÖ])/g, '.\n\n$1');
+
         text = text.replace(/\n{3,}/g, '\n\n');
 
         // Dela upp på blanka rader (varje rätt är ett block)
