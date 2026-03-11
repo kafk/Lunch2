@@ -777,6 +777,116 @@ def find_lunch_content(soup, url):
 
     return found_sections
 
+def scrape_tsukihana(url, name, session):
+    """Custom scraper för tsukihana.net – filtrerar till bara dagens måltider.
+
+    Tsukihanas meny har veckodagen inbäddad i måltiteln (t.ex. "Dagens Kött Måndag")
+    istället för som separata dagsrubriker, så vi filtrerar direkt vid scraping.
+    """
+    try:
+        response = session.get(url, timeout=10)
+        response.raise_for_status()
+        if response.encoding == 'ISO-8859-1':
+            response.encoding = response.apparent_encoding
+        soup = BeautifulSoup(response.text, 'lxml')
+
+        today = swedish_now()
+        weekdays_sv = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag']
+        today_name = weekdays_sv[today.weekday()]
+        today_pattern = re.compile(today_name, re.IGNORECASE)
+
+        menu_parts = []
+
+        # Strategi 1: leta efter heading-element (h2-h5) som innehåller dagens veckodag
+        headings = soup.find_all(['h2', 'h3', 'h4', 'h5'])
+        for heading in headings:
+            heading_text = heading.get_text(separator=' ', strip=True)
+            if not today_pattern.search(heading_text):
+                continue
+
+            # Rensa ihopklibpad pris: "Måndag120 kr" → "Måndag 120 kr"
+            heading_text = re.sub(r'(\w)(\d+\s*kr)', r'\1 \2', heading_text, flags=re.IGNORECASE)
+
+            # Hämta beskrivningen från nästa element
+            desc_parts = []
+            sibling = heading.find_next_sibling()
+            while sibling:
+                tag = sibling.name
+                if tag in ['h2', 'h3', 'h4', 'h5']:
+                    break
+                text = sibling.get_text(separator=' ', strip=True)
+                if text:
+                    desc_parts.append(text)
+                    break
+                sibling = sibling.find_next_sibling()
+
+            # Försök också hitta beskrivning i parent-elements nästa syskon
+            if not desc_parts:
+                parent = heading.parent
+                if parent:
+                    next_parent_sibling = parent.find_next_sibling()
+                    if next_parent_sibling:
+                        text = next_parent_sibling.get_text(separator=' ', strip=True)
+                        if text and not today_pattern.search(text):
+                            desc_parts.append(text)
+
+            if desc_parts:
+                menu_parts.append(f"{heading_text}\n{desc_parts[0]}")
+            else:
+                menu_parts.append(heading_text)
+
+        if menu_parts:
+            menu_text = '\n\n'.join(menu_parts)
+            return {
+                'name': name,
+                'url': url,
+                'menu': menu_text,
+                'success': True,
+                'source': 'HTML (Tsukihana)',
+                'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+            }
+
+        # Strategi 2: fallback – hämta all text och filtrera rader med dagens veckodag
+        all_text = soup.get_text(separator='\n', strip=True)
+        lines = all_text.split('\n')
+        result_lines = []
+        i = 0
+        while i < len(lines):
+            line = lines[i].strip()
+            if today_pattern.search(line) and 'dagens' in line.lower():
+                # Rensa ihopklibbad pris
+                line = re.sub(r'(\w)(\d+\s*kr)', r'\1 \2', line, flags=re.IGNORECASE)
+                result_lines.append(line)
+                # Ta med nästa icke-tomma rad som beskrivning
+                j = i + 1
+                while j < len(lines) and not lines[j].strip():
+                    j += 1
+                if j < len(lines):
+                    desc = lines[j].strip()
+                    if desc and not today_pattern.search(desc):
+                        result_lines.append(desc)
+                result_lines.append('')
+                i = j + 1
+            else:
+                i += 1
+
+        if result_lines:
+            menu_text = '\n'.join(result_lines).strip()
+            return {
+                'name': name,
+                'url': url,
+                'menu': menu_text,
+                'success': True,
+                'source': 'HTML (Tsukihana fallback)',
+                'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+            }
+
+    except Exception as e:
+        pass
+
+    return None
+
+
 def scrape_url(url, name):
     """Scrapa en URL och returnera menyinformation."""
     try:
@@ -792,6 +902,13 @@ def scrape_url(url, name):
             'Upgrade-Insecure-Requests': '1'
         }
         session.headers.update(headers)
+
+        # SPECIAL: Tsukihana har veckodagen inbäddad i måltitlarna – använd custom scraper
+        if 'tsukihana' in url.lower():
+            lunch_url = url if '/lunch' in url.lower() else url.rstrip('/') + '/lunch'
+            result = scrape_tsukihana(lunch_url, name, session)
+            if result:
+                return result
 
         # Kolla om URL:en är en direkt PDF-länk
         if url.lower().endswith('.pdf'):
