@@ -778,10 +778,11 @@ def find_lunch_content(soup, url):
     return found_sections
 
 def scrape_tsukihana(url, name, session):
-    """Custom scraper för tsukihana.net – filtrerar till bara dagens måltider.
+    """Custom scraper för tsukihana.net – filtrerar till bara dagens + veckans måltider.
 
-    Tsukihanas meny har veckodagen inbäddad i måltiteln (t.ex. "Dagens Kött Måndag")
-    istället för som separata dagsrubriker, så vi filtrerar direkt vid scraping.
+    Menyn är en kontinuerlig textblob där veckodagen sitter i måltiteln,
+    t.ex. "Dagens Kött Onsdag 120 kr Helstekt fläskfilé...".
+    Vi normaliserar texten och splitar på sektionsgränser med regex.
     """
     try:
         response = session.get(url, timeout=10)
@@ -793,91 +794,74 @@ def scrape_tsukihana(url, name, session):
         today = swedish_now()
         weekdays_sv = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag']
         today_name = weekdays_sv[today.weekday()]
-        today_pattern = re.compile(today_name, re.IGNORECASE)
+
+        # Normalisera all text till en enda rad (sidan upprepar menyn 3 ggr)
+        full_text = re.sub(r'\s+', ' ', soup.get_text(separator=' ')).strip()
+
+        weekday_re_str = '|'.join(weekdays_sv)
+
+        # Splitta texten i bitar vid varje ny sektion/rätt
+        # Lookahead-splitten behåller startmarkören i varje bit
+        split_pat = re.compile(
+            r'(?=\bDagens\s+\w'
+            r'|\bVeckans\s+vegetarisk\b'
+            r'|\bCaesarsallad\s+\d'
+            r'|\bRäksallad\s+\d'
+            r'|\bSushi\s+Extra\b)',
+            re.IGNORECASE
+        )
+        chunks = split_pat.split(full_text)
+
+        daily_re = re.compile(
+            r'^Dagens\s+(\w+)\s+(' + weekday_re_str + r')\s+(\d+\s*kr)\s+(.*)',
+            re.IGNORECASE | re.DOTALL
+        )
+        weekly_re = re.compile(
+            r'^(Veckans\s+vegetarisk|Caesarsallad|Räksallad)\s+(\d+\s*kr)\s+(.*)',
+            re.IGNORECASE | re.DOTALL
+        )
 
         menu_parts = []
+        weekly_parts = []
+        seen = set()
 
-        # Strategi 1: leta efter heading-element (h2-h5) som innehåller dagens veckodag
-        headings = soup.find_all(['h2', 'h3', 'h4', 'h5'])
-        for heading in headings:
-            heading_text = heading.get_text(separator=' ', strip=True)
-            if not today_pattern.search(heading_text):
+        for chunk in chunks:
+            chunk = chunk.strip()
+            if not chunk:
                 continue
 
-            # Rensa ihopklibpad pris: "Måndag120 kr" → "Måndag 120 kr"
-            heading_text = re.sub(r'(\w)(\d+\s*kr)', r'\1 \2', heading_text, flags=re.IGNORECASE)
+            m = daily_re.match(chunk)
+            if m:
+                meal_type = m.group(1).strip()
+                day = m.group(2).strip()
+                price = m.group(3).strip()
+                desc = m.group(4).strip()
+                if day.lower() == today_name.lower():
+                    key = f"d-{meal_type.lower()}"
+                    if key not in seen:
+                        seen.add(key)
+                        menu_parts.append(f"Dagens {meal_type} {day} {price}\n{desc}")
+                continue
 
-            # Hämta beskrivningen från nästa element
-            desc_parts = []
-            sibling = heading.find_next_sibling()
-            while sibling:
-                tag = sibling.name
-                if tag in ['h2', 'h3', 'h4', 'h5']:
-                    break
-                text = sibling.get_text(separator=' ', strip=True)
-                if text:
-                    desc_parts.append(text)
-                    break
-                sibling = sibling.find_next_sibling()
+            m = weekly_re.match(chunk)
+            if m:
+                item = m.group(1).strip()
+                price = m.group(2).strip()
+                desc = m.group(3).strip()
+                key = f"w-{item.lower()}"
+                if key not in seen:
+                    seen.add(key)
+                    weekly_parts.append(f"{item} {price}\n{desc}")
 
-            # Försök också hitta beskrivning i parent-elements nästa syskon
-            if not desc_parts:
-                parent = heading.parent
-                if parent:
-                    next_parent_sibling = parent.find_next_sibling()
-                    if next_parent_sibling:
-                        text = next_parent_sibling.get_text(separator=' ', strip=True)
-                        if text and not today_pattern.search(text):
-                            desc_parts.append(text)
+        all_parts = menu_parts + weekly_parts
 
-            if desc_parts:
-                menu_parts.append(f"{heading_text}\n{desc_parts[0]}")
-            else:
-                menu_parts.append(heading_text)
-
-        if menu_parts:
-            menu_text = '\n\n'.join(menu_parts)
+        if all_parts:
             return {
                 'name': name,
                 'url': url,
-                'menu': menu_text,
+                'menu': '\n\n'.join(all_parts),
                 'success': True,
                 'source': 'HTML (Tsukihana)',
-                'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
-            }
-
-        # Strategi 2: fallback – hämta all text och filtrera rader med dagens veckodag
-        all_text = soup.get_text(separator='\n', strip=True)
-        lines = all_text.split('\n')
-        result_lines = []
-        i = 0
-        while i < len(lines):
-            line = lines[i].strip()
-            if today_pattern.search(line) and 'dagens' in line.lower():
-                # Rensa ihopklibbad pris
-                line = re.sub(r'(\w)(\d+\s*kr)', r'\1 \2', line, flags=re.IGNORECASE)
-                result_lines.append(line)
-                # Ta med nästa icke-tomma rad som beskrivning
-                j = i + 1
-                while j < len(lines) and not lines[j].strip():
-                    j += 1
-                if j < len(lines):
-                    desc = lines[j].strip()
-                    if desc and not today_pattern.search(desc):
-                        result_lines.append(desc)
-                result_lines.append('')
-                i = j + 1
-            else:
-                i += 1
-
-        if result_lines:
-            menu_text = '\n'.join(result_lines).strip()
-            return {
-                'name': name,
-                'url': url,
-                'menu': menu_text,
-                'success': True,
-                'source': 'HTML (Tsukihana fallback)',
                 'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
             }
 
