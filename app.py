@@ -874,11 +874,13 @@ def scrape_tsukihana(url, name, session):
 def scrape_tildas(url, name, session):
     """Custom scraper för tildasrestaurang.com.
 
-    Hämtar veckans stående rätter (KÖTT ❖, FISK ❖, osv.) från råtexten innan
-    format_menu_text klipper bort allt före första veckodagen, och kombinerar dem
-    med dagens dagsmeny från den vanliga pipeline:n.
+    Hämtar veckans stående rätter (KÖTT, FISK, osv.) från råtexten INNAN
+    format_menu_text klipper bort allt före första veckodagen.
 
-    Returnerar en text med ≤1 veckodagsrubrik (dagens) + en "Veckans:"-sektion,
+    OBS: ❖ är ett CSS-genererat pseudo-element (::before/::after) och syns
+    INTE i BeautifulSoup:s get_text(). Söker därför utan ❖ på kategorinamn.
+
+    Returnerar en text med ≤1 veckodagsrubrik (dagens) + "Veckans:"-sektion,
     vilket gör att extract_today_section i postprocess lämnar resultatet orört.
     """
     try:
@@ -902,35 +904,53 @@ def scrape_tildas(url, name, session):
                 pass
 
         weekday_re_str = 'Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag'
+        weekly_categories = ['KÖTT', 'FISK', 'PASTA', 'SALLAD', 'BURGARE', 'VEGETARISKT', 'VEGAN']
+        cat_re_str = '|'.join(weekly_categories)
 
-        # === Veckans stående rätter från råtexten (KÖTT ❖, FISK ❖, …) ===
-        # Sök i BÅDA sidor: veckans-sektionen kan ligga på huvudsidan (soup)
-        # medan dagsmeny ligger på lunch-undersidan (target_soup).
+        # === Veckans stående rätter från råtexten ===
+        # Sök i båda sidor (huvudsida + ev. lunch-undersida).
+        # ❖ är CSS-genererat → INTE i get_text(). Söker bara på kategorinamn.
         raw_pages = [soup]
         if target_soup is not soup:
             raw_pages.append(target_soup)
-        raw_text = ' '.join(
-            re.sub(r'\s+', ' ', s.get_text(separator=' ')).strip()
-            for s in raw_pages
-        )
-
-        weekly_categories = ['KÖTT', 'FISK', 'PASTA', 'SALLAD', 'BURGARE', 'VEGETARISKT', 'VEGAN']
-        cat_re_str = '|'.join(weekly_categories)
 
         weekly_parts = []
         weekly_seen = set()
 
-        for m in re.finditer(
-            r'\b(' + cat_re_str + r')\s*❖\s*(.*?)(?=\b(?:' + cat_re_str + r')\s*❖|\b(?:' + weekday_re_str + r')\b|$)',
-            raw_text, re.IGNORECASE | re.DOTALL
-        ):
-            cat = m.group(1).upper()
-            desc = m.group(2).strip()
-            if cat not in weekly_seen:
-                weekly_seen.add(cat)
-                # Rensa ihopklibbar pris: "154kr" → "154 kr"
-                desc = re.sub(r'(\d+)(kr)', r'\1 \2', desc, flags=re.IGNORECASE)
-                weekly_parts.append(f"{cat}\n❖ {desc}")
+        for page_soup in raw_pages:
+            raw_text = re.sub(r'\s+', ' ', page_soup.get_text(separator=' ')).strip()
+
+            # Hitta positionen för första och sista veckodagen i råtexten
+            first_wd = re.search(r'\b(?:' + weekday_re_str + r')\b', raw_text, re.IGNORECASE)
+            last_wd_iter = list(re.finditer(r'\b(?:' + weekday_re_str + r')\b', raw_text, re.IGNORECASE))
+            last_wd = last_wd_iter[-1] if last_wd_iter else None
+
+            # Sektioner att söka i: FÖRE första veckodagen och EFTER sista veckodagen
+            search_sections = []
+            if first_wd:
+                search_sections.append(raw_text[:first_wd.start()])   # innan dagsmenyn
+            if last_wd:
+                search_sections.append(raw_text[last_wd.end():])       # efter dagsmenyn
+            if not search_sections:
+                search_sections.append(raw_text)  # ingen dagsmeny, sök i allt
+
+            for section in search_sections:
+                for m in re.finditer(
+                    r'\b(' + cat_re_str + r')\b\s+(.*?)(?=\b(?:' + cat_re_str + r')\b|\b(?:' + weekday_re_str + r')\b|$)',
+                    section, re.IGNORECASE | re.DOTALL
+                ):
+                    cat = m.group(1).upper()
+                    desc = m.group(2).strip()
+                    # Filtrera bort navigationsrader (för korta eller bara priser)
+                    if len(desc) < 5:
+                        continue
+                    if cat not in weekly_seen:
+                        weekly_seen.add(cat)
+                        desc = re.sub(r'(\d+)(kr)', r'\1 \2', desc, flags=re.IGNORECASE)
+                        weekly_parts.append(f"{cat}\n❖ {desc}")
+
+            if weekly_parts:
+                break  # Hittade i denna sida, behöver inte söka mer
 
         # === Dagens dagsmeny via normal pipeline ===
         sections = find_lunch_content(target_soup, lunch_url or url)
