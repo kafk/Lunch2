@@ -871,6 +871,92 @@ def scrape_tsukihana(url, name, session):
     return None
 
 
+def scrape_tildas(url, name, session):
+    """Custom scraper för tildasrestaurang.com.
+
+    Hämtar veckans stående rätter (KÖTT ❖, FISK ❖, osv.) från råtexten innan
+    format_menu_text klipper bort allt före första veckodagen, och kombinerar dem
+    med dagens dagsmeny från den vanliga pipeline:n.
+
+    Returnerar en text med ≤1 veckodagsrubrik (dagens) + en "Veckans:"-sektion,
+    vilket gör att extract_today_section i postprocess lämnar resultatet orört.
+    """
+    try:
+        response = session.get(url, timeout=10)
+        response.raise_for_status()
+        if response.encoding == 'ISO-8859-1':
+            response.encoding = response.apparent_encoding
+        soup = BeautifulSoup(response.text, 'lxml')
+
+        # Följ lunch-undersida om en finns
+        target_soup = soup
+        lunch_url = find_lunch_page_link(soup, url)
+        if lunch_url:
+            try:
+                lr = session.get(lunch_url, timeout=10)
+                lr.raise_for_status()
+                if lr.encoding == 'ISO-8859-1':
+                    lr.encoding = lr.apparent_encoding
+                target_soup = BeautifulSoup(lr.text, 'lxml')
+            except Exception:
+                pass
+
+        weekday_re_str = 'Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag'
+
+        # === Veckans stående rätter från råtexten (KÖTT ❖, FISK ❖, …) ===
+        raw_text = re.sub(r'\s+', ' ', target_soup.get_text(separator=' ')).strip()
+
+        weekly_categories = ['KÖTT', 'FISK', 'PASTA', 'SALLAD', 'BURGARE', 'VEGETARISKT', 'VEGAN']
+        cat_re_str = '|'.join(weekly_categories)
+
+        weekly_parts = []
+        weekly_seen = set()
+
+        for m in re.finditer(
+            r'\b(' + cat_re_str + r')\s*❖\s*(.*?)(?=\b(?:' + cat_re_str + r')\s*❖|\b(?:' + weekday_re_str + r')\b|$)',
+            raw_text, re.IGNORECASE | re.DOTALL
+        ):
+            cat = m.group(1).upper()
+            desc = m.group(2).strip()
+            if cat not in weekly_seen:
+                weekly_seen.add(cat)
+                # Rensa ihopklibbar pris: "154kr" → "154 kr"
+                desc = re.sub(r'(\d+)(kr)', r'\1 \2', desc, flags=re.IGNORECASE)
+                weekly_parts.append(f"{cat}\n❖ {desc}")
+
+        # === Dagens dagsmeny via normal pipeline ===
+        sections = find_lunch_content(target_soup, lunch_url or url)
+        if sections:
+            daily_raw = '\n\n'.join([s['content'] for s in sections[:3]])
+        else:
+            daily_raw = target_soup.get_text(separator='\n', strip=True)
+
+        daily_formatted = format_menu_text(daily_raw)
+        today_daily = extract_today_section(daily_formatted)
+
+        # === Kombinera ===
+        all_parts = []
+        if today_daily and len(today_daily.strip()) > 20:
+            all_parts.append(today_daily.strip())
+        if weekly_parts:
+            all_parts.append('Veckans:\n\n' + '\n\n'.join(weekly_parts))
+
+        if all_parts:
+            return {
+                'name': name,
+                'url': url,
+                'menu': '\n\n'.join(all_parts),
+                'success': True,
+                'source': 'HTML (Tildas)',
+                'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+            }
+
+    except Exception as e:
+        pass
+
+    return None
+
+
 def scrape_url(url, name):
     """Scrapa en URL och returnera menyinformation."""
     try:
@@ -891,6 +977,12 @@ def scrape_url(url, name):
         if 'tsukihana' in url.lower():
             lunch_url = url if '/lunch' in url.lower() else url.rstrip('/') + '/lunch'
             result = scrape_tsukihana(lunch_url, name, session)
+            if result:
+                return result
+
+        # SPECIAL: Tildas – hämta veckans stående rätter (❖) + dagens meny
+        if 'tildasrestaurang' in url.lower():
+            result = scrape_tildas(url, name, session)
             if result:
                 return result
 
