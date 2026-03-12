@@ -738,7 +738,9 @@
         }
     }
 
-    loadMenus();
+    // Auto-force-refresh if ?refresh=true is in the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    loadMenus(urlParams.get('refresh') === 'true');
 
     // Auto-uppdatera var 30:e minut (bra för display-läge)
     setInterval(() => loadMenus(), 30 * 60 * 1000);
