@@ -326,6 +326,10 @@ def format_menu_text(text):
         # Divan och liknande footers
         'INKL :', 'Med reservation för eventuella förändringar',
         'OBS! Med reservation',
+
+        # Tildas Restaurang footer
+        'Faktuering', 'Kvällsmeny', 'Kvällsmenyn',
+        'till gast@', 'gast@tildasrestaurang',
     ]
 
     # "Adress" som egen rad (inte som del av annat ord)
