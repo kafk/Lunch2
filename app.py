@@ -1090,6 +1090,19 @@ def strip_menu_footers(text):
     return text.strip()
 
 
+@app.route('/api/debug/tildas', methods=['GET'])
+def debug_tildas():
+    """Debug: visa råtext från Tildas PDF utan extract_today_section."""
+    result = scrape_url('https://www.tildasrestaurang.com/', 'Tildas Restaurang')
+    raw = result.get('menu', '')
+    extracted = extract_today_section(raw)
+    return jsonify({
+        'raw_length': len(raw),
+        'raw_tail': raw[-600:],
+        'extracted': extracted,
+    })
+
+
 @app.route('/api/menus', methods=['GET'])
 def get_menus():
     """Scrapa alla aktiverade URL:er och returnera menyerna."""
