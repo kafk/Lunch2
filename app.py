@@ -489,9 +489,28 @@ def extract_today_section(text):
         end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
         day_sections[day_name] = text[start:end].strip()
 
+    # Kolla om det finns en veckanssektion EFTER sista veckodagen
+    # (t.ex. Tildas PDF: MÅNDAG…FREDAG…KÖTT ❖ … FISK ❖ …)
+    weekly_extra = ''
+    last_match = matches[-1]
+    text_from_last_day = text[last_match.start():]
+    weekly_cats = 'KÖTT|FISK|PASTA|SALLAD|BURGARE'
+    weekly_start = re.search(
+        r'\n{2,}(?:LUNCH\s+V[\d\s]*\n+)?(' + weekly_cats + r')\b',
+        text_from_last_day, re.IGNORECASE
+    )
+    if weekly_start:
+        split_pos = last_match.start() + weekly_start.start()
+        last_day_key = last_match.group(1).upper()
+        day_sections[last_day_key] = text[last_match.start():split_pos].strip()
+        weekly_extra = text[split_pos:].strip()
+
     # Returnera bara dagens sektion om den finns
     if today_name in day_sections:
-        return day_sections[today_name]
+        result = day_sections[today_name]
+        if weekly_extra:
+            result = result + '\n\nVeckans:\n\n' + weekly_extra
+        return result
 
     # Dagens dag saknas i menyn (t.ex. helg eller inte uppdaterad) – returnera hela texten
     return text
