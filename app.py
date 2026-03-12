@@ -29,7 +29,7 @@ except ImportError:
 
 app = Flask(__name__)
 
-VERSION = '3.4.30'
+VERSION = '3.4.31'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 
