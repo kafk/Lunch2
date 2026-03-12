@@ -904,7 +904,15 @@ def scrape_tildas(url, name, session):
         weekday_re_str = 'Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag'
 
         # === Veckans stående rätter från råtexten (KÖTT ❖, FISK ❖, …) ===
-        raw_text = re.sub(r'\s+', ' ', target_soup.get_text(separator=' ')).strip()
+        # Sök i BÅDA sidor: veckans-sektionen kan ligga på huvudsidan (soup)
+        # medan dagsmeny ligger på lunch-undersidan (target_soup).
+        raw_pages = [soup]
+        if target_soup is not soup:
+            raw_pages.append(target_soup)
+        raw_text = ' '.join(
+            re.sub(r'\s+', ' ', s.get_text(separator=' ')).strip()
+            for s in raw_pages
+        )
 
         weekly_categories = ['KÖTT', 'FISK', 'PASTA', 'SALLAD', 'BURGARE', 'VEGETARISKT', 'VEGAN']
         cat_re_str = '|'.join(weekly_categories)
