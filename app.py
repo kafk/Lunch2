@@ -497,7 +497,7 @@ def extract_today_section(text):
     weekly_cats = 'KÖTT|FISK|PASTA|SALLAD|BURGARE'
     weekly_start = re.search(
         r'\n{2,}(?:LUNCH\s+V[\d\s]*\n+)?(' + weekly_cats + r')\b',
-        text_from_last_day, re.IGNORECASE
+        text_from_last_day
     )
     if weekly_start:
         split_pos = last_match.start() + weekly_start.start()
