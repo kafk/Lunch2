@@ -4,7 +4,8 @@ from bs4 import BeautifulSoup
 import json
 import os
 import re
-from datetime import datetime
+import hashlib
+from datetime import datetime, timedelta
 from io import BytesIO
 from pypdf import PdfReader
 try:
@@ -1063,16 +1064,19 @@ def scrape_url(url, name):
 @app.route('/')
 def index():
     """Huvudsida - visa lunchmenyer."""
+    track_visit('/')
     return render_template('index.html', version=VERSION)
 
 @app.route('/manage')
 def manage():
     """Hantera URL:er."""
+    track_visit('/manage')
     return render_template('manage.html', version=VERSION)
 
 @app.route('/display')
 def display():
     """Alternativ vy för lunchmenyer."""
+    track_visit('/display')
     return render_template('display.html', version=VERSION)
 
 @app.route('/api/urls', methods=['GET'])
@@ -1191,6 +1195,76 @@ def strip_menu_footers(text):
         if match and match.start() > 50:
             text = text[:match.start()]
     return text.strip()
+
+
+def track_visit(page):
+    """Spara ett sidbesök i Firestore för analytics."""
+    if not db:
+        return
+    try:
+        # Hash IP for privacy (first 16 chars of sha256)
+        ip = request.headers.get('X-Forwarded-For', request.remote_addr or '')
+        ip = ip.split(',')[0].strip()
+        ip_hash = hashlib.sha256(ip.encode()).hexdigest()[:16]
+
+        # Filter out obvious bots
+        ua = request.headers.get('User-Agent', '').lower()
+        bot_keywords = ['bot', 'crawler', 'spider', 'scraper', 'curl', 'python-requests', 'wget']
+        if any(kw in ua for kw in bot_keywords):
+            return
+
+        today = swedish_now().strftime('%Y-%m-%d')
+        doc_ref = db.collection('analytics').document(today)
+
+        doc_ref.set({
+            'date': today,
+            'visits': firestore.Increment(1),
+            'unique_visitors': firestore.ArrayUnion([ip_hash]),
+        }, merge=True)
+    except Exception:
+        pass
+
+
+@app.route('/api/track', methods=['POST'])
+def api_track():
+    """Ta emot ett sidbesök från klienten."""
+    data = request.get_json(silent=True) or {}
+    page = data.get('page', '/')
+    track_visit(page)
+    return jsonify({'ok': True})
+
+
+@app.route('/api/analytics', methods=['GET'])
+def api_analytics():
+    """Returnera besöksstatistik för de senaste N dagarna."""
+    days = min(int(request.args.get('days', 7)), 90)
+    today = swedish_now().date()
+    result = []
+
+    for i in range(days - 1, -1, -1):
+        d = today - timedelta(days=i)
+        date_str = d.strftime('%Y-%m-%d')
+        visits = 0
+        unique = 0
+
+        if db:
+            try:
+                doc = db.collection('analytics').document(date_str).get()
+                if doc.exists:
+                    data = doc.to_dict()
+                    visits = data.get('visits', 0)
+                    unique = len(data.get('unique_visitors', []))
+            except Exception:
+                pass
+
+        result.append({'date': date_str, 'visits': visits, 'unique': unique})
+
+    return jsonify(result)
+
+
+@app.route('/analytics')
+def analytics():
+    return render_template('analytics.html', version=VERSION)
 
 
 @app.route('/api/debug/tildas', methods=['GET'])
