@@ -797,6 +797,101 @@ def find_lunch_content(soup, url):
 
     return found_sections
 
+
+def scrape_tsukihana(url, name, session):
+    """Custom scraper för tsukihana.net – filtrerar till bara dagens + veckans måltider.
+
+    Menyn är en kontinuerlig textblob där veckodagen sitter i måltiteln,
+    t.ex. "Dagens Kött Onsdag 120 kr Helstekt fläskfilé...".
+    Vi normaliserar texten och splitar på sektionsgränser med regex.
+    """
+    try:
+        response = session.get(url, timeout=10)
+        response.raise_for_status()
+        if response.encoding == 'ISO-8859-1':
+            response.encoding = response.apparent_encoding
+        soup = BeautifulSoup(response.text, 'lxml')
+
+        today = swedish_now()
+        weekdays_sv = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag']
+        today_name = weekdays_sv[today.weekday()]
+
+        # Normalisera all text till en enda rad (sidan upprepar menyn 3 ggr)
+        full_text = re.sub(r'\s+', ' ', soup.get_text(separator=' ')).strip()
+
+        weekday_re_str = '|'.join(weekdays_sv)
+
+        # Splitta texten i bitar vid varje ny sektion/rätt
+        # Lookahead-splitten behåller startmarkören i varje bit
+        split_pat = re.compile(
+            r'(?=\bDagens\s+\w'
+            r'|\bVeckans\s+vegetarisk\b'
+            r'|\bCaesarsallad\s+\d'
+            r'|\bRäksallad\s+\d'
+            r'|\bSushi\s+Extra\b)',
+            re.IGNORECASE
+        )
+        chunks = split_pat.split(full_text)
+
+        daily_re = re.compile(
+            r'^Dagens\s+(\w+)\s+(' + weekday_re_str + r')\s+(\d+\s*kr)\s+(.*)',
+            re.IGNORECASE | re.DOTALL
+        )
+        weekly_re = re.compile(
+            r'^(Veckans\s+vegetarisk|Caesarsallad|Räksallad)\s+(\d+\s*kr)\s+(.*)',
+            re.IGNORECASE | re.DOTALL
+        )
+
+        menu_parts = []
+        weekly_parts = []
+        seen = set()
+
+        for chunk in chunks:
+            chunk = chunk.strip()
+            if not chunk:
+                continue
+
+            m = daily_re.match(chunk)
+            if m:
+                meal_type = m.group(1).strip()
+                day = m.group(2).strip()
+                price = m.group(3).strip()
+                desc = m.group(4).strip()
+                if day.lower() == today_name.lower():
+                    key = f"d-{meal_type.lower()}"
+                    if key not in seen:
+                        seen.add(key)
+                        menu_parts.append(f"Dagens {meal_type} {day} {price}\n{desc}")
+                continue
+
+            m = weekly_re.match(chunk)
+            if m:
+                item = m.group(1).strip()
+                price = m.group(2).strip()
+                desc = m.group(3).strip()
+                key = f"w-{item.lower()}"
+                if key not in seen:
+                    seen.add(key)
+                    weekly_parts.append(f"{item} {price}\n{desc}")
+
+        all_parts = menu_parts + weekly_parts
+
+        if all_parts:
+            return {
+                'name': name,
+                'url': url,
+                'menu': '\n\n'.join(all_parts),
+                'success': True,
+                'source': 'HTML (Tsukihana)',
+                'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+            }
+
+    except Exception as e:
+        pass
+
+    return None
+
+
 def scrape_url(url, name):
     """Scrapa en URL och returnera menyinformation."""
     try:
@@ -812,6 +907,13 @@ def scrape_url(url, name):
             'Upgrade-Insecure-Requests': '1'
         }
         session.headers.update(headers)
+
+        # SPECIAL: Tsukihana har veckodagen inbäddad i måltitlarna – använd custom scraper
+        if 'tsukihana' in url.lower():
+            lunch_url = url if '/lunch' in url.lower() else url.rstrip('/') + '/lunch'
+            result = scrape_tsukihana(lunch_url, name, session)
+            if result:
+                return result
 
         # Kolla om URL:en är en direkt PDF-länk
         if url.lower().endswith('.pdf'):
