@@ -394,6 +394,7 @@ def format_menu_text(text):
     for cat in categories:
         text = re.sub(rf'[ \t]+({cat}\b)', r'\n\n\1', text, flags=re.IGNORECASE)   # inline: "FREDAG KÖTT:" → "...\n\nKÖTT:"
         text = re.sub(rf'(?<!\n)\n({cat}\b)', r'\n\n\1', text, flags=re.IGNORECASE) # enstaka radbrytning → dubbel
+        text = re.sub(rf'([^\s\n])({cat})\b', r'\1\n\n\2', text)  # direkt sammansatt: "LUNCH V11KÖTT" → "LUNCH V11\n\nKÖTT"
 
     # Lägg till radbrytning efter bullet points (❖)
     text = re.sub(r'(❖)', r'\n  \1', text)
