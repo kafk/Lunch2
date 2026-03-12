@@ -495,20 +495,16 @@ def extract_today_section(text):
     weekly_extra = ''
     last_match = matches[-1]
     text_from_last_day = text[last_match.start():]
-
-    # Normalisera sammansatta kategorier i caché-text (t.ex. "LUNCH V11KÖTT" → "LUNCH V11\n\nKÖTT")
-    for _cat in ['KÖTT', 'FISK', 'PASTA', 'SALLAD', 'BURGARE']:
-        text_from_last_day = re.sub(rf'([^\s\n])({_cat})\b', r'\1\n\n\2', text_from_last_day)
-
     weekly_cats = 'KÖTT|FISK|PASTA|SALLAD|BURGARE'
     weekly_start = re.search(
         r'\n{2,}(?:LUNCH\s+V[\d\s]*\n+)?(' + weekly_cats + r')\b',
         text_from_last_day
     )
     if weekly_start:
+        split_pos = last_match.start() + weekly_start.start()
         last_day_key = last_match.group(1).upper()
-        day_sections[last_day_key] = text_from_last_day[:weekly_start.start()].strip()
-        weekly_extra = text_from_last_day[weekly_start.start():].strip()
+        day_sections[last_day_key] = text[last_match.start():split_pos].strip()
+        weekly_extra = text[split_pos:].strip()
 
     # Returnera bara dagens sektion om den finns
     if today_name in day_sections:
