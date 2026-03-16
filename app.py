@@ -341,6 +341,12 @@ def format_menu_text(text):
         if match and match.start() > 100:  # Bara klipp om vi har minst 100 tecken före
             text = text[:match.start()]
 
+    # Ta bort "LUNCH MENY V12 11.00 – 15.00"-liknande rader (Divan-stil header)
+    text = re.sub(r'^LUNCH\s+MEN[YU]?\s+V\d+.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
+
+    # Ta bort rader som bara innehåller ensam parentes
+    text = re.sub(r'^\s*[()]\s*$\n?', '', text, flags=re.MULTILINE)
+
     # Ta bort vanliga navigationsord (hela rader som bara innehåller dessa)
     nav_words = [
         'MENY', 'MENU', 'EVENTS', 'EVENT', 'CATERING', 'GALLERI', 'GALLERY',
