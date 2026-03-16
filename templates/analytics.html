@@ -255,6 +255,52 @@
         gap: 10px;
     }
 
+    /* Chart tooltip */
+    .chart-tooltip {
+        position: fixed;
+        background: white;
+        border-radius: 12px;
+        padding: 12px 16px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08);
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.15s;
+        z-index: 100;
+        min-width: 140px;
+    }
+
+    .chart-tooltip.visible {
+        opacity: 1;
+    }
+
+    .chart-tooltip-date {
+        font-size: 13px;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 8px;
+    }
+
+    .chart-tooltip-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 4px;
+    }
+
+    .chart-tooltip-row:last-child {
+        margin-bottom: 0;
+    }
+
+    .chart-tooltip-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
     @media (max-width: 600px) {
         .stats-grid {
             grid-template-columns: repeat(2, 1fr);
@@ -310,6 +356,18 @@
         <div class="chart-bars" id="chartBars">
             <div class="loading-state">Laddar...</div>
         </div>
+    </div>
+</div>
+
+<div class="chart-tooltip" id="chartTooltip">
+    <div class="chart-tooltip-date" id="tooltipDate"></div>
+    <div class="chart-tooltip-row">
+        <div class="chart-tooltip-dot" style="background:#22c55e"></div>
+        <span id="tooltipVisits"></span>
+    </div>
+    <div class="chart-tooltip-row">
+        <div class="chart-tooltip-dot" style="background:#86efac; border: 1.5px solid #4ade80"></div>
+        <span id="tooltipUnique"></span>
     </div>
 </div>
 
@@ -380,6 +438,32 @@
         document.getElementById('activeDaysSub').textContent = `av ${days} dagar`;
     }
 
+    const tooltip = document.getElementById('chartTooltip');
+
+    function showTooltip(e, label, visits, unique) {
+        document.getElementById('tooltipDate').textContent = label;
+        document.getElementById('tooltipVisits').textContent = `${visits} besök`;
+        document.getElementById('tooltipUnique').textContent = `${unique} unika`;
+        positionTooltip(e);
+        tooltip.classList.add('visible');
+    }
+
+    function positionTooltip(e) {
+        const tw = tooltip.offsetWidth || 160;
+        const th = tooltip.offsetHeight || 80;
+        let x = e.clientX - tw / 2;
+        let y = e.clientY - th - 16;
+        // keep within viewport
+        x = Math.max(8, Math.min(x, window.innerWidth - tw - 8));
+        if (y < 8) y = e.clientY + 16;
+        tooltip.style.left = x + 'px';
+        tooltip.style.top = y + 'px';
+    }
+
+    function hideTooltip() {
+        tooltip.classList.remove('visible');
+    }
+
     function renderChart(data) {
         const maxVisits = Math.max(...data.map(d => d.visits), 1);
         const container = document.getElementById('chartBars');
@@ -392,7 +476,6 @@
 
             const group = document.createElement('div');
             group.className = 'bar-group';
-            group.title = `${label}: ${d.visits} besök, ${d.unique} unika`;
             group.innerHTML = `
                 <div class="bar-pair">
                     <div class="bar bar-visits" style="height:${visitH}px"></div>
@@ -400,6 +483,9 @@
                 </div>
                 <div class="bar-label">${label}</div>
             `;
+            group.addEventListener('mouseenter', e => showTooltip(e, label, d.visits, d.unique));
+            group.addEventListener('mousemove', positionTooltip);
+            group.addEventListener('mouseleave', hideTooltip);
             container.appendChild(group);
         });
     }
