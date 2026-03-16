@@ -278,6 +278,21 @@ def format_menu_text(text):
     text = re.sub(r'^.*\|\|.*\d{2,3}[\s-]?\d{2,3}[\s-]?\d{2,4}.*$\n?', '', text, flags=re.MULTILINE)
     text = re.sub(r'^.*\|\|\s*$\n?', '', text, flags=re.MULTILINE)  # Rader som slutar med ||
 
+    # Roots/Wix: ta bort "top of page"-rader och Wix-navigationsraden
+    text = re.sub(r'^.*top of page.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
+
+    # Roots: ta bort Affärslunch-sektionen (business lunch med FÖRRÄTTER/VARMRÄTTER/DESSERT)
+    # Klipp bort allt från "Affärslunch" fram till första veckodagen
+    affars_match = re.search(r'Affärslunch', text, re.IGNORECASE)
+    first_weekday_after = re.search(r'\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag)\b', text, re.IGNORECASE)
+    if affars_match and first_weekday_after and affars_match.start() < first_weekday_after.start():
+        text = text[first_weekday_after.start():]
+
+    # Roots/Wix: ta bort ALPHA-rumsbeskrivningar
+    alpha_match = re.search(r'\bALPHA\b', text, re.IGNORECASE)
+    if alpha_match and alpha_match.start() > 50:
+        text = text[:alpha_match.start()]
+
     # VIKTIG: Klipp bort allt FÖRE första veckodagen INNAN footer-filtrering
     # Detta säkerställer att navigation inte triggar footer-markörer
     first_weekday_early = re.search(r'\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag)\b', text, re.IGNORECASE)
@@ -344,6 +359,9 @@ def format_menu_text(text):
     # Ta bort "LUNCH MENY V12 11.00 – 15.00"-liknande rader (Divan-stil header)
     text = re.sub(r'^LUNCH\s+MEN[YU]?\s+V\d+.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
 
+    # Ta bort Wix-navigationsrader (t.ex. "Use tab to navigate through the menu items.")
+    text = re.sub(r'^.*Use tab to navigate through the menu items.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
+
     # Ta bort rader som bara innehåller ensam parentes
     text = re.sub(r'^\s*[()]\s*$\n?', '', text, flags=re.MULTILINE)
 
@@ -365,7 +383,11 @@ def format_menu_text(text):
         # Sociala medier och andra nav-länkar
         'EVENTKALENDER', 'STREETFOOD MARKET',
         'LINK TO FACEBOOK', 'LINK TO INSTAGRAM', 'LINK TO TWITTER',
-        'LINK TO LINKEDIN', 'LINK TO YOUTUBE'
+        'LINK TO LINKEDIN', 'LINK TO YOUTUBE',
+        # Roots/Wix navigation items
+        'POKE BOWLS', 'SMÖRGÅSAR', 'WRAPS', 'MINGEL', 'TALLRIK',
+        'ROOTS HOMEMADE SWEETS', 'FIKABRÖD & FRUKT', 'DRYCK', 'OFFERT',
+        'HOME BY ROOTS', 'HUR MAN BETALAR', 'AFFÄRS', 'SALLADER',
     ]
 
     lines = text.split('\n')
