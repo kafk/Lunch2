@@ -249,6 +249,11 @@ def format_menu_text(text):
     # Ta bort HTML-taggar som kan förekomma i PDF-extraherad text (t.ex. <b>, </b>, <br>)
     text = re.sub(r'<[^>]+>', '', text)
 
+    # Saknad radbrytning mellan meningar: t.ex. "...löksåsFried..." eller "...creamVegetarisk..."
+    # Uppstår när HTML-scraper inte har block-element mellan rätterna (t.ex. GC-restaurangen
+    # med tvåspråkiga rätter). Mönster: gemen bokstav direkt följd av versal utan mellanslag.
+    text = re.sub(r'([a-zåäö])([A-ZÅÄÖ][a-zA-ZåäöÅÄÖ]{2,})', r'\1\n\n\2', text)
+
     # Ta bort rader med URL:er
     lines = text.split('\n')
     lines = [line for line in lines if not re.match(r'^\s*https?://', line.strip())]
