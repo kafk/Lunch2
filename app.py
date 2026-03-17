@@ -249,6 +249,11 @@ def format_menu_text(text):
     # Ta bort HTML-taggar som kan förekomma i PDF-extraherad text (t.ex. <b>, </b>, <br>)
     text = re.sub(r'<[^>]+>', '', text)
 
+    # Saknad radbrytning mellan meningar: t.ex. "...löksåsFried..." eller "...creamVegetarisk..."
+    # Uppstår när HTML-scraper inte har block-element mellan rätterna (t.ex. GC-restaurangen
+    # med tvåspråkiga rätter). Mönster: gemen bokstav direkt följd av versal utan mellanslag.
+    text = re.sub(r'([a-zåäö])([A-ZÅÄÖ][a-zA-ZåäöÅÄÖ]{2,})', r'\1\n\n\2', text)
+
     # Ta bort rader med URL:er
     lines = text.split('\n')
     lines = [line for line in lines if not re.match(r'^\s*https?://', line.strip())]
@@ -956,12 +961,21 @@ def scrape_url(url, name):
         session = requests.Session()
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
             'Accept-Language': 'sv-SE,sv;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept-Encoding': 'gzip, deflate, br',
             'Referer': 'https://www.google.com/',
             'DNT': '1',
             'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1'
+            'Upgrade-Insecure-Requests': '1',
+            'Cache-Control': 'max-age=0',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"',
         }
         session.headers.update(headers)
 
