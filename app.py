@@ -285,6 +285,12 @@ def format_menu_text(text):
     # Roots/Wix: ta bort "top of page"-rader och Wix-navigationsraden
     text = re.sub(r'^.*top of page.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
 
+    # Roots: om "Luncha på Roots" hittas, klipp direkt till den rubriken
+    # Det är den dagliga lunchmenyn – allt före (inkl. Affärslunch) kan ignoreras
+    luncha_match = re.search(r'Luncha\s+på\s+Roots', text, re.IGNORECASE)
+    if luncha_match:
+        text = text[luncha_match.start():]
+
     # Roots: ta bort Affärslunch-sektionen (business lunch med FÖRRÄTTER/VARMRÄTTER/DESSERT)
     # Tre fall:
     #   1. Affärslunch BEFORE dagsmeny → klipp till första veckodagen efter Affärslunch
@@ -737,7 +743,7 @@ def find_lunch_content(soup, url):
     today_name = weekdays_sv[today.weekday()]
 
     # Sök efter lunch-relaterade sektioner
-    lunch_keywords = ['lunch', 'meny', 'menu', 'dagens', 'veckomeny', 'veckans', today_name]
+    lunch_keywords = ['lunch', 'luncha', 'meny', 'menu', 'dagens', 'veckomeny', 'veckans', today_name]
 
     found_sections = []
 
