@@ -714,10 +714,43 @@
         text = text.replace(/\n{3,}/g, '\n\n');
 
         // Dela upp på blanka rader (varje rätt är ett block)
-        const blocks = text.split(/\n\n+/);
+        const rawBlocks = text.split(/\n\n+/).map(b => b.trim()).filter(b => b.length > 0);
+
+        // Post-process: flytta kategori-etiketter (KÖTT, FISK etc.) från slutet av ett block
+        // till början av nästa, och slå ihop dagshuvuden med sina ❖-rätter.
+        const categorySet = new Set(['KÖTT', 'FISK', 'PASTA', 'SALLAD', 'BURGARE', 'VEGETARISKT', 'VEGAN']);
+        const daySet = new Set(['MÅNDAG', 'TISDAG', 'ONSDAG', 'TORSDAG', 'FREDAG', 'LÖRDAG', 'SÖNDAG']);
+        const mutableBlocks = rawBlocks.slice();
+        const blocks = [];
+        for (let i = 0; i < mutableBlocks.length; i++) {
+            let block = mutableBlocks[i];
+            const lines = block.split('\n');
+            const lastLine = lines[lines.length - 1].trim();
+
+            // Dagshuvud (TISDAG etc.) – slå ihop med efterföljande ❖-block
+            if (daySet.has(block.trim())) {
+                let j = i + 1;
+                while (j < mutableBlocks.length && mutableBlocks[j].trim().startsWith('❖')) {
+                    block += '\n' + mutableBlocks[j].trim();
+                    j++;
+                }
+                blocks.push(block);
+                i = j - 1;
+                continue;
+            }
+
+            // Block som slutar med en kategori-etikett – flytta den till nästa block
+            if (categorySet.has(lastLine) && i + 1 < mutableBlocks.length) {
+                const withoutCat = lines.slice(0, -1).join('\n').trim();
+                if (withoutCat) blocks.push(withoutCat);
+                mutableBlocks[i + 1] = lastLine + '\n' + mutableBlocks[i + 1];
+                continue;
+            }
+
+            blocks.push(block);
+        }
+
         return blocks
-            .map(block => block.trim())
-            .filter(block => block.length > 0)
             .map(block => `<div class="dish-block">${escapeHtml(block).replace(/\n/g, '<br>')}</div>`)
             .join('');
     }
