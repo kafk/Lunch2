@@ -268,6 +268,16 @@ def format_menu_text(text):
     lines = [line for line in lines if not re.match(r'^\s*https?://', line.strip())]
     text = '\n'.join(lines)
 
+    # Ta bort rader med för många oläsbara tecken (t.ex. binärt/garble-innehåll från Wix/JS)
+    def _is_line_readable(line):
+        if len(line) < 5:
+            return True  # Korta rader – behåll (veckodagar etc.)
+        readable = sum(1 for c in line if c.isspace() or '\x20' <= c <= '\x7e' or c in 'åäöÅÄÖéèêëàáâüïÜ')
+        return readable / len(line) >= 0.60
+    lines = text.split('\n')
+    lines = [line for line in lines if _is_line_readable(line)]
+    text = '\n'.join(lines)
+
     # Ta bort sidtitlar i början (t.ex. "Lunch | Restaurant Name")
     text = re.sub(r'^[^\n]*\s*[\|–-]\s*[^\n]*$\n?', '', text, count=1)
 
