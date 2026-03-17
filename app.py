@@ -249,10 +249,17 @@ def format_menu_text(text):
     # Ta bort HTML-taggar som kan förekomma i PDF-extraherad text (t.ex. <b>, </b>, <br>)
     text = re.sub(r'<[^>]+>', '', text)
 
-    # Saknad radbrytning mellan meningar: t.ex. "...löksåsFried..." eller "...creamVegetarisk..."
-    # Uppstår när HTML-scraper inte har block-element mellan rätterna (t.ex. GC-restaurangen
-    # med tvåspråkiga rätter). Mönster: gemen bokstav direkt följd av versal utan mellanslag.
-    text = re.sub(r'([a-zåäö])([A-ZÅÄÖ][a-zA-ZåäöÅÄÖ]{2,})', r'\1\n\n\2', text)
+    # Saknad radbrytning mellan meningar (t.ex. "...löksåsFried..." "...creamVegetarisk...")
+    # Appliceras BARA på långa rader (>100 tecken) som är läsbar text (ej binär/skräp).
+    # Körs per rad för att undvika att splittra binärt PDF-innehåll.
+    def _split_merged_line(line):
+        if len(line) <= 100:
+            return line
+        readable = sum(1 for c in line if c.isspace() or '\x20' <= c <= '\x7e' or c in 'åäöÅÄÖéèêëàáâ')
+        if readable / len(line) < 0.85:
+            return line  # Troligtvis binärt/skräp – rör ej
+        return re.sub(r'([a-zåäö])([A-ZÅÄÖ][a-zA-ZåäöÅÄÖ]{2,})', r'\1\n\n\2', line)
+    text = '\n'.join(_split_merged_line(l) for l in text.split('\n'))
 
     # Ta bort rader med URL:er
     lines = text.split('\n')
