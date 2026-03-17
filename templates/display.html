@@ -719,7 +719,8 @@
         // Post-process: flytta kategori-etiketter (KÖTT, FISK etc.) från slutet av ett block
         // till början av nästa, och slå ihop dagshuvuden med sina ❖-rätter.
         const categorySet = new Set(['KÖTT', 'FISK', 'PASTA', 'SALLAD', 'BURGARE', 'VEGETARISKT', 'VEGAN']);
-        const daySet = new Set(['MÅNDAG', 'TISDAG', 'ONSDAG', 'TORSDAG', 'FREDAG', 'LÖRDAG', 'SÖNDAG']);
+        const daySet = new Set(['MÅNDAG', 'TISDAG', 'ONSDAG', 'TORSDAG', 'FREDAG', 'LÖRDAG', 'SÖNDAG',
+                               'Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag']);
         const mutableBlocks = rawBlocks.slice();
         const blocks = [];
         for (let i = 0; i < mutableBlocks.length; i++) {

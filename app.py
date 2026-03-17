@@ -414,10 +414,22 @@ def format_menu_text(text):
         if weekday_count >= 2:
             text = text[first_weekday_match.start():]
 
-    # Veckodagar - lägg till radbrytning före
+    # Veckodagar - lägg till radbrytning före (versaler)
     weekdays = ['MÅNDAG', 'TISDAG', 'ONSDAG', 'TORSDAG', 'FREDAG', 'LÖRDAG', 'SÖNDAG']
     for day in weekdays:
         text = re.sub(rf'(?<!\n)({day})', r'\n\n\1', text)
+
+    # Veckodagar i blandat format (t.ex. "TisdagStekt" → "Tisdag\n\nStekt")
+    for day in ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag']:
+        text = re.sub(rf'(?<!\n)({re.escape(day)})\b', r'\n\n\1', text)
+        text = re.sub(rf'({re.escape(day)})([A-ZÅÄÖ])', r'\1\n\n\2', text)
+
+    # Tvåspråkiga menyer (Spirafood-stil): engelska raden löper direkt in i nästa svenska rätt.
+    # Dela vid vanliga engelska slutord för maträtter följda av ny stor bokstav.
+    text = re.sub(
+        r'(\b(?:sauce|cream|coriander|cucumber|berries|bread|rice|potatoes?|pancake|chives?|ragu|dressing|herbs?))\s*([A-ZÅÄÖ][a-zåäö])',
+        r'\1\n\n\2', text
+    )
 
     # Kategorier - lägg till blank rad före (case-insensitive, hanterar inline och enstaka radbrytning)
     categories = ['KÖTT', 'FISK', 'PASTA', 'SALLAD', 'BURGARE', 'VEGETARISKT', 'VEGAN', 'LUNCH']
