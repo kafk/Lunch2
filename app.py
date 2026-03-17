@@ -588,6 +588,14 @@ def extract_today_section(text):
     return text
 
 
+def is_readable_text(text):
+    """Kontrollera om text är läsbar (ej binärt skräp)."""
+    if not text or len(text) < 10:
+        return False
+    readable = sum(1 for c in text if c.isspace() or '\x20' <= c <= '\x7e' or c in 'åäöÅÄÖéèêëàáâüïÜ')
+    return readable / len(text) >= 0.80
+
+
 def extract_pdf_text(pdf_content):
     """Extrahera text från PDF-innehåll."""
     try:
@@ -599,9 +607,11 @@ def extract_pdf_text(pdf_content):
             if text:
                 text_parts.append(text)
         raw_text = '\n'.join(text_parts)
+        if not is_readable_text(raw_text):
+            return None  # Signalera att PDF-texten är oläsbar, försök HTML-fallback
         return format_menu_text(raw_text)
     except Exception as e:
-        return f"Kunde inte läsa PDF: {str(e)}"
+        return None
 
 def find_pdf_links(soup, base_url):
     """Hitta PDF-länkar på sidan."""
@@ -998,12 +1008,21 @@ def scrape_url(url, name):
         # Kolla om URL:en är en direkt PDF-länk
         if url.lower().endswith('.pdf'):
             menu_text = scrape_pdf(url, headers)
+            if menu_text:
+                return {
+                    'name': name,
+                    'url': url,
+                    'menu': menu_text,
+                    'success': True,
+                    'source': 'PDF',
+                    'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+                }
+            # PDF oläsbar – returnera felmeddelande
             return {
                 'name': name,
                 'url': url,
-                'menu': menu_text,
-                'success': True,
-                'source': 'PDF',
+                'menu': 'Menyn kunde inte hämtas (PDF oläsbar).',
+                'success': False,
                 'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
             }
 
