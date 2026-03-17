@@ -356,8 +356,20 @@ def format_menu_text(text):
         if match and match.start() > 100:  # Bara klipp om vi har minst 100 tecken före
             text = text[:match.start()]
 
-    # Ta bort "LUNCH MENY V12 11.00 – 15.00"-liknande rader (Divan-stil header)
-    text = re.sub(r'^LUNCH\s+MEN[YU]?\s+V\d+.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
+    # Ta bort "LUNCH MEN Y V12 11.00 – 15.00"-liknande rader (Divan-stil header)
+    # MEN\s*[YU]? hanterar "MENY", "MENU" och "MEN Y" (med mellanslag, PDF-artefakt)
+    text = re.sub(r'^LUNCH\s+MEN\s*[YU]?\s+V\d+.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
+
+    # Ta bort rader som bara innehåller en öppettid (t.ex. "11.00 – 15.00")
+    text = re.sub(r'^\d{1,2}[:.]\d{2}\s*[–\-]\s*\d{1,2}[:.]\d{2}\s*$\n?', '', text, flags=re.MULTILINE)
+
+    # Divan: ta bort avslutande parentes efter veckonummer (t.ex. "LUNCH 11.00 – 13.00 V12)")
+    text = re.sub(r'(V\d+)\s*\)', r'\1', text)
+
+    # Divan: slå ihop ensam veckodagsrad med efterföljande "LUNCH HH.MM"-rad
+    # FREDAG\nLUNCH 11.00 – 13.00 V12 → FREDAG LUNCH 11.00 – 13.00 V12
+    text = re.sub(r'^(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG)\s*\n(LUNCH\s+\d)',
+                  r'\1 \2', text, flags=re.IGNORECASE | re.MULTILINE)
 
     # Ta bort Wix-navigationsrader (t.ex. "Use tab to navigate through the menu items.")
     text = re.sub(r'^.*Use tab to navigate through the menu items.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
