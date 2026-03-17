@@ -246,8 +246,10 @@ def save_menus_to_cache(menus):
 
 def format_menu_text(text):
     """Formatera menytext för bättre läsbarhet."""
-    # Ta bort HTML-taggar som kan förekomma i PDF-extraherad text (t.ex. <b>, </b>, <br>)
-    text = re.sub(r'<[^>]+>', '', text)
+    # Ta bort kända HTML-taggar som kan förekomma i PDF-extraherad text (t.ex. <b>, <br>)
+    # OBS: Använd INTE generell <[^>]+> – den tar bort binärt PDF-innehåll som råkar innehålla < >
+    text = re.sub(r'</?(?:b|i|u|em|strong|br|p|span|div|font)(?:\s[^>]*)?>',
+                  '', text, flags=re.IGNORECASE)
 
     # Saknad radbrytning mellan meningar (t.ex. "...löksåsFried..." "...creamVegetarisk...")
     # Appliceras BARA på långa rader (>100 tecken) som är läsbar text (ej binär/skräp).
