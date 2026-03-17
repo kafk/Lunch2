@@ -811,7 +811,7 @@ def find_lunch_content(soup, url):
         # Räkna hur många veckodagar som finns i denna sektion
         weekday_count = sum(1 for day in weekdays_sv if day in text)
         if weekday_count >= 3:  # Om minst 3 veckodagar finns, det är troligen veckomenyn
-            if len(content) > 100 and len(content) < 10000:  # Rimlig storlek för en veckomeny
+            if len(content) > 100 and len(content) < 15000:  # Rimlig storlek för en veckomeny
                 menu_score = calculate_menu_score(content)
                 found_sections.append({
                     'keyword': 'veckomeny',
@@ -828,6 +828,13 @@ def find_lunch_content(soup, url):
     # FALLBACK: Om inga veckodagar hittades, använd vanlig keyword-sökning
     for element in soup.find_all(['div', 'section', 'article', 'main', 'p', 'ul', 'table']):
         text = element.get_text(separator=' ', strip=True).lower()
+        # Skippa Affärslunch/business-lunch-sektioner (FÖRRÄTTER+VARMRÄTTER+DESSERT-struktur
+        # utan veckodagar är ett prissatt arrangemangsmeny, inte den dagliga lunchmenyn)
+        element_weekday_count = sum(1 for day in weekdays_sv if day in text)
+        if 'affärslunch' in text and element_weekday_count < 2:
+            continue
+        if 'förrätter' in text and 'varmrätter' in text and 'dessert' in text and element_weekday_count < 2:
+            continue
         for keyword in lunch_keywords:
             if keyword in text:
                 content = element.get_text(separator='\n', strip=True)
