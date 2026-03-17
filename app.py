@@ -853,7 +853,7 @@ def find_lunch_content(soup, url):
         element_weekday_count = sum(1 for day in weekdays_sv if day in text)
         if 'affärslunch' in text and element_weekday_count < 2:
             continue
-        if ('förrätter' in text or 'varmrätter' in text) and 'dessert' in text and element_weekday_count < 2:
+        if 'förrätter' in text and 'varmrätter' in text and 'dessert' in text and element_weekday_count < 2:
             continue
         for keyword in lunch_keywords:
             if keyword in text:
