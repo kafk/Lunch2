@@ -281,12 +281,25 @@ def format_menu_text(text):
     # Roots/Wix: ta bort "top of page"-rader och Wix-navigationsraden
     text = re.sub(r'^.*top of page.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
 
-    # Roots: ta bort Affärslunch-sektionen (business lunch med FÖRRÄTTER/VARMRÄTTER/DESSERT)
-    # Klipp bort allt från "Affärslunch" fram till första veckodagen
-    affars_match = re.search(r'Affärslunch', text, re.IGNORECASE)
-    first_weekday_after = re.search(r'\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag)\b', text, re.IGNORECASE)
-    if affars_match and first_weekday_after and affars_match.start() < first_weekday_after.start():
-        text = text[first_weekday_after.start():]
+    # Roots: klipp direkt till "Luncha på Roots" om det finns – detta är startet
+    # på veckans lunchmeny och allt dessförinnan (nav, Affärslunch etc.) bör tas bort.
+    luncha_match = re.search(r'Luncha\s+p[åa]\s+Roots', text, re.IGNORECASE)
+    if luncha_match:
+        text = text[luncha_match.start():]
+    else:
+        # Fallback: klipp bort allt från "Affärslunch" fram till första veckodagen
+        affars_match = re.search(r'Affärslunch', text, re.IGNORECASE)
+        first_weekday_after = re.search(r'\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag)\b', text, re.IGNORECASE)
+        if affars_match and first_weekday_after and affars_match.start() < first_weekday_after.start():
+            text = text[first_weekday_after.start():]
+
+    # Roots: Affärslunch-sektionen som footer – klipp bort om den dyker upp efter menyn
+    # (Wix "More Affärslunch"-knapp eller FÖRRÄTTER/VARMRÄTTER/DESSERT-sektion)
+    for affars_end_pat in [r'More\s+Aff[äa]rslunch', r'Aff[äa]rslunch\s+Vecka']:
+        m = re.search(affars_end_pat, text, re.IGNORECASE)
+        if m and m.start() > 100:
+            text = text[:m.start()]
+            break
 
     # Roots/Wix: ta bort ALPHA-rumsbeskrivningar
     alpha_match = re.search(r'\bALPHA\b', text, re.IGNORECASE)
