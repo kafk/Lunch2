@@ -357,7 +357,8 @@ def format_menu_text(text):
             text = text[:match.start()]
 
     # Ta bort "LUNCH MENY V12 11.00 – 15.00"-liknande rader (Divan-stil header)
-    text = re.sub(r'^LUNCH\s+MEN[YU]?\s+V\d+.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
+    # Hanterar även OCR-varianter som "LUNCH MEN Y V12" (mellanslag i MENY)
+    text = re.sub(r'^LUNCH\s+MEN\s*[YU]?\s+V\d+.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
 
     # Ta bort Wix-navigationsrader (t.ex. "Use tab to navigate through the menu items.")
     text = re.sub(r'^.*Use tab to navigate through the menu items.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
