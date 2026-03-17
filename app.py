@@ -246,36 +246,9 @@ def save_menus_to_cache(menus):
 
 def format_menu_text(text):
     """Formatera menytext för bättre läsbarhet."""
-    # Ta bort kända HTML-taggar som kan förekomma i PDF-extraherad text (t.ex. <b>, <br>)
-    # OBS: Använd INTE generell <[^>]+> – den tar bort binärt PDF-innehåll som råkar innehålla < >
-    text = re.sub(r'</?(?:b|i|u|em|strong|br|p|span|div|font)(?:\s[^>]*)?>',
-                  '', text, flags=re.IGNORECASE)
-
-    # Saknad radbrytning mellan meningar (t.ex. "...löksåsFried..." "...creamVegetarisk...")
-    # Appliceras BARA på långa rader (>100 tecken) som är läsbar text (ej binär/skräp).
-    # Körs per rad för att undvika att splittra binärt PDF-innehåll.
-    def _split_merged_line(line):
-        if len(line) <= 100:
-            return line
-        readable = sum(1 for c in line if c.isspace() or '\x20' <= c <= '\x7e' or c in 'åäöÅÄÖéèêëàáâ')
-        if readable / len(line) < 0.85:
-            return line  # Troligtvis binärt/skräp – rör ej
-        return re.sub(r'([a-zåäö])([A-ZÅÄÖ][a-zA-ZåäöÅÄÖ]{2,})', r'\1\n\n\2', line)
-    text = '\n'.join(_split_merged_line(l) for l in text.split('\n'))
-
     # Ta bort rader med URL:er
     lines = text.split('\n')
     lines = [line for line in lines if not re.match(r'^\s*https?://', line.strip())]
-    text = '\n'.join(lines)
-
-    # Ta bort rader med för många oläsbara tecken (t.ex. binärt/garble-innehåll från Wix/JS)
-    def _is_line_readable(line):
-        if len(line) < 5:
-            return True  # Korta rader – behåll (veckodagar etc.)
-        readable = sum(1 for c in line if c.isspace() or '\x20' <= c <= '\x7e' or c in 'åäöÅÄÖéèêëàáâüïÜ')
-        return readable / len(line) >= 0.60
-    lines = text.split('\n')
-    lines = [line for line in lines if _is_line_readable(line)]
     text = '\n'.join(lines)
 
     # Ta bort sidtitlar i början (t.ex. "Lunch | Restaurant Name")
@@ -308,25 +281,12 @@ def format_menu_text(text):
     # Roots/Wix: ta bort "top of page"-rader och Wix-navigationsraden
     text = re.sub(r'^.*top of page.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
 
-    # Roots: klipp direkt till "Luncha på Roots" om det finns – detta är startet
-    # på veckans lunchmeny och allt dessförinnan (nav, Affärslunch etc.) bör tas bort.
-    luncha_match = re.search(r'Luncha\s+p[åa]\s+Roots', text, re.IGNORECASE)
-    if luncha_match:
-        text = text[luncha_match.start():]
-    else:
-        # Fallback: klipp bort allt från "Affärslunch" fram till första veckodagen
-        affars_match = re.search(r'Affärslunch', text, re.IGNORECASE)
-        first_weekday_after = re.search(r'\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag)\b', text, re.IGNORECASE)
-        if affars_match and first_weekday_after and affars_match.start() < first_weekday_after.start():
-            text = text[first_weekday_after.start():]
-
-    # Roots: Affärslunch-sektionen som footer – klipp bort om den dyker upp efter menyn
-    # (Wix "More Affärslunch"-knapp eller FÖRRÄTTER/VARMRÄTTER/DESSERT-sektion)
-    for affars_end_pat in [r'More\s+Aff[äa]rslunch', r'Aff[äa]rslunch\s+Vecka']:
-        m = re.search(affars_end_pat, text, re.IGNORECASE)
-        if m and m.start() > 100:
-            text = text[:m.start()]
-            break
+    # Roots: ta bort Affärslunch-sektionen (business lunch med FÖRRÄTTER/VARMRÄTTER/DESSERT)
+    # Klipp bort allt från "Affärslunch" fram till första veckodagen
+    affars_match = re.search(r'Affärslunch', text, re.IGNORECASE)
+    first_weekday_after = re.search(r'\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag)\b', text, re.IGNORECASE)
+    if affars_match and first_weekday_after and affars_match.start() < first_weekday_after.start():
+        text = text[first_weekday_after.start():]
 
     # Roots/Wix: ta bort ALPHA-rumsbeskrivningar
     alpha_match = re.search(r'\bALPHA\b', text, re.IGNORECASE)
@@ -396,20 +356,8 @@ def format_menu_text(text):
         if match and match.start() > 100:  # Bara klipp om vi har minst 100 tecken före
             text = text[:match.start()]
 
-    # Ta bort "LUNCH MEN Y V12 11.00 – 15.00"-liknande rader (Divan-stil header)
-    # MEN\s*[YU]? hanterar "MENY", "MENU" och "MEN Y" (med mellanslag, PDF-artefakt)
-    text = re.sub(r'^LUNCH\s+MEN\s*[YU]?\s+V\d+.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
-
-    # Ta bort rader som bara innehåller en öppettid (t.ex. "11.00 – 15.00")
-    text = re.sub(r'^\d{1,2}[:.]\d{2}\s*[–\-]\s*\d{1,2}[:.]\d{2}\s*$\n?', '', text, flags=re.MULTILINE)
-
-    # Divan: ta bort avslutande parentes efter veckonummer (t.ex. "LUNCH 11.00 – 13.00 V12)")
-    text = re.sub(r'(V\d+)\s*\)', r'\1', text)
-
-    # Divan: slå ihop ensam veckodagsrad med efterföljande "LUNCH HH.MM"-rad
-    # FREDAG\nLUNCH 11.00 – 13.00 V12 → FREDAG LUNCH 11.00 – 13.00 V12
-    text = re.sub(r'^(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG)\s*\n(LUNCH\s+\d)',
-                  r'\1 \2', text, flags=re.IGNORECASE | re.MULTILINE)
+    # Ta bort "LUNCH MENY V12 11.00 – 15.00"-liknande rader (Divan-stil header)
+    text = re.sub(r'^LUNCH\s+MEN[YU]?\s+V\d+.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
 
     # Ta bort Wix-navigationsrader (t.ex. "Use tab to navigate through the menu items.")
     text = re.sub(r'^.*Use tab to navigate through the menu items.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
@@ -598,14 +546,6 @@ def extract_today_section(text):
     return text
 
 
-def is_readable_text(text):
-    """Kontrollera om text är läsbar (ej binärt skräp)."""
-    if not text or len(text) < 10:
-        return False
-    readable = sum(1 for c in text if c.isspace() or '\x20' <= c <= '\x7e' or c in 'åäöÅÄÖéèêëàáâüïÜ')
-    return readable / len(text) >= 0.80
-
-
 def extract_pdf_text(pdf_content):
     """Extrahera text från PDF-innehåll."""
     try:
@@ -617,11 +557,9 @@ def extract_pdf_text(pdf_content):
             if text:
                 text_parts.append(text)
         raw_text = '\n'.join(text_parts)
-        if not is_readable_text(raw_text):
-            return None  # Signalera att PDF-texten är oläsbar, försök HTML-fallback
         return format_menu_text(raw_text)
     except Exception as e:
-        return None
+        return f"Kunde inte läsa PDF: {str(e)}"
 
 def find_pdf_links(soup, base_url):
     """Hitta PDF-länkar på sidan."""
@@ -990,21 +928,12 @@ def scrape_url(url, name):
         session = requests.Session()
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'sv-SE,sv;q=0.9,en-US;q=0.8,en;q=0.7',
-            'Accept-Encoding': 'gzip, deflate, br',
             'Referer': 'https://www.google.com/',
             'DNT': '1',
             'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Cache-Control': 'max-age=0',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-            'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
+            'Upgrade-Insecure-Requests': '1'
         }
         session.headers.update(headers)
 
@@ -1018,21 +947,12 @@ def scrape_url(url, name):
         # Kolla om URL:en är en direkt PDF-länk
         if url.lower().endswith('.pdf'):
             menu_text = scrape_pdf(url, headers)
-            if menu_text:
-                return {
-                    'name': name,
-                    'url': url,
-                    'menu': menu_text,
-                    'success': True,
-                    'source': 'PDF',
-                    'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
-                }
-            # PDF oläsbar – returnera felmeddelande
             return {
                 'name': name,
                 'url': url,
-                'menu': 'Menyn kunde inte hämtas (PDF oläsbar).',
-                'success': False,
+                'menu': menu_text,
+                'success': True,
+                'source': 'PDF',
                 'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
             }
 
