@@ -246,6 +246,9 @@ def save_menus_to_cache(menus):
 
 def format_menu_text(text):
     """Formatera menytext för bättre läsbarhet."""
+    # Ta bort HTML-taggar som kan förekomma i PDF-extraherad text (t.ex. <b>, </b>, <br>)
+    text = re.sub(r'<[^>]+>', '', text)
+
     # Ta bort rader med URL:er
     lines = text.split('\n')
     lines = [line for line in lines if not re.match(r'^\s*https?://', line.strip())]
