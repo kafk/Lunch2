@@ -716,17 +716,20 @@
         // Dela upp på blanka rader (varje rätt är ett block)
         const rawBlocks = text.split(/\n\n+/).map(b => b.trim()).filter(b => b.length > 0);
 
-        // Slå ihop fristående kategorirubriker (t.ex. "KÖTT") med efterföljande ❖-block
+        // Tildas-stil: varje nytt ❖-block startar en ny sektion.
+        // Kategorirubriker (KÖTT, FISK, etc.) läggs som "footer" på föregående block.
+        // Resultat: KÖTT\n❖Pepparstek\nFISK → block, sedan ❖Panerad\nPASTA → block, osv.
         const blocks = [];
-        for (let i = 0; i < rawBlocks.length; i++) {
-            const block = rawBlocks[i];
-            if (/^[A-ZÅÄÖ][A-ZÅÄÖ\s]{1,20}$/.test(block) && i + 1 < rawBlocks.length && rawBlocks[i + 1].startsWith('❖')) {
-                blocks.push(block + '\n' + rawBlocks[i + 1]);
-                i++;
+        let current = '';
+        for (const block of rawBlocks) {
+            if (block.startsWith('❖') && current.includes('❖')) {
+                blocks.push(current);
+                current = block;
             } else {
-                blocks.push(block);
+                current = current ? current + '\n' + block : block;
             }
         }
+        if (current) blocks.push(current);
 
         return blocks
             .map(block => `<div class="dish-block">${escapeHtml(block).replace(/\n/g, '<br>')}</div>`)
