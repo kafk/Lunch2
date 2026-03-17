@@ -724,6 +724,12 @@
         const blocks = [];
         for (let i = 0; i < mutableBlocks.length; i++) {
             let block = mutableBlocks[i];
+
+            // Parentesblock som "(FREDAG\nLUNCH 11.00 – 13.00 V12)" → en rad
+            if (block.startsWith('(') && block.endsWith(')')) {
+                block = block.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
+            }
+
             const lines = block.split('\n');
             const lastLine = lines[lines.length - 1].trim();
 
