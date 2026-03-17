@@ -286,11 +286,15 @@ def format_menu_text(text):
     text = re.sub(r'^.*top of page.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
 
     # Roots: ta bort Affärslunch-sektionen (business lunch med FÖRRÄTTER/VARMRÄTTER/DESSERT)
-    # Klipp bort allt från "Affärslunch" fram till första veckodagen
+    # Klipp bort allt från "Affärslunch" fram till första veckodagen.
+    # Om inga veckodagar finns alls, finns ingen daglig lunchmeny — töm texten.
     affars_match = re.search(r'Affärslunch', text, re.IGNORECASE)
     first_weekday_after = re.search(r'\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag)\b', text, re.IGNORECASE)
-    if affars_match and first_weekday_after and affars_match.start() < first_weekday_after.start():
-        text = text[first_weekday_after.start():]
+    if affars_match:
+        if first_weekday_after and affars_match.start() < first_weekday_after.start():
+            text = text[first_weekday_after.start():]
+        elif not first_weekday_after:
+            text = ''
 
     # Roots/Wix: ta bort ALPHA-rumsbeskrivningar
     alpha_match = re.search(r'\bALPHA\b', text, re.IGNORECASE)
