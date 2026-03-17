@@ -251,6 +251,10 @@ def format_menu_text(text):
     lines = [line for line in lines if not re.match(r'^\s*https?://', line.strip())]
     text = '\n'.join(lines)
 
+    # Ta bort markdown-formatering: __Tisdag__ → Tisdag, _________ → (borttaget)
+    text = re.sub(r'_{2,}([A-Za-zÅÄÖåäö][^_\n]*)_{2,}', r'\1', text)
+    text = re.sub(r'^_{3,}\s*$', '', text, flags=re.MULTILINE)
+
     # Ta bort sidtitlar i början (t.ex. "Lunch | Restaurant Name")
     text = re.sub(r'^[^\n]*\s*[\|–-]\s*[^\n]*$\n?', '', text, count=1)
 
@@ -432,7 +436,7 @@ def format_menu_text(text):
     )
 
     # Kategorier - lägg till blank rad före (case-insensitive, hanterar inline och enstaka radbrytning)
-    categories = ['KÖTT', 'FISK', 'PASTA', 'SALLAD', 'BURGARE', 'VEGETARISKT', 'VEGAN', 'LUNCH']
+    categories = ['KÖTT', 'FISK', 'PASTA', 'SALLAD', 'BURGARE', 'VEGETARISKT', 'VEGAN', 'LUNCH', 'STREETFOOD']
     for cat in categories:
         text = re.sub(rf'[ \t]+({cat}\b)', r'\n\n\1', text, flags=re.IGNORECASE)   # inline: "FREDAG KÖTT:" → "...\n\nKÖTT:"
         text = re.sub(rf'(?<!\n)\n({cat}\b)', r'\n\n\1', text, flags=re.IGNORECASE) # enstaka radbrytning → dubbel
