@@ -286,14 +286,24 @@ def format_menu_text(text):
     text = re.sub(r'^.*top of page.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
 
     # Roots: ta bort Affärslunch-sektionen (business lunch med FÖRRÄTTER/VARMRÄTTER/DESSERT)
-    # Klipp bort allt från "Affärslunch" fram till första veckodagen.
-    # Om inga veckodagar finns alls, finns ingen daglig lunchmeny — töm texten.
+    # Tre fall:
+    #   1. Affärslunch BEFORE dagsmeny → klipp till första veckodagen efter Affärslunch
+    #   2. Affärslunch AFTER dagsmeny  → trunkera texten vid Affärslunch
+    #   3. Inga veckodagar alls        → töm texten (ingen daglig meny)
     affars_match = re.search(r'Affärslunch', text, re.IGNORECASE)
-    first_weekday_after = re.search(r'\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag)\b', text, re.IGNORECASE)
     if affars_match:
-        if first_weekday_after and affars_match.start() < first_weekday_after.start():
-            text = text[first_weekday_after.start():]
-        elif not first_weekday_after:
+        weekday_before = re.search(r'\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag)\b',
+                                   text[:affars_match.start()], re.IGNORECASE)
+        weekday_after = re.search(r'\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag)\b',
+                                  text[affars_match.end():], re.IGNORECASE)
+        if weekday_after and not weekday_before:
+            # Affärslunch comes before daily menu
+            text = text[affars_match.end() + weekday_after.start():]
+        elif weekday_before:
+            # Affärslunch comes after daily menu – cut it off
+            text = text[:affars_match.start()]
+        else:
+            # No weekdays at all – no daily menu available
             text = ''
 
     # Roots/Wix: ta bort ALPHA-rumsbeskrivningar
@@ -837,7 +847,7 @@ def find_lunch_content(soup, url):
         element_weekday_count = sum(1 for day in weekdays_sv if day in text)
         if 'affärslunch' in text and element_weekday_count < 2:
             continue
-        if 'förrätter' in text and 'varmrätter' in text and 'dessert' in text and element_weekday_count < 2:
+        if ('förrätter' in text or 'varmrätter' in text) and 'dessert' in text and element_weekday_count < 2:
             continue
         for keyword in lunch_keywords:
             if keyword in text:
