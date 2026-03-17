@@ -249,7 +249,7 @@
     }
 
     .dish-block {
-        margin-bottom: 20px;
+        margin-bottom: 14px;
     }
 
     .dish-block:last-child {
@@ -714,33 +714,10 @@
         text = text.replace(/\n{3,}/g, '\n\n');
 
         // Dela upp på blanka rader (varje rätt är ett block)
-        const rawBlocks = text.split(/\n\n+/).map(b => b.trim()).filter(b => b.length > 0);
-
-        // Steg 1: Prisraden i Python kollapsar \n\n till \n före kategorier, så de
-        // hamnar i slutet av föregående block (t.ex. "❖Pepparstek...\nFISK").
-        // Flytta sådana trailade kategorier till början av nästa block.
-        for (let i = 0; i < rawBlocks.length - 1; i++) {
-            const catTrail = rawBlocks[i].match(/\n([A-ZÅÄÖ][A-ZÅÄÖ\s]{1,20})$/);
-            if (catTrail && rawBlocks[i + 1].startsWith('❖')) {
-                rawBlocks[i] = rawBlocks[i].slice(0, rawBlocks[i].length - catTrail[0].length);
-                rawBlocks[i + 1] = catTrail[1].trim() + '\n' + rawBlocks[i + 1];
-            }
-        }
-
-        // Steg 2: Slå ihop fristående kategorirubriker (KÖTT, FISK, etc.) med efterföljande ❖-block.
-        // Resulterar i: KÖTT\n❖Pepparstek → block, FISK\n❖Panerad → block, osv.
-        const blocks = [];
-        for (let i = 0; i < rawBlocks.length; i++) {
-            const block = rawBlocks[i];
-            if (/^[A-ZÅÄÖ][A-ZÅÄÖ\s]{1,20}$/.test(block) && i + 1 < rawBlocks.length && rawBlocks[i + 1].startsWith('❖')) {
-                blocks.push(block + '\n' + rawBlocks[i + 1]);
-                i++;
-            } else {
-                blocks.push(block);
-            }
-        }
-
+        const blocks = text.split(/\n\n+/);
         return blocks
+            .map(block => block.trim())
+            .filter(block => block.length > 0)
             .map(block => `<div class="dish-block">${escapeHtml(block).replace(/\n/g, '<br>')}</div>`)
             .join('');
     }
