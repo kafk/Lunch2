@@ -1029,6 +1029,7 @@ def scrape_url(url, name):
             # Försök hämta första (mest relevanta) PDF:en
             try:
                 pdf_text = scrape_pdf(pdf_links[0]['url'], headers)
+                pdf_text = format_menu_text(pdf_text)
                 if pdf_text and len(pdf_text) > 50:
                     return {
                         'name': name,
