@@ -1361,6 +1361,7 @@ def debug_divan():
     extracted = extract_today_section(raw)
     return jsonify({
         'raw': raw,
+        'raw_visible': raw.replace('\n', '↵\n'),
         'raw_length': len(raw),
         'extracted': extracted,
         'source': result.get('source', ''),
