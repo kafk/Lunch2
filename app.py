@@ -403,8 +403,6 @@ def format_menu_text(text):
         '', text, flags=re.MULTILINE | re.IGNORECASE
     )
 
-    # Ta bort rader som bara innehåller ett veckodagsnamn (t.ex. "FREDAG" utan rättsinfo)
-    text = re.sub(r'^\s*(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG)\s*$\n?', '', text, flags=re.MULTILINE | re.IGNORECASE)
 
     # Ta bort Wix-navigationsrader (t.ex. "Use tab to navigate through the menu items.")
     text = re.sub(r'^.*Use tab to navigate through the menu items.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
