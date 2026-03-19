@@ -1351,6 +1351,20 @@ def analytics():
     return render_template('analytics.html', version=VERSION)
 
 
+@app.route('/api/debug/divan', methods=['GET'])
+def debug_divan():
+    """Debug: visa råtext från Divan utan caching."""
+    result = scrape_url('https://www.restaurangdivan.se/', 'Divan')
+    raw = result.get('menu', '')
+    extracted = extract_today_section(raw)
+    return jsonify({
+        'raw': raw,
+        'raw_length': len(raw),
+        'extracted': extracted,
+        'source': result.get('source', ''),
+    })
+
+
 @app.route('/api/debug/tildas', methods=['GET'])
 def debug_tildas():
     """Debug: visa råtext från Tildas PDF utan extract_today_section."""
