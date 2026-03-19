@@ -384,19 +384,15 @@ def format_menu_text(text):
     # Hanterar även varianter med mellanslag: "LUNCH MENY", "LUNCH MEN Y" osv.
     text = re.sub(r'LUNCH\s*MEN\s*[YU]?\s*V\d+[^\n]*', '', text, flags=re.IGNORECASE)
 
-    # Ta bort parentesblock med tid-info, t.ex. "(FREDAG LUNCH 11.00 – 13.00 V12)"
-    # Om blocket innehåller ett tidsmönster är det en öppettidsnotering → ta bort helt
-    # Annars: behåll veckodagen om en sådan finns
-    def replace_paren_header(m):
-        inner = m.group(1)
-        if re.search(r'\d{1,2}[.:]\d{2}', inner):
-            return ''
-        day_match = re.search(r'\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)\b', inner, re.IGNORECASE)
-        return day_match.group(0).upper() if day_match else ''
-    text = re.sub(r'\(([^)]{0,120})\)', replace_paren_header, text, flags=re.DOTALL)
+    # Ta bort parentesblock som innehåller tidsinfo, t.ex. "(FREDAG LUNCH 11.00 – 13.00 V12)"
+    # [^)] matchar även radbrytningar, så flerradiga parentesblock hanteras
+    text = re.sub(r'\([^)]*\d{1,2}[.:]\d{2}[^)]*\)', '', text)
 
-    # Ta bort ensamma tidsrader som "11.00 – 15.00"
+    # Ta bort ensamma tidsrader som "11.00 – 15.00" (generella öppettider)
     text = re.sub(r'^\d{1,2}[.:]\d{2}\s*[–\-]\s*\d{1,2}[.:]\d{2}\s*$\n?', '', text, flags=re.MULTILINE)
+
+    # Ta bort rader som bara innehåller ett veckodagsnamn (t.ex. "FREDAG" utan rättsinfo)
+    text = re.sub(r'^\s*(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG)\s*$\n?', '', text, flags=re.MULTILINE | re.IGNORECASE)
 
     # Ta bort Wix-navigationsrader (t.ex. "Use tab to navigate through the menu items.")
     text = re.sub(r'^.*Use tab to navigate through the menu items.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
