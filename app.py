@@ -390,7 +390,7 @@ def format_menu_text(text):
         inner = m.group(1)
         # Extrahera veckodagen om den finns
         day_match = re.search(r'\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)\b', inner, re.IGNORECASE)
-        return (day_match.group(0).upper() + '\n') if day_match else ''
+        return day_match.group(0).upper() if day_match else ''
     text = re.sub(r'\(([^)]{0,120})\)', replace_paren_header, text, flags=re.DOTALL)
 
     # Ta bort ensamma tidsrader som "11.00 – 15.00"
