@@ -1004,7 +1004,7 @@ def scrape_url(url, name):
 
         # Kolla om URL:en är en direkt PDF-länk
         if url.lower().endswith('.pdf'):
-            menu_text = scrape_pdf(url, headers)
+            menu_text = format_menu_text(scrape_pdf(url, headers))
             return {
                 'name': name,
                 'url': url,
@@ -1086,7 +1086,7 @@ def scrape_url(url, name):
                 lunch_pdf_links = find_pdf_links(lunch_soup, lunch_page_url)
                 if lunch_pdf_links:
                     try:
-                        pdf_text = scrape_pdf(lunch_pdf_links[0]['url'], headers)
+                        pdf_text = format_menu_text(scrape_pdf(lunch_pdf_links[0]['url'], headers))
                         if pdf_text and len(pdf_text) > 50:
                             return {
                                 'name': name,
