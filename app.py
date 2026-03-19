@@ -380,15 +380,17 @@ def format_menu_text(text):
         if match and match.start() > 100:  # Bara klipp om vi har minst 100 tecken före
             text = text[:match.start()]
 
-    # Ta bort "LUNCH MENY V12 11.00 – 15.00"-liknande rader (Divan-stil header)
-    # Hanterar även OCR-varianter som "LUNCH MEN Y V12" (mellanslag i MENY)
-    text = re.sub(r'^LUNCH\s+MEN\s*[YU]?\s+V\d+.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
+    # Ta bort "LUNCHMENY V12 11.00 – 15.00"-liknande rader (Divan-stil header)
+    # Hanterar även varianter med mellanslag: "LUNCH MENY", "LUNCH MEN Y" osv.
+    text = re.sub(r'^LUNCH\s*MEN\s*[YU]?\s*V\d+.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
 
-    # Ta bort parentesblock med dag+tid-info, t.ex. "(\nFREDAG\nLUNCH 11.00 – 13.00 V12)"
-    # Bevarar veckodagen på egen rad före blocket
+    # Ta bort parentesblock med tid-info, t.ex. "(FREDAG LUNCH 11.00 – 13.00 V12)"
+    # Om blocket innehåller ett tidsmönster är det en öppettidsnotering → ta bort helt
+    # Annars: behåll veckodagen om en sådan finns
     def replace_paren_header(m):
         inner = m.group(1)
-        # Extrahera veckodagen om den finns
+        if re.search(r'\d{1,2}[.:]\d{2}', inner):
+            return ''
         day_match = re.search(r'\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)\b', inner, re.IGNORECASE)
         return day_match.group(0).upper() if day_match else ''
     text = re.sub(r'\(([^)]{0,120})\)', replace_paren_header, text, flags=re.DOTALL)
