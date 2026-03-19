@@ -384,6 +384,18 @@ def format_menu_text(text):
     # Hanterar även OCR-varianter som "LUNCH MEN Y V12" (mellanslag i MENY)
     text = re.sub(r'^LUNCH\s+MEN\s*[YU]?\s+V\d+.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
 
+    # Ta bort parentesblock med dag+tid-info, t.ex. "(\nFREDAG\nLUNCH 11.00 – 13.00 V12)"
+    # Bevarar veckodagen på egen rad före blocket
+    def replace_paren_header(m):
+        inner = m.group(1)
+        # Extrahera veckodagen om den finns
+        day_match = re.search(r'\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)\b', inner, re.IGNORECASE)
+        return (day_match.group(0).upper() + '\n') if day_match else ''
+    text = re.sub(r'\(([^)]{0,120})\)', replace_paren_header, text, flags=re.DOTALL)
+
+    # Ta bort ensamma tidsrader som "11.00 – 15.00"
+    text = re.sub(r'^\d{1,2}[.:]\d{2}\s*[–\-]\s*\d{1,2}[.:]\d{2}\s*$\n?', '', text, flags=re.MULTILINE)
+
     # Ta bort Wix-navigationsrader (t.ex. "Use tab to navigate through the menu items.")
     text = re.sub(r'^.*Use tab to navigate through the menu items.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
 
