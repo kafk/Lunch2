@@ -392,8 +392,14 @@ def format_menu_text(text):
     text = re.sub(r'^\d{1,2}[.:]\d{2}\s*[–\-]\s*\d{1,2}[.:]\d{2}\s*$\n?', '', text, flags=re.MULTILINE)
 
     # Ta bort öppettidsrader som "Måndag - Torsdag | 11:00 - 21:00" (Mr Tomato-stil)
+    # Matchar rader som innehåller ett veckodagsnamn + | + tid (HH:MM)
     text = re.sub(
-        r'^\s*\w[\w\s]*\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)\b[^\n]*\|\s*\d{1,2}[.:]\d{2}[^\n]*$\n?',
+        r'^[^\n]*\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)\b[^\n]*\|\s*\d{1,2}:\d{2}[^\n]*$\n?',
+        '', text, flags=re.MULTILINE | re.IGNORECASE
+    )
+    # Ta bort rader som slutar med bara "Veckdag -" (öppettider fortsätter på nästa rad)
+    text = re.sub(
+        r'^\s*(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)\s*[-–]\s*$\n?',
         '', text, flags=re.MULTILINE | re.IGNORECASE
     )
 
