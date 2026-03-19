@@ -1359,12 +1359,22 @@ def debug_divan():
     result = scrape_url('https://www.restaurangdivan.se/', 'Divan')
     raw = result.get('menu', '')
     extracted = extract_today_section(raw)
+
+    # Test regex directly against known Divan header
+    test_text = 'LUNCHMENY V12 11.00 – 15.00 (FREDAG LUNCH 11.00 – 13.00 V12)'
+    regex_match = bool(re.search(r'LUNCH\s*MEN\s*[YU]?\s*V\d+[^\n]*', test_text, re.IGNORECASE))
+    regex_match_in_raw = bool(re.search(r'LUNCH\s*MEN\s*[YU]?\s*V\d+', raw, re.IGNORECASE))
+
     return jsonify({
+        'version': '2026-03-19-v3',
         'raw': raw,
         'raw_visible': raw.replace('\n', '↵\n'),
         'raw_length': len(raw),
         'extracted': extracted,
         'source': result.get('source', ''),
+        'regex_test_on_known_text': regex_match,
+        'regex_found_in_raw': regex_match_in_raw,
+        'lunchmeny_in_raw': 'LUNCHMENY' in raw.upper(),
     })
 
 
