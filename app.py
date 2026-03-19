@@ -382,7 +382,7 @@ def format_menu_text(text):
 
     # Ta bort "LUNCHMENY V12 11.00 – 15.00"-liknande rader (Divan-stil header)
     # Hanterar även varianter med mellanslag: "LUNCH MENY", "LUNCH MEN Y" osv.
-    text = re.sub(r'^LUNCH\s*MEN\s*[YU]?\s*V\d+.*$\n?', '', text, flags=re.IGNORECASE | re.MULTILINE)
+    text = re.sub(r'LUNCH\s*MEN\s*[YU]?\s*V\d+[^\n]*', '', text, flags=re.IGNORECASE)
 
     # Ta bort parentesblock med tid-info, t.ex. "(FREDAG LUNCH 11.00 – 13.00 V12)"
     # Om blocket innehåller ett tidsmönster är det en öppettidsnotering → ta bort helt
