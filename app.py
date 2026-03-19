@@ -391,6 +391,12 @@ def format_menu_text(text):
     # Ta bort ensamma tidsrader som "11.00 – 15.00" (generella öppettider)
     text = re.sub(r'^\d{1,2}[.:]\d{2}\s*[–\-]\s*\d{1,2}[.:]\d{2}\s*$\n?', '', text, flags=re.MULTILINE)
 
+    # Ta bort öppettidsrader som "Måndag - Torsdag | 11:00 - 21:00" (Mr Tomato-stil)
+    text = re.sub(
+        r'^\s*\w[\w\s]*\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)\b[^\n]*\|\s*\d{1,2}[.:]\d{2}[^\n]*$\n?',
+        '', text, flags=re.MULTILINE | re.IGNORECASE
+    )
+
     # Ta bort rader som bara innehåller ett veckodagsnamn (t.ex. "FREDAG" utan rättsinfo)
     text = re.sub(r'^\s*(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG)\s*$\n?', '', text, flags=re.MULTILINE | re.IGNORECASE)
 
