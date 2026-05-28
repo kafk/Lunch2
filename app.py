@@ -514,7 +514,7 @@ def format_menu_text(text):
     # Sortera veckodagar i rätt ordning (måndag först)
     # Matchar även veckodagar med valfri suffix, t.ex. "Torsdag - Grilltorsdag!" eller "Måndag 26/5"
     weekday_order = ['MÅNDAG', 'TISDAG', 'ONSDAG', 'TORSDAG', 'FREDAG', 'LÖRDAG', 'SÖNDAG']
-    weekday_pattern = re.compile(r'^(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)\b.*$', re.IGNORECASE | re.MULTILINE)
+    weekday_pattern = re.compile(r'^(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag).*$', re.IGNORECASE | re.MULTILINE)
 
     # Hitta alla veckodagsektioner
     matches = list(weekday_pattern.finditer(text))
@@ -563,7 +563,7 @@ def extract_today_section(text):
     # Kolla om texten har veckodagssektioner (samma mönster som format_menu_text)
     # Matchar även veckodagar med valfri suffix, t.ex. "Torsdag - Grilltorsdag!" eller "Måndag 26/5"
     weekday_pattern = re.compile(
-        r'^(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)\b.*$',
+        r'^(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag).*$',
         re.IGNORECASE | re.MULTILINE
     )
     matches = list(weekday_pattern.finditer(text))
@@ -1421,6 +1421,16 @@ def strip_menu_footers(text):
     return text.strip()
 
 
+def detect_device(ua):
+    """Klassificera enhet baserat på User-Agent."""
+    u = ua.lower()
+    if 'mobile' in u or 'iphone' in u or ('android' in u and 'mobile' in u):
+        return 'Mobil'
+    if 'tablet' in u or 'ipad' in u or ('android' in u and 'mobile' not in u):
+        return 'Surfplatta'
+    return 'Dator'
+
+
 def track_visit(page):
     """Spara ett sidbesök i Firestore för analytics."""
     if not db:
@@ -1440,10 +1450,18 @@ def track_visit(page):
         today = swedish_now().strftime('%Y-%m-%d')
         doc_ref = db.collection('analytics').document(today)
 
+        visit_entry = {
+            'time': swedish_now().strftime('%H:%M'),
+            'page': page,
+            'device': detect_device(ua),
+            'ip': ip_hash,
+        }
+
         doc_ref.set({
             'date': today,
             'visits': firestore.Increment(1),
             'unique_visitors': firestore.ArrayUnion([ip_hash]),
+            'visit_log': firestore.ArrayUnion([visit_entry]),
         }, merge=True)
     except Exception:
         pass
@@ -1484,6 +1502,25 @@ def api_analytics():
         result.append({'date': date_str, 'visits': visits, 'unique': unique})
 
     return jsonify(result)
+
+
+@app.route('/api/analytics/today-detail', methods=['GET'])
+def api_analytics_today_detail():
+    """Returnera detaljerad besökslogg för idag (tid, sida, enhet)."""
+    today = swedish_now().strftime('%Y-%m-%d')
+    if not db:
+        return jsonify([])
+    try:
+        doc = db.collection('analytics').document(today).get()
+        if not doc.exists:
+            return jsonify([])
+        log = doc.to_dict().get('visit_log', [])
+        # Sort by time ascending, remove ip for response
+        log_clean = [{'time': e.get('time', ''), 'page': e.get('page', '/'), 'device': e.get('device', '?')} for e in log]
+        log_clean.sort(key=lambda x: x['time'])
+        return jsonify(log_clean)
+    except Exception:
+        return jsonify([])
 
 
 @app.route('/analytics')
