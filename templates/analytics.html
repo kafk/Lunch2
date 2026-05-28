@@ -306,6 +306,100 @@
             grid-template-columns: repeat(2, 1fr);
         }
     }
+
+    /* Today's detail log */
+    .today-card {
+        background: white;
+        border-radius: 12px;
+        border: 1px solid #e8ebe9;
+        overflow: hidden;
+        margin-top: 24px;
+    }
+
+    .today-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .today-card-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #374151;
+    }
+
+    .today-card-sub {
+        font-size: 12px;
+        color: #9ca3af;
+        margin-top: 2px;
+    }
+
+    .today-refresh-btn {
+        background: none;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 5px 10px;
+        font-size: 12px;
+        color: #6b7280;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .today-refresh-btn:hover {
+        border-color: #22c55e;
+        color: #22c55e;
+    }
+
+    .today-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    .today-table th {
+        text-align: left;
+        padding: 10px 20px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        background: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .today-table td {
+        padding: 10px 20px;
+        color: #374151;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .today-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .today-table tr:hover td {
+        background: #f9fafb;
+    }
+
+    .device-icon {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 13px;
+    }
+
+    .page-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-family: monospace;
+        background: #f3f4f6;
+        color: #374151;
+    }
 </style>
 
 <div class="analytics-header">
@@ -383,6 +477,28 @@
         </thead>
         <tbody id="tableBody">
             <tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:32px">Laddar...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="today-card">
+    <div class="today-card-header">
+        <div>
+            <div class="today-card-title">Dagens besökare</div>
+            <div class="today-card-sub">Besök idag – tid, sida och enhet</div>
+        </div>
+        <button class="today-refresh-btn" onclick="loadTodayDetail()">↻ Uppdatera</button>
+    </div>
+    <table class="today-table">
+        <thead>
+            <tr>
+                <th>Tid</th>
+                <th>Sida</th>
+                <th>Enhet</th>
+            </tr>
+        </thead>
+        <tbody id="todayBody">
+            <tr><td colspan="3" style="text-align:center;color:#9ca3af;padding:24px">Laddar...</td></tr>
         </tbody>
     </table>
 </div>
@@ -512,5 +628,36 @@
 
     loadAnalytics(7, null);
     document.querySelector('.filter-btn.active');
+
+    const DEVICE_ICONS = { 'Mobil': '📱', 'Surfplatta': '📟', 'Dator': '💻' };
+    const PAGE_LABELS = { '/': 'Hem', '/display': 'Display', '/manage': 'Hantera' };
+
+    async function loadTodayDetail() {
+        const tbody = document.getElementById('todayBody');
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#9ca3af;padding:24px">Laddar...</td></tr>';
+        try {
+            const res = await fetch('/api/analytics/today-detail');
+            const log = await res.json();
+            if (!log.length) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#9ca3af;padding:24px">Inga besök idag ännu</td></tr>';
+                return;
+            }
+            // Show newest first
+            const rows = [...log].reverse().map(e => {
+                const icon = DEVICE_ICONS[e.device] || '🖥️';
+                const pageLabel = PAGE_LABELS[e.page] || e.page;
+                return `<tr>
+                    <td style="font-variant-numeric:tabular-nums;color:#6b7280">${e.time}</td>
+                    <td><span class="page-badge">${pageLabel}</span></td>
+                    <td><span class="device-icon">${icon} ${e.device}</span></td>
+                </tr>`;
+            }).join('');
+            tbody.innerHTML = rows;
+        } catch (e) {
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#9ca3af;padding:24px">Kunde inte ladda data</td></tr>';
+        }
+    }
+
+    loadTodayDetail();
 </script>
 {% endblock %}
