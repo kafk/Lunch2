@@ -514,7 +514,7 @@ def format_menu_text(text):
     # Sortera veckodagar i rätt ordning (måndag först)
     # Matchar även veckodagar med valfri suffix, t.ex. "Torsdag - Grilltorsdag!" eller "Måndag 26/5"
     weekday_order = ['MÅNDAG', 'TISDAG', 'ONSDAG', 'TORSDAG', 'FREDAG', 'LÖRDAG', 'SÖNDAG']
-    weekday_pattern = re.compile(r'^(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag).*$', re.IGNORECASE | re.MULTILINE)
+    weekday_pattern = re.compile(r'^(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)\b.*$', re.IGNORECASE | re.MULTILINE)
 
     # Hitta alla veckodagsektioner
     matches = list(weekday_pattern.finditer(text))
@@ -563,7 +563,7 @@ def extract_today_section(text):
     # Kolla om texten har veckodagssektioner (samma mönster som format_menu_text)
     # Matchar även veckodagar med valfri suffix, t.ex. "Torsdag - Grilltorsdag!" eller "Måndag 26/5"
     weekday_pattern = re.compile(
-        r'^(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag).*$',
+        r'^(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)\b.*$',
         re.IGNORECASE | re.MULTILINE
     )
     matches = list(weekday_pattern.finditer(text))
@@ -899,6 +899,49 @@ def find_lunch_content(soup, url):
     return found_sections
 
 
+def get_text_with_html_day_markers(soup):
+    """Extrahera text från soup där veckodagar i HTML-strukturtaggar (h1-h5, strong, b)
+    tydligt markeras som dagssektionsrubriker.
+
+    Regler:
+      - h1-h5 som börjar med ett veckodagsnamn → ersätt med bara veckodagsnamnet
+      - strong/b som ENBART innehåller ett veckodagsnamn (ev. med datum, inga bokstäver efter) → ersätt
+      - Allt annat lämnas orört
+
+    Detta innebär att t.ex. <h2>Torsdag - Grilltorsdag!</h2> och <h2>Torsdag</h2>
+    båda ger ren 'Torsdag'-rad, medan <strong>Torsdags Dessert!</strong> lämnas som är.
+    """
+    weekday_heading_re = re.compile(
+        r'^(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)\b',
+        re.IGNORECASE
+    )
+    weekday_standalone_re = re.compile(
+        r'^(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)\b[\s\d/.\-]*$',
+        re.IGNORECASE
+    )
+
+    # Samla taggar att ersätta INNAN vi börjar ändra trädet
+    to_replace = []
+    for tag in soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5']):
+        text = tag.get_text(strip=True)
+        m = weekday_heading_re.match(text)
+        if m:
+            to_replace.append((tag, m.group(1)))
+    for tag in soup.find_all(['strong', 'b']):
+        text = tag.get_text(strip=True)
+        m = weekday_standalone_re.match(text)
+        if m:
+            to_replace.append((tag, m.group(1)))
+
+    for tag, day_name in to_replace:
+        tag.replace_with(f'\n\n{day_name}\n\n')
+
+    for tag in soup(['script', 'style']):
+        tag.decompose()
+
+    return soup.get_text(separator='\n')
+
+
 def scrape_roots(url, name, session):
     """Custom scraper för rootsfoodmarket.se (Wix-sida).
 
@@ -1206,24 +1249,31 @@ def scrape_url(url, name):
                 pass  # Fallback till huvudsidan
 
         # Hitta lunch-innehåll från HTML
-        sections = find_lunch_content(soup, url)
+        # Försök HTML-strukturbaserad extraktion (h-taggar + fetstil för veckodagar)
+        soup_days = BeautifulSoup(response.text, 'lxml')
+        html_text = get_text_with_html_day_markers(soup_days)
+        html_text = format_menu_text(html_text)
+        html_weekdays = len(re.findall(r'\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag)\b', html_text, re.IGNORECASE))
 
-        if sections:
-            # Kombinera de mest relevanta sektionerna
-            menu_text = '\n\n'.join([s['content'] for s in sections[:3]])
+        if html_weekdays >= 2:
+            menu_text = html_text
+            source = 'HTML (dag-struktur)'
         else:
-            # Fallback: extrahera all text
-            menu_text = extract_menu_text(soup)
-
-        # Applicera formatering på HTML-text också
-        menu_text = format_menu_text(menu_text)
+            # Fallback: sök efter sektioner med veckodagar
+            sections = find_lunch_content(soup, url)
+            if sections:
+                menu_text = '\n\n'.join([s['content'] for s in sections[:3]])
+            else:
+                menu_text = extract_menu_text(soup)
+            menu_text = format_menu_text(menu_text)
+            source = 'HTML'
 
         return {
             'name': name,
             'url': url,
             'menu': menu_text,
             'success': True,
-            'source': 'HTML',
+            'source': source,
             'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
         }
     except requests.RequestException as e:
