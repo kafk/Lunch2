@@ -400,6 +400,38 @@
         background: #f3f4f6;
         color: #374151;
     }
+
+    .visit-trail {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        align-items: center;
+    }
+
+    .visit-step {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+    }
+
+    .visit-step-page {
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-family: monospace;
+        background: #f3f4f6;
+        color: #374151;
+    }
+
+    .visit-step-time {
+        color: #9ca3af;
+        font-size: 11px;
+    }
+
+    .visit-arrow {
+        color: #d1d5db;
+        font-size: 11px;
+    }
 </style>
 
 <div class="analytics-header">
@@ -492,13 +524,14 @@
     <table class="today-table">
         <thead>
             <tr>
-                <th>Tid</th>
-                <th>Sida</th>
+                <th>Besökare</th>
                 <th>Enhet</th>
+                <th>Första besök</th>
+                <th>Sidor</th>
             </tr>
         </thead>
         <tbody id="todayBody">
-            <tr><td colspan="3" style="text-align:center;color:#9ca3af;padding:24px">Laddar...</td></tr>
+            <tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:24px">Laddar...</td></tr>
         </tbody>
     </table>
 </div>
@@ -634,27 +667,31 @@
 
     async function loadTodayDetail() {
         const tbody = document.getElementById('todayBody');
-        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#9ca3af;padding:24px">Laddar...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:24px">Laddar...</td></tr>';
         try {
             const res = await fetch('/api/analytics/today-detail');
-            const log = await res.json();
-            if (!log.length) {
-                tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#9ca3af;padding:24px">Inga besök idag ännu</td></tr>';
+            const visitors = await res.json();
+            if (!visitors.length) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:24px">Inga besök idag ännu</td></tr>';
                 return;
             }
-            // Show newest first
-            const rows = [...log].reverse().map(e => {
-                const icon = DEVICE_ICONS[e.device] || '🖥️';
-                const pageLabel = PAGE_LABELS[e.page] || e.page;
+            const rows = visitors.map(v => {
+                const icon = DEVICE_ICONS[v.device] || '🖥️';
+                const trail = v.pages.map((p, i) => {
+                    const label = PAGE_LABELS[p.page] || p.page;
+                    const arrow = i < v.pages.length - 1 ? '<span class="visit-arrow">→</span>' : '';
+                    return `<span class="visit-step"><span class="visit-step-page">${label}</span><span class="visit-step-time">${p.time}</span></span>${arrow}`;
+                }).join('');
                 return `<tr>
-                    <td style="font-variant-numeric:tabular-nums;color:#6b7280">${e.time}</td>
-                    <td><span class="page-badge">${pageLabel}</span></td>
-                    <td><span class="device-icon">${icon} ${e.device}</span></td>
+                    <td style="color:#6b7280;font-weight:600">#${v.visitor}</td>
+                    <td><span class="device-icon">${icon} ${v.device}</span></td>
+                    <td style="font-variant-numeric:tabular-nums;color:#6b7280">${v.first_visit}</td>
+                    <td><div class="visit-trail">${trail}</div></td>
                 </tr>`;
             }).join('');
             tbody.innerHTML = rows;
         } catch (e) {
-            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#9ca3af;padding:24px">Kunde inte ladda data</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:24px">Kunde inte ladda data</td></tr>';
         }
     }
 
