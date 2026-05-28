@@ -1506,7 +1506,7 @@ def api_analytics():
 
 @app.route('/api/analytics/today-detail', methods=['GET'])
 def api_analytics_today_detail():
-    """Returnera detaljerad besökslogg för idag (tid, sida, enhet)."""
+    """Returnera unika besökare för idag, grupperade per ip-hash med besökshistorik."""
     today = swedish_now().strftime('%Y-%m-%d')
     if not db:
         return jsonify([])
@@ -1515,10 +1515,33 @@ def api_analytics_today_detail():
         if not doc.exists:
             return jsonify([])
         log = doc.to_dict().get('visit_log', [])
-        # Sort by time ascending, remove ip for response
-        log_clean = [{'time': e.get('time', ''), 'page': e.get('page', '/'), 'device': e.get('device', '?')} for e in log]
-        log_clean.sort(key=lambda x: x['time'])
-        return jsonify(log_clean)
+        # Sort all entries by time first
+        log.sort(key=lambda x: x.get('time', ''))
+        # Group by ip_hash – preserve insertion order (first seen = visitor number)
+        visitors = {}
+        for e in log:
+            ip = e.get('ip', 'unknown')
+            if ip not in visitors:
+                visitors[ip] = {
+                    'device': e.get('device', '?'),
+                    'first_visit': e.get('time', ''),
+                    'pages': []
+                }
+            visitors[ip]['pages'].append({
+                'time': e.get('time', ''),
+                'page': e.get('page', '/')
+            })
+        # Build response with sequential visitor numbers, no ip
+        result = [
+            {
+                'visitor': i + 1,
+                'device': v['device'],
+                'first_visit': v['first_visit'],
+                'pages': v['pages']
+            }
+            for i, v in enumerate(visitors.values())
+        ]
+        return jsonify(result)
     except Exception:
         return jsonify([])
 
