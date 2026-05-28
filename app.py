@@ -1421,6 +1421,16 @@ def strip_menu_footers(text):
     return text.strip()
 
 
+def detect_device(ua):
+    """Klassificera enhet baserat på User-Agent."""
+    u = ua.lower()
+    if 'mobile' in u or 'iphone' in u or ('android' in u and 'mobile' in u):
+        return 'Mobil'
+    if 'tablet' in u or 'ipad' in u or ('android' in u and 'mobile' not in u):
+        return 'Surfplatta'
+    return 'Dator'
+
+
 def track_visit(page):
     """Spara ett sidbesök i Firestore för analytics."""
     if not db:
@@ -1440,10 +1450,18 @@ def track_visit(page):
         today = swedish_now().strftime('%Y-%m-%d')
         doc_ref = db.collection('analytics').document(today)
 
+        visit_entry = {
+            'time': swedish_now().strftime('%H:%M'),
+            'page': page,
+            'device': detect_device(ua),
+            'ip': ip_hash,
+        }
+
         doc_ref.set({
             'date': today,
             'visits': firestore.Increment(1),
             'unique_visitors': firestore.ArrayUnion([ip_hash]),
+            'visit_log': firestore.ArrayUnion([visit_entry]),
         }, merge=True)
     except Exception:
         pass
@@ -1484,6 +1502,48 @@ def api_analytics():
         result.append({'date': date_str, 'visits': visits, 'unique': unique})
 
     return jsonify(result)
+
+
+@app.route('/api/analytics/today-detail', methods=['GET'])
+def api_analytics_today_detail():
+    """Returnera unika besökare för idag, grupperade per ip-hash med besökshistorik."""
+    today = swedish_now().strftime('%Y-%m-%d')
+    if not db:
+        return jsonify([])
+    try:
+        doc = db.collection('analytics').document(today).get()
+        if not doc.exists:
+            return jsonify([])
+        log = doc.to_dict().get('visit_log', [])
+        # Sort all entries by time first
+        log.sort(key=lambda x: x.get('time', ''))
+        # Group by ip_hash – preserve insertion order (first seen = visitor number)
+        visitors = {}
+        for e in log:
+            ip = e.get('ip', 'unknown')
+            if ip not in visitors:
+                visitors[ip] = {
+                    'device': e.get('device', '?'),
+                    'first_visit': e.get('time', ''),
+                    'pages': []
+                }
+            visitors[ip]['pages'].append({
+                'time': e.get('time', ''),
+                'page': e.get('page', '/')
+            })
+        # Build response with sequential visitor numbers, no ip
+        result = [
+            {
+                'visitor': i + 1,
+                'device': v['device'],
+                'first_visit': v['first_visit'],
+                'pages': v['pages']
+            }
+            for i, v in enumerate(visitors.values())
+        ]
+        return jsonify(result)
+    except Exception:
+        return jsonify([])
 
 
 @app.route('/analytics')
