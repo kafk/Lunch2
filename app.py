@@ -313,9 +313,14 @@ def format_menu_text(text):
             text = ''
 
     # Roots/Wix: ta bort ALPHA-rumsbeskrivningar
+    # Klipp bara om det finns en veckodag FÖRE ALPHA (menyn är innan rumsbeskrivningarna).
+    # Om ALPHA kommer innan veckodagarna är det troligen navigation – ignorera.
     alpha_match = re.search(r'\bALPHA\b', text, re.IGNORECASE)
-    if alpha_match and alpha_match.start() > 50:
-        text = text[:alpha_match.start()]
+    if alpha_match:
+        weekday_before_alpha = re.search(r'\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag)\b',
+                                         text[:alpha_match.start()], re.IGNORECASE)
+        if weekday_before_alpha:
+            text = text[:alpha_match.start()]
 
     # VIKTIG: Klipp bort allt FÖRE första veckodagen INNAN footer-filtrering
     # Detta säkerställer att navigation inte triggar footer-markörer
@@ -874,6 +879,10 @@ def find_lunch_content(soup, url):
             continue
         if 'förrätter' in text and 'varmrätter' in text and 'dessert' in text and element_weekday_count < 2:
             continue
+        # Skippa rumsbeskrivningssektioner (ALPHA, BETA, GAMMA etc. – Roots/Wix)
+        content_check = element.get_text(separator=' ', strip=True)
+        if re.search(r'\b(ALPHA|BETA|GAMMA|DELTA|EPSILON)\b', content_check) and element_weekday_count < 2:
+            continue
         for keyword in lunch_keywords:
             if keyword in text:
                 content = element.get_text(separator='\n', strip=True)
@@ -888,6 +897,73 @@ def find_lunch_content(soup, url):
     found_sections.sort(key=lambda x: 0 if today_name in x['keyword'] else 1)
 
     return found_sections
+
+
+def scrape_roots(url, name, session):
+    """Custom scraper för rootsfoodmarket.se (Wix-sida).
+
+    Wix renderar innehåll med JavaScript, men bäddar ofta in text i <script>-taggar.
+    Vi söker efter 'Luncha på Roots' i script-taggar och vanlig text, klipper
+    bort rumsbeskrivningarna (ALPHA, BETA etc.) och returnerar veckomenyn.
+    """
+    try:
+        response = session.get(url, timeout=10)
+        response.raise_for_status()
+        if response.encoding == 'ISO-8859-1':
+            response.encoding = response.apparent_encoding
+        soup = BeautifulSoup(response.text, 'lxml')
+
+        # Sök i script-taggar efter Wix-inbäddad menytext
+        for script in soup.find_all('script'):
+            script_text = script.string or ''
+            if 'Luncha' not in script_text and 'Måndag' not in script_text:
+                continue
+            # Rensa vanliga JSON-escape-sekvenser
+            script_text = script_text.replace('\\n', '\n').replace('\\t', ' ')
+            script_text = re.sub(r'\\u00e5', 'å', script_text)
+            script_text = re.sub(r'\\u00e4', 'ä', script_text)
+            script_text = re.sub(r'\\u00f6', 'ö', script_text)
+            script_text = re.sub(r'\\u00c5', 'Å', script_text)
+            script_text = re.sub(r'\\u00c4', 'Ä', script_text)
+            script_text = re.sub(r'\\u00d6', 'Ö', script_text)
+            luncha_pos = re.search(r'Luncha\s+på\s+Roots', script_text, re.IGNORECASE)
+            if luncha_pos:
+                menu_text = script_text[luncha_pos.start():]
+                alpha_pos = re.search(r'\bALPHA\b', menu_text)
+                if alpha_pos and alpha_pos.start() > 100:
+                    menu_text = menu_text[:alpha_pos.start()]
+                menu_text = format_menu_text(menu_text)
+                if len(menu_text) > 100:
+                    return {
+                        'name': name,
+                        'url': url,
+                        'menu': menu_text,
+                        'success': True,
+                        'source': 'HTML (Roots/Wix script)',
+                        'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+                    }
+
+        # Fallback: sök i vanlig extraherad text
+        full_text = soup.get_text(separator='\n')
+        luncha_pos = re.search(r'Luncha\s+på\s+Roots', full_text, re.IGNORECASE)
+        if luncha_pos:
+            menu_text = full_text[luncha_pos.start():]
+            alpha_pos = re.search(r'\bALPHA\b', menu_text)
+            if alpha_pos and alpha_pos.start() > 100:
+                menu_text = menu_text[:alpha_pos.start()]
+            menu_text = format_menu_text(menu_text)
+            if len(menu_text) > 100:
+                return {
+                    'name': name,
+                    'url': url,
+                    'menu': menu_text,
+                    'success': True,
+                    'source': 'HTML (Roots)',
+                    'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+                }
+    except Exception:
+        pass
+    return None
 
 
 def scrape_tsukihana(url, name, session):
@@ -999,6 +1075,12 @@ def scrape_url(url, name):
             'Upgrade-Insecure-Requests': '1'
         }
         session.headers.update(headers)
+
+        # SPECIAL: Roots Food Market – Wix-sida med custom scraper
+        if 'rootsfoodmarket' in url.lower():
+            result = scrape_roots(url, name, session)
+            if result:
+                return result
 
         # SPECIAL: Tsukihana har veckodagen inbäddad i måltitlarna – använd custom scraper
         if 'tsukihana' in url.lower():
