@@ -508,7 +508,7 @@ def format_menu_text(text):
 
     # Sortera veckodagar i rätt ordning (måndag först)
     weekday_order = ['MÅNDAG', 'TISDAG', 'ONSDAG', 'TORSDAG', 'FREDAG', 'LÖRDAG', 'SÖNDAG']
-    weekday_pattern = re.compile(r'^(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)\s*$', re.IGNORECASE | re.MULTILINE)
+    weekday_pattern = re.compile(r'^(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)\.*$', re.IGNORECASE | re.MULTILINE)
 
     # Hitta alla veckodagsektioner
     matches = list(weekday_pattern.finditer(text))
