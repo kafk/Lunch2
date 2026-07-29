@@ -162,14 +162,14 @@ def save_urls(urls):
     with open(URLS_FILE, 'w', encoding='utf-8') as f:
         json.dump(urls, f, ensure_ascii=False, indent=2)
 
-def add_url_to_db(url, name):
+def add_url_to_db(url, name, enabled=True):
     """Lägg till en URL i databasen."""
     if db:
         try:
             doc_ref = db.collection(COLLECTION_NAME).add({
                 'url': url,
                 'name': name,
-                'enabled': True,
+                'enabled': enabled,
                 'created_at': firestore.SERVER_TIMESTAMP
             })
             return True
@@ -1320,6 +1320,7 @@ def add_url():
     data = request.json
     url = data.get('url', '').strip()
     name = data.get('name', '').strip()
+    start_disabled = bool(data.get('start_disabled', False))
 
     if not url:
         return jsonify({'error': 'URL krävs'}), 400
@@ -1338,12 +1339,12 @@ def add_url():
 
     # Use Firebase if available
     if db:
-        add_url_to_db(url, name)
+        add_url_to_db(url, name, enabled=not start_disabled)
     else:
-        urls.append({'url': url, 'name': name})
+        urls.append({'url': url, 'name': name, 'enabled': not start_disabled})
         save_urls(urls)
 
-    return jsonify({'success': True, 'url': url, 'name': name})
+    return jsonify({'success': True, 'url': url, 'name': name, 'enabled': not start_disabled})
 
 @app.route('/api/urls/<int:index>', methods=['DELETE'])
 def delete_url(index):

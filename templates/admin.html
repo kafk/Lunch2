@@ -334,6 +334,49 @@
         .sys-grid { grid-template-columns: repeat(2, 1fr); }
         .admin-grid { grid-template-columns: 1fr; }
     }
+
+    /* ── Lab Cards ── */
+    .lab-card {
+        background: white;
+        border-radius: 14px;
+        border: 2px solid #e8ebe9;
+        overflow: hidden;
+        transition: border-color .2s, box-shadow .2s;
+    }
+    .lab-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.07); }
+    .lab-card.lab-success { border-color: #22c55e; }
+    .lab-card.lab-failed  { border-color: #ef4444; }
+    .lab-card.lab-testing { border-color: #fbbf24; }
+    .lab-card.lab-disabled { opacity: .7; }
+
+    .lab-card-header {
+        display: flex; align-items: center; gap: 12px; padding: 16px 16px 10px;
+    }
+    .lab-card-icon {
+        width: 40px; height: 40px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center; font-size: 18px;
+        flex-shrink: 0; background: #f0fdf4;
+    }
+    .lab-card.lab-disabled .lab-card-icon { background: #f3f4f6; }
+    .lab-card-info { flex: 1; min-width: 0; }
+    .lab-card-name { font-size: 14px; font-weight: 600; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lab-card-domain { font-size: 12px; color: #9ca3af; margin-top: 1px; }
+
+    .lab-card-status {
+        padding: 0 16px 10px;
+        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        font-size: 12px; color: #9ca3af; min-height: 26px;
+    }
+    .lab-card-preview {
+        margin: 0 16px 12px;
+        background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;
+        padding: 12px; font-size: 12px; line-height: 1.65;
+        white-space: pre-wrap; max-height: 220px; overflow-y: auto; color: #374151;
+    }
+    .lab-card-actions {
+        display: flex; gap: 8px; padding: 10px 16px;
+        border-top: 1px solid #f3f4f6; background: #fafafa; align-items: center;
+    }
 </style>
 
 <div class="admin-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
@@ -488,73 +531,38 @@
 </div> <!-- /admin-grid -->
 
 <!-- ── Scrape Lab ──────────────────────────────────────────────────────── -->
-<div style="margin-top:24px;">
-    <div class="acard" style="margin-bottom:0;">
-        <div class="acard-title" style="margin-bottom:20px;">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
-            Scrape Lab
-            <span class="badge">Staging & lansering</span>
+<div style="margin-top:28px;">
+    <!-- Top bar -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
+        <div>
+            <h2 style="font-size:18px;font-weight:700;color:#111827;">🔬 Scrape Lab</h2>
+            <p style="font-size:13px;color:#6b7280;margin-top:2px;">Testa scraping för alla restauranger — utan att det påverkar användarna — innan du publicerar.</p>
         </div>
-
-        <!-- Add to staging -->
-        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;margin-bottom:10px;align-items:end;">
-            <div>
-                <div style="font-size:12px;font-weight:600;color:#6b7280;margin-bottom:6px;">KOPIERA FRÅN LIVE</div>
-                <select id="staging-source" style="width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;font-family:inherit;color:#374151;background:white;">
-                    <option value="">Välj restaurang...</option>
-                </select>
-            </div>
-            <div>
-                <div style="font-size:12px;font-weight:600;color:#6b7280;margin-bottom:6px;">ELLER NY URL</div>
-                <input type="url" id="staging-custom-url" placeholder="https://ny-restaurang.se/lunch"
-                    style="width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;font-family:inherit;color:#374151;">
-            </div>
-            <button class="btn-green" onclick="addToStaging()" style="align-self:end;">Lägg i staging</button>
-        </div>
-        <div style="display:flex;gap:10px;margin-bottom:20px;align-items:center;">
-            <input type="text" id="staging-name-override" placeholder="Namn (valfritt, override)"
-                style="flex:1;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;font-family:inherit;color:#374151;">
-            <input type="text" id="staging-note" placeholder="Anteckning (valfritt)"
-                style="flex:2;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;font-family:inherit;color:#374151;">
-        </div>
-        <div id="staging-add-msg"></div>
-
-        <!-- Staging list -->
-        <div style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">
-            Staging-kö <span id="staging-count-badge" style="background:#f3f4f6;color:#6b7280;padding:2px 8px;border-radius:10px;font-weight:500;margin-left:4px;">0</span>
-        </div>
-        <div id="staging-list">
-            <div style="text-align:center;padding:20px;color:#9ca3af;font-size:13px;">Inga staging-restauranger ännu.</div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <span id="lab-summary"></span>
+            <button class="btn-outline" onclick="toggleAddLabForm()">+ Lägg till ny</button>
+            <button class="btn-green" id="btn-test-all" onclick="labTestAll()">▶ Testa alla</button>
+            <button class="btn-outline" id="btn-publish-lab" onclick="labPublish()" style="display:none;">🚀 Publicera</button>
         </div>
     </div>
 
-    <!-- Test result comparison panel (shown after test) -->
-    <div id="staging-result-panel" style="display:none;margin-top:16px;">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-            <div class="acard" style="margin-bottom:0;">
-                <div class="acard-title" style="color:#22c55e;">
-                    <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;"></span>
-                    Staging (ny version)
-                    <span id="stg-chip" style="margin-left:auto;"></span>
-                </div>
-                <div class="scrape-meta" id="stg-meta"></div>
-                <div class="scrape-output" id="stg-output" style="display:block;"></div>
-            </div>
-            <div class="acard" style="margin-bottom:0;">
-                <div class="acard-title" style="color:#6b7280;">
-                    <span style="width:8px;height:8px;border-radius:50%;background:#d1d5db;display:inline-block;"></span>
-                    Live (nuvarande)
-                    <span id="live-chip" style="margin-left:auto;"></span>
-                </div>
-                <div class="scrape-meta" id="live-meta"></div>
-                <div class="scrape-output" id="live-output" style="display:block;"></div>
-            </div>
+    <!-- Add new restaurant (hidden) -->
+    <div id="lab-add-form" style="display:none;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:10px;">Ny restaurang — startar som inaktiv tills du aktiverar den</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <input type="text" id="lab-add-name" placeholder="Namn (valfritt)"
+                style="flex:1;min-width:140px;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;font-family:inherit;color:#374151;">
+            <input type="url" id="lab-add-url" placeholder="https://restaurang.se/lunch"
+                style="flex:2;min-width:220px;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;font-family:inherit;color:#374151;">
+            <button class="btn-green" onclick="labAddRestaurant()">Lägg till</button>
+            <button class="btn-outline" onclick="toggleAddLabForm()">Avbryt</button>
         </div>
-        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:12px;">
-            <button class="btn-outline" onclick="document.getElementById('staging-result-panel').style.display='none'">Stäng</button>
-            <button class="btn-green" id="btn-promote-confirm" onclick="promoteStagingConfirm()">🚀 Lansera staging → Live</button>
-        </div>
-        <div id="promote-msg" style="margin-top:8px;"></div>
+        <div id="lab-add-msg" style="margin-top:8px;"></div>
+    </div>
+
+    <!-- Cards grid -->
+    <div id="lab-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px;">
+        <div style="text-align:center;padding:40px;color:#9ca3af;grid-column:1/-1;"><span class="spin"></span></div>
     </div>
 </div>
 
@@ -662,7 +670,7 @@
                 </div>
             </div>
         `).join('');
-        populateStagingSource();
+        renderLabCards();
     }
 
     function renderSystemRestCount() {
@@ -836,16 +844,157 @@
 
     // ── Scrape Lab ───────────────────────────────────────────────────────────
 
-    let stagingEntries = [];
-    let activeTestStagingId = null;
+    let labResults = {}; // { index: result }
 
-    function populateStagingSource() {
-        const sel = document.getElementById('staging-source');
-        const prev = sel.value;
-        sel.innerHTML = '<option value="">Välj restaurang...</option>' +
-            allUrls.map((u, i) => `<option value="${i}">${escHtml(u.name)}</option>`).join('');
-        sel.value = prev;
+    function renderLabCards() {
+        const el = document.getElementById('lab-cards');
+        if (!allUrls.length) {
+            el.innerHTML = '<div style="text-align:center;padding:40px;color:#9ca3af;grid-column:1/-1;">Inga restauranger. Lägg till en ovan.</div>';
+            return;
+        }
+        el.innerHTML = allUrls.map((u, i) => {
+            const enabled = u.enabled !== false;
+            const result  = labResults[i];
+            const stateClass = result ? (result.success ? 'lab-success' : 'lab-failed') : '';
+            const disabledClass = !enabled ? 'lab-disabled' : '';
+            const preview = result && result.success && result.menu
+                ? result.menu.trim().slice(0, 500) + (result.menu.length > 500 ? '\n…' : '')
+                : null;
+            return `
+            <div class="lab-card ${stateClass} ${disabledClass}" id="lab-card-${i}">
+                <div class="lab-card-header">
+                    <div class="lab-card-icon">${enabled ? '🍴' : '⏸'}</div>
+                    <div class="lab-card-info">
+                        <div class="lab-card-name">${escHtml(u.name)}</div>
+                        <div class="lab-card-domain">${labDomain(u.url)}</div>
+                    </div>
+                    <label class="toggle-sw" title="${enabled ? 'Aktiv – klicka för att inaktivera' : 'Inaktiv – klicka för att aktivera'}">
+                        <input type="checkbox" ${enabled ? 'checked' : ''} onchange="labToggle(${i}, this.checked)">
+                        <span class="toggle-sl"></span>
+                    </label>
+                </div>
+                <div class="lab-card-status" id="lab-status-${i}">${labStatusHtml(result)}</div>
+                ${preview != null ? `<div class="lab-card-preview" id="lab-preview-${i}">${escHtml(preview)}</div>` : ''}
+                <div class="lab-card-actions">
+                    <button class="btn-outline" style="padding:6px 14px;font-size:13px;" id="lab-btn-${i}"
+                        onclick="labTestOne(${i})">Testa</button>
+                    <a href="${escHtml(u.url)}" target="_blank" class="btn-outline"
+                        style="padding:6px 14px;font-size:13px;text-decoration:none;">Öppna ↗</a>
+                    <div style="flex:1;"></div>
+                    <button class="icon-btn danger" title="Ta bort" onclick="deleteRest(${i})">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                    </button>
+                </div>
+            </div>`;
+        }).join('');
     }
+
+    function labStatusHtml(result) {
+        if (!result) return '<span style="color:#d1d5db;font-size:12px;">Inte testad ännu</span>';
+        if (!result.success)
+            return `<span class="chip chip-red">Misslyckad</span><span style="font-size:11px;">${escHtml((result.menu || 'okänt fel').slice(0, 80))}</span>`;
+        return `<span class="chip chip-green">OK</span>
+                <span>${escHtml(result.source || '')}</span>
+                <span>${(result.menu || '').length} tecken</span>`;
+    }
+
+    function labDomain(url) {
+        try { return new URL(url).hostname.replace('www.', ''); } catch { return url; }
+    }
+
+    async function labTestOne(index) {
+        const u   = allUrls[index];
+        const card = document.getElementById(`lab-card-${index}`);
+        const btn  = document.getElementById(`lab-btn-${index}`);
+        const statusEl = document.getElementById(`lab-status-${index}`);
+
+        card.classList.remove('lab-success', 'lab-failed');
+        card.classList.add('lab-testing');
+        if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+        statusEl.innerHTML = '<span class="spin" style="width:14px;height:14px;border-width:2px;"></span><span style="font-size:12px;color:#9ca3af;"> Skrapar…</span>';
+
+        try {
+            const r = await fetch('/api/admin/test-scrape', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ url: u.url, name: u.name })
+            });
+            labResults[index] = await r.json();
+        } catch (e) {
+            labResults[index] = { success: false, menu: 'Nätverksfel: ' + e.message };
+        }
+        renderLabCards();
+        labUpdateSummary();
+    }
+
+    async function labTestAll() {
+        const btn = document.getElementById('btn-test-all');
+        btn.disabled = true;
+        btn.textContent = '⏳ Testar…';
+        labResults = {};
+        renderLabCards();
+
+        await Promise.all(allUrls.map((_, i) => labTestOne(i)));
+
+        btn.disabled = false;
+        btn.textContent = '▶ Testa alla';
+        document.getElementById('btn-publish-lab').style.display = 'inline-block';
+    }
+
+    function labUpdateSummary() {
+        const tested = Object.keys(labResults).length;
+        const ok     = Object.values(labResults).filter(r => r && r.success).length;
+        const el = document.getElementById('lab-summary');
+        if (!tested) { el.innerHTML = ''; return; }
+        const color = ok === tested ? 'chip-green' : (ok === 0 ? 'chip-red' : 'chip-yellow');
+        el.innerHTML = `<span class="chip ${color}">${ok}/${tested} lyckades</span>`;
+    }
+
+    async function labPublish() {
+        const btn = document.getElementById('btn-publish-lab');
+        btn.disabled = true;
+        btn.textContent = '⏳ Publicerar…';
+        try {
+            await fetch('/api/menus?refresh=true');
+            showMsg('action-msg', '✓ Cache uppdaterad — användarna ser nu nya menyer!', true);
+            await loadTodayStatus();
+        } catch { showMsg('action-msg', 'Fel vid publicering.', false); }
+        btn.disabled = false;
+        btn.textContent = '🚀 Publicera';
+    }
+
+    function toggleAddLabForm() {
+        const el = document.getElementById('lab-add-form');
+        el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        if (el.style.display === 'block') document.getElementById('lab-add-url').focus();
+    }
+
+    async function labAddRestaurant() {
+        const name = document.getElementById('lab-add-name').value.trim();
+        const url  = document.getElementById('lab-add-url').value.trim();
+        if (!url) return showMsg('lab-add-msg', 'URL krävs.', false);
+        try {
+            const r = await fetch('/api/urls', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ url, name, start_disabled: true })
+            });
+            const d = await r.json();
+            if (d.error) return showMsg('lab-add-msg', d.error, false);
+            document.getElementById('lab-add-name').value = '';
+            document.getElementById('lab-add-url').value  = '';
+            showMsg('lab-add-msg', `✓ "${d.name}" lades till som inaktiv — testa den i labbet och aktivera när den funkar!`, true);
+            await loadRestaurants();
+        } catch { showMsg('lab-add-msg', 'Nätverksfel.', false); }
+    }
+
+    async function labToggle(index, enabled) {
+        await toggleRest(index, enabled);
+        allUrls[index].enabled = enabled;
+        renderLabCards();
+    }
+
+    // ── Version History ──────────────────────────────────────────────────────
 
     async function loadStaging() {
         try {
@@ -1088,7 +1237,6 @@
     loadSystemInfo();
     loadRestaurants();
     loadTodayStatus();
-    loadStaging();
     loadVersions();
 </script>
 {% endblock %}
