@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 import requests
 from bs4 import BeautifulSoup
 import json
@@ -29,6 +29,9 @@ except ImportError:
     FIREBASE_AVAILABLE = False
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
+
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '0126')
 
 VERSION = '3.4.31'
 URLS_FILE = 'urls.json'
@@ -1549,6 +1552,63 @@ def api_analytics_today_detail():
 @app.route('/analytics')
 def analytics():
     return render_template('analytics.html', version=VERSION)
+
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    """Login-sida för admin."""
+    error = None
+    if request.method == 'POST':
+        pw = request.form.get('password', '')
+        if pw == ADMIN_PASSWORD:
+            session['admin'] = True
+            return redirect(url_for('admin'))
+        error = 'Fel lösenord'
+    return render_template('admin_login.html', error=error, version=VERSION)
+
+
+@app.route('/admin/logout', methods=['POST'])
+def admin_logout():
+    """Logga ut från admin."""
+    session.pop('admin', None)
+    return redirect(url_for('admin_login'))
+
+
+@app.route('/admin')
+def admin():
+    """Admin-panel (kräver inloggning)."""
+    if not session.get('admin'):
+        return redirect(url_for('admin_login'))
+    track_visit('/admin')
+    return render_template('admin.html', version=VERSION)
+
+
+@app.route('/api/admin/clear-cache', methods=['POST'])
+def admin_clear_cache():
+    """Rensa dagens menycache från Firestore."""
+    if db:
+        try:
+            db.collection('menu_cache').document('daily').delete()
+            return jsonify({'success': True, 'message': '✓ Cache rensad från Firestore.'})
+        except Exception as e:
+            return jsonify({'success': False, 'message': str(e)}), 500
+    return jsonify({'success': True, 'message': '✓ Ingen Firestore-cache att rensa (kör lokalt).'})
+
+
+@app.route('/api/admin/test-scrape', methods=['POST'])
+def admin_test_scrape():
+    """Skrapa en enskild URL och returnera resultatet (för admin-testsidan)."""
+    data = request.get_json(silent=True) or {}
+    url = data.get('url', '').strip()
+    if not url:
+        return jsonify({'error': 'URL krävs', 'success': False}), 400
+    if not url.startswith(('http://', 'https://')):
+        url = 'https://' + url
+    name = data.get('name') or url.split('/')[2]
+    result = scrape_url(url, name)
+    if result.get('menu'):
+        result['menu'] = strip_menu_footers(result['menu'])
+    return jsonify(result)
 
 
 @app.route('/api/debug/divan', methods=['GET'])

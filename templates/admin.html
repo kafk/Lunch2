@@ -1,0 +1,757 @@
+{% extends "base.html" %}
+
+{% block title %}Admin – Lunch Monitor{% endblock %}
+
+{% block content %}
+<style>
+    .admin-header {
+        margin-bottom: 28px;
+    }
+    .admin-header h1 {
+        font-size: 28px;
+        font-weight: 700;
+        color: #111827;
+    }
+    .admin-header p {
+        color: #6b7280;
+        font-size: 14px;
+        margin-top: 4px;
+    }
+
+    /* Status chips */
+    .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .chip-green  { background: #dcfce7; color: #166534; }
+    .chip-red    { background: #fee2e2; color: #991b1b; }
+    .chip-yellow { background: #fef3c7; color: #92400e; }
+    .chip-blue   { background: #dbeafe; color: #1e40af; }
+    .chip-dot {
+        width: 7px; height: 7px; border-radius: 50%;
+        background: currentColor;
+    }
+
+    /* System cards row */
+    .sys-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 28px;
+    }
+    .sys-card {
+        background: white;
+        border-radius: 14px;
+        padding: 20px;
+        border: 1px solid #e8ebe9;
+    }
+    .sys-card-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: 10px;
+    }
+    .sys-card-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #111827;
+        line-height: 1;
+    }
+    .sys-card-sub {
+        font-size: 12px;
+        color: #9ca3af;
+        margin-top: 6px;
+    }
+
+    /* Two-column admin grid */
+    .admin-grid {
+        display: grid;
+        grid-template-columns: 1fr 360px;
+        gap: 24px;
+        align-items: start;
+    }
+
+    /* Card */
+    .acard {
+        background: white;
+        border-radius: 14px;
+        border: 1px solid #e8ebe9;
+        padding: 22px;
+        margin-bottom: 22px;
+    }
+    .acard:last-child { margin-bottom: 0; }
+    .acard-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .acard-title .badge {
+        background: #f3f4f6;
+        color: #6b7280;
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-weight: 500;
+    }
+
+    /* Form inputs */
+    .aform {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .aform input[type="text"],
+    .aform input[type="url"],
+    .aform-full input[type="url"] {
+        flex: 1;
+        min-width: 160px;
+        padding: 9px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 14px;
+        color: #374151;
+        font-family: inherit;
+        transition: border-color .15s;
+    }
+    .aform input:focus,
+    .aform-full input:focus {
+        outline: none;
+        border-color: #22c55e;
+        box-shadow: 0 0 0 3px rgba(34,197,94,.12);
+    }
+
+    .btn-green {
+        padding: 9px 18px;
+        background: #22c55e;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        font-family: inherit;
+        transition: background .15s;
+        white-space: nowrap;
+    }
+    .btn-green:hover { background: #16a34a; }
+    .btn-green:disabled { background: #86efac; cursor: not-allowed; }
+
+    .btn-outline {
+        padding: 9px 18px;
+        background: white;
+        color: #374151;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all .15s;
+        white-space: nowrap;
+    }
+    .btn-outline:hover { border-color: #22c55e; color: #22c55e; }
+
+    .btn-red {
+        padding: 9px 18px;
+        background: white;
+        color: #dc2626;
+        border: 1px solid #fca5a5;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all .15s;
+        white-space: nowrap;
+    }
+    .btn-red:hover { background: #fee2e2; }
+
+    /* Restaurant rows */
+    .rest-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 11px 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    .rest-row:last-child { border-bottom: none; }
+    .rest-icon {
+        width: 36px; height: 36px;
+        background: #f0fdf4;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 16px;
+        flex-shrink: 0;
+    }
+    .rest-info { flex: 1; min-width: 0; }
+    .rest-name { font-size: 14px; font-weight: 500; color: #111827; }
+    .rest-url { font-size: 12px; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+    .rest-status { flex-shrink: 0; }
+    .rest-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+    /* Toggle */
+    .toggle-sw { position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0; }
+    .toggle-sw input { opacity: 0; width: 0; height: 0; }
+    .toggle-sl {
+        position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+        background: #d1d5db; border-radius: 22px; transition: .2s;
+    }
+    .toggle-sl:before {
+        content: ''; position: absolute; width: 16px; height: 16px;
+        left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: .2s;
+    }
+    .toggle-sw input:checked + .toggle-sl { background: #22c55e; }
+    .toggle-sw input:checked + .toggle-sl:before { transform: translateX(16px); }
+
+    /* Icon button */
+    .icon-btn {
+        width: 30px; height: 30px;
+        display: flex; align-items: center; justify-content: center;
+        border: none; background: transparent; cursor: pointer;
+        border-radius: 7px; color: #9ca3af; transition: all .15s;
+    }
+    .icon-btn:hover { background: #f3f4f6; color: #374151; }
+    .icon-btn.danger:hover { background: #fee2e2; color: #dc2626; }
+
+    /* Scrape tester */
+    .scrape-form {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+    .scrape-form input {
+        flex: 1;
+        padding: 9px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: inherit;
+        color: #374151;
+    }
+    .scrape-form input:focus {
+        outline: none;
+        border-color: #22c55e;
+        box-shadow: 0 0 0 3px rgba(34,197,94,.12);
+    }
+    .scrape-output {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 16px;
+        font-size: 13px;
+        color: #374151;
+        line-height: 1.7;
+        white-space: pre-wrap;
+        max-height: 360px;
+        overflow-y: auto;
+        min-height: 60px;
+        font-family: 'Inter', monospace;
+        display: none;
+    }
+    .scrape-meta {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 10px;
+        font-size: 12px;
+        color: #6b7280;
+        flex-wrap: wrap;
+    }
+    .scrape-meta span { display: flex; align-items: center; gap: 4px; }
+
+    /* Today status list */
+    .today-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 0;
+        border-bottom: 1px solid #f3f4f6;
+        font-size: 13px;
+    }
+    .today-row:last-child { border-bottom: none; }
+    .today-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot-ok   { background: #22c55e; }
+    .dot-fail { background: #ef4444; }
+    .dot-wait { background: #d1d5db; }
+    .today-name { flex: 1; color: #374151; font-weight: 500; }
+    .today-src  { color: #9ca3af; font-size: 11px; }
+
+    /* Quick actions */
+    .actions-list { display: flex; flex-direction: column; gap: 8px; }
+    .action-row {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 12px 14px;
+        background: #f9fafb;
+        border-radius: 10px;
+        border: 1px solid #f0f0f0;
+    }
+    .action-row-info { font-size: 13px; }
+    .action-row-label { font-weight: 500; color: #111827; }
+    .action-row-desc  { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+
+    /* Danger zone */
+    .danger-zone {
+        border: 1px solid #fca5a5;
+        border-radius: 14px;
+        padding: 20px;
+        background: #fff;
+        margin-bottom: 22px;
+    }
+    .danger-zone .acard-title { color: #dc2626; }
+
+    /* Message banner */
+    .msg {
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 13px;
+        margin-top: 12px;
+    }
+    .msg-ok  { background: #dcfce7; color: #166534; }
+    .msg-err { background: #fee2e2; color: #991b1b; }
+
+    /* Spinner */
+    .spin {
+        width: 18px; height: 18px;
+        border: 2px solid #e5e7eb;
+        border-top-color: #22c55e;
+        border-radius: 50%;
+        animation: spin .7s linear infinite;
+        display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 900px) {
+        .sys-grid { grid-template-columns: repeat(2, 1fr); }
+        .admin-grid { grid-template-columns: 1fr; }
+    }
+</style>
+
+<div class="admin-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+    <div>
+        <h1>⚙️ Admin Panel</h1>
+        <p>System overview, restaurant management, scrape testing och cache control.</p>
+    </div>
+    <form method="POST" action="/admin/logout" style="flex-shrink:0;margin-top:4px;">
+        <button type="submit" style="padding:8px 16px;background:white;color:#6b7280;border:1px solid #d1d5db;border-radius:8px;font-size:13px;font-family:inherit;cursor:pointer;transition:all .15s;"
+            onmouseover="this.style.borderColor='#ef4444';this.style.color='#dc2626'"
+            onmouseout="this.style.borderColor='#d1d5db';this.style.color='#6b7280'">
+            Logga ut
+        </button>
+    </form>
+</div>
+
+<!-- System status row -->
+<div class="sys-grid">
+    <div class="sys-card">
+        <div class="sys-card-label">Firebase</div>
+        <div id="sys-firebase"><span class="spin"></span></div>
+        <div class="sys-card-sub" id="sys-storage-type">Laddar...</div>
+    </div>
+    <div class="sys-card">
+        <div class="sys-card-label">Version</div>
+        <div class="sys-card-value">{{ version }}</div>
+        <div class="sys-card-sub" id="sys-version-status">Kontrollerar...</div>
+    </div>
+    <div class="sys-card">
+        <div class="sys-card-label">Restauranger</div>
+        <div class="sys-card-value" id="sys-rest-count">–</div>
+        <div class="sys-card-sub" id="sys-rest-enabled">Laddar...</div>
+    </div>
+    <div class="sys-card">
+        <div class="sys-card-label">Cache</div>
+        <div id="sys-cache"><span class="spin"></span></div>
+        <div class="sys-card-sub" id="sys-cache-sub">Laddar...</div>
+    </div>
+</div>
+
+<div class="admin-grid">
+    <!-- Left column -->
+    <div>
+        <!-- Add restaurant -->
+        <div class="acard">
+            <div class="acard-title">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                Lägg till restaurang
+            </div>
+            <div class="aform">
+                <input type="text" id="add-name" placeholder="Namn (valfritt)">
+                <input type="url" id="add-url" placeholder="https://restaurang.se/lunch">
+                <button class="btn-green" onclick="addRestaurant()">Lägg till</button>
+            </div>
+            <div id="add-msg"></div>
+        </div>
+
+        <!-- Restaurant list -->
+        <div class="acard">
+            <div class="acard-title">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+                Restauranger
+                <span class="badge" id="rest-count-badge">0</span>
+            </div>
+            <div id="rest-list">
+                <div style="text-align:center;padding:24px;color:#9ca3af;"><span class="spin"></span></div>
+            </div>
+        </div>
+
+        <!-- Scrape Tester -->
+        <div class="acard">
+            <div class="acard-title">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                Scrape-testare
+            </div>
+            <div class="scrape-form">
+                <input type="url" id="test-url" placeholder="https://restaurang.se" />
+                <button class="btn-outline" onclick="testScrape()">Testa</button>
+            </div>
+            <div class="scrape-meta" id="scrape-meta" style="display:none">
+                <span id="scrape-source"></span>
+                <span id="scrape-chars"></span>
+                <span id="scrape-time"></span>
+            </div>
+            <div class="scrape-output" id="scrape-output"></div>
+        </div>
+    </div>
+
+    <!-- Right column -->
+    <div>
+        <!-- Today's menu status -->
+        <div class="acard">
+            <div class="acard-title">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                Dagens status
+            </div>
+            <div id="today-status">
+                <div style="text-align:center;padding:16px;color:#9ca3af;"><span class="spin"></span></div>
+            </div>
+        </div>
+
+        <!-- Quick actions -->
+        <div class="acard">
+            <div class="acard-title">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                Snabbåtgärder
+            </div>
+            <div class="actions-list">
+                <div class="action-row">
+                    <div class="action-row-info">
+                        <div class="action-row-label">Tvinga uppdatering</div>
+                        <div class="action-row-desc">Skrapar om alla restauranger nu</div>
+                    </div>
+                    <button class="btn-green" id="btn-refresh" onclick="forceRefresh()">Kör</button>
+                </div>
+                <div class="action-row">
+                    <div class="action-row-info">
+                        <div class="action-row-label">Rensa cache</div>
+                        <div class="action-row-desc">Tar bort dagens cachade menyer</div>
+                    </div>
+                    <button class="btn-outline" onclick="clearCache()">Rensa</button>
+                </div>
+                <div class="action-row">
+                    <div class="action-row-info">
+                        <div class="action-row-label">Analytics</div>
+                        <div class="action-row-desc">Visa besöksstatistik</div>
+                    </div>
+                    <a href="/analytics" class="btn-outline" style="text-decoration:none; display:inline-block;">Öppna</a>
+                </div>
+            </div>
+            <div id="action-msg"></div>
+        </div>
+
+        <!-- Danger zone -->
+        <div class="danger-zone">
+            <div class="acard-title" style="color:#dc2626;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                Riskzon
+            </div>
+            <div class="actions-list">
+                <div class="action-row">
+                    <div class="action-row-info">
+                        <div class="action-row-label">Ta bort dubbletter</div>
+                        <div class="action-row-desc">Rensar duplicerade Firebase-poster</div>
+                    </div>
+                    <button class="btn-red" onclick="cleanupDuplicates()">Städa</button>
+                </div>
+            </div>
+            <div id="danger-msg"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    function showMsg(id, text, ok) {
+        const el = document.getElementById(id);
+        el.className = 'msg ' + (ok ? 'msg-ok' : 'msg-err');
+        el.textContent = text;
+        setTimeout(() => { el.textContent = ''; el.className = ''; }, 5000);
+    }
+
+    function escHtml(s) {
+        const d = document.createElement('div');
+        d.textContent = s || '';
+        return d.innerHTML;
+    }
+
+    // ── System info ──────────────────────────────────────────────────────────
+
+    async function loadSystemInfo() {
+        // Storage
+        try {
+            const r = await fetch('/api/storage');
+            const d = await r.json();
+            const fb = d.firebase_enabled;
+            document.getElementById('sys-firebase').innerHTML =
+                `<span class="chip ${fb ? 'chip-green' : 'chip-yellow'}"><span class="chip-dot"></span>${fb ? 'Ansluten' : 'Offline'}</span>`;
+            document.getElementById('sys-storage-type').textContent = d.storage_type;
+        } catch {
+            document.getElementById('sys-firebase').innerHTML = '<span class="chip chip-red">Fel</span>';
+        }
+
+        // Version check
+        try {
+            const r = await fetch('/api/version');
+            const d = await r.json();
+            document.getElementById('sys-version-status').textContent = 'Live: ' + d.version;
+        } catch {
+            document.getElementById('sys-version-status').textContent = 'Kunde ej kontrollera';
+        }
+    }
+
+    // ── Restaurant list ──────────────────────────────────────────────────────
+
+    let allUrls = [];
+
+    async function loadRestaurants() {
+        try {
+            const r = await fetch('/api/urls');
+            allUrls = await r.json();
+            renderRestaurants();
+            renderSystemRestCount();
+        } catch {
+            document.getElementById('rest-list').innerHTML = '<div style="color:#ef4444;font-size:13px;">Kunde inte ladda restauranger.</div>';
+        }
+    }
+
+    function renderRestaurants() {
+        const el = document.getElementById('rest-list');
+        document.getElementById('rest-count-badge').textContent = allUrls.length;
+
+        if (!allUrls.length) {
+            el.innerHTML = '<div style="text-align:center;padding:24px;color:#9ca3af;font-size:14px;">Inga restauranger ännu.</div>';
+            return;
+        }
+
+        el.innerHTML = allUrls.map((u, i) => `
+            <div class="rest-row" id="rest-row-${i}">
+                <div class="rest-icon">🍴</div>
+                <div class="rest-info">
+                    <div class="rest-name">${escHtml(u.name)}</div>
+                    <div class="rest-url">${escHtml(u.url)}</div>
+                </div>
+                <label class="toggle-sw" title="${u.enabled !== false ? 'Aktiverad' : 'Avaktiverad'}">
+                    <input type="checkbox" ${u.enabled !== false ? 'checked' : ''}
+                        onchange="toggleRest(${i}, this.checked)">
+                    <span class="toggle-sl"></span>
+                </label>
+                <div class="rest-actions">
+                    <button class="icon-btn" title="Testa scrape" onclick="quickTest('${escHtml(u.url)}')">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    </button>
+                    <a href="${escHtml(u.url)}" target="_blank" class="icon-btn" title="Öppna länk">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    </a>
+                    <button class="icon-btn danger" title="Ta bort" onclick="deleteRest(${i})">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderSystemRestCount() {
+        const total   = allUrls.length;
+        const enabled = allUrls.filter(u => u.enabled !== false).length;
+        document.getElementById('sys-rest-count').textContent = total;
+        document.getElementById('sys-rest-enabled').textContent = `${enabled} aktiverade`;
+    }
+
+    async function addRestaurant() {
+        const name = document.getElementById('add-name').value.trim();
+        let   url  = document.getElementById('add-url').value.trim();
+        if (!url) return showMsg('add-msg', 'URL krävs.', false);
+        try {
+            const r = await fetch('/api/urls', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ url, name })
+            });
+            const d = await r.json();
+            if (d.error) { showMsg('add-msg', d.error, false); return; }
+            document.getElementById('add-name').value = '';
+            document.getElementById('add-url').value  = '';
+            showMsg('add-msg', `✓ "${d.name}" lades till.`, true);
+            await loadRestaurants();
+            await loadTodayStatus();
+        } catch { showMsg('add-msg', 'Nätverksfel.', false); }
+    }
+
+    async function toggleRest(index, enabled) {
+        try {
+            await fetch(`/api/urls/${index}/toggle`, { method: 'POST' });
+            allUrls[index].enabled = enabled;
+            renderSystemRestCount();
+        } catch { /* silent */ }
+    }
+
+    async function deleteRest(index) {
+        if (!confirm(`Ta bort "${allUrls[index].name}"?`)) return;
+        try {
+            const r = await fetch(`/api/urls/${index}`, { method: 'DELETE' });
+            const d = await r.json();
+            if (d.error) { alert(d.error); return; }
+            await loadRestaurants();
+            await loadTodayStatus();
+        } catch { alert('Nätverksfel.'); }
+    }
+
+    // ── Scrape tester ────────────────────────────────────────────────────────
+
+    function quickTest(url) {
+        document.getElementById('test-url').value = url;
+        document.querySelector('.scrape-form input').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        testScrape();
+    }
+
+    async function testScrape() {
+        const url = document.getElementById('test-url').value.trim();
+        if (!url) return;
+        const out  = document.getElementById('scrape-output');
+        const meta = document.getElementById('scrape-meta');
+        out.style.display = 'block';
+        out.textContent = '⏳ Skrapar…';
+        meta.style.display = 'none';
+        const t0 = Date.now();
+        try {
+            const r = await fetch('/api/admin/test-scrape', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ url })
+            });
+            const d = await r.json();
+            const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+            const success = d.success;
+            document.getElementById('scrape-source').innerHTML =
+                `<span class="chip ${success ? 'chip-green' : 'chip-red'}">${escHtml(d.source || (success ? 'OK' : 'Fel'))}</span>`;
+            document.getElementById('scrape-chars').textContent = `${(d.menu || '').length} tecken`;
+            document.getElementById('scrape-time').textContent  = `${elapsed}s`;
+            meta.style.display = 'flex';
+            out.textContent = d.menu || d.error || '(tom)';
+        } catch (e) {
+            out.textContent = 'Nätverksfel: ' + e.message;
+        }
+    }
+
+    // ── Today status ─────────────────────────────────────────────────────────
+
+    async function loadTodayStatus() {
+        const el = document.getElementById('today-status');
+        const cacheEl   = document.getElementById('sys-cache');
+        const cacheSub  = document.getElementById('sys-cache-sub');
+        try {
+            const r = await fetch('/api/menus');
+            const d = await r.json();
+            const menus = d.menus || d;
+            const updatedAt = d.updated_at;
+
+            if (updatedAt) {
+                const dt = new Date(updatedAt);
+                cacheEl.innerHTML = `<span class="chip chip-green"><span class="chip-dot"></span>Cachad</span>`;
+                cacheSub.textContent = 'Uppdaterad ' + dt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+            } else {
+                cacheEl.innerHTML = `<span class="chip chip-yellow"><span class="chip-dot"></span>Ingen cache</span>`;
+                cacheSub.textContent = '–';
+            }
+
+            if (!menus.length) {
+                el.innerHTML = '<div style="color:#9ca3af;font-size:13px;padding:8px 0;">Inga menyer i cache.</div>';
+                return;
+            }
+
+            el.innerHTML = menus.map(m => `
+                <div class="today-row">
+                    <div class="today-dot ${m.success ? 'dot-ok' : 'dot-fail'}"></div>
+                    <div class="today-name">${escHtml(m.name)}</div>
+                    <div class="today-src">${escHtml(m.source || '')}</div>
+                </div>
+            `).join('');
+        } catch {
+            cacheEl.innerHTML = '<span class="chip chip-red">Fel</span>';
+            el.innerHTML = '<div style="color:#ef4444;font-size:13px;">Kunde inte ladda status.</div>';
+        }
+    }
+
+    // ── Quick actions ────────────────────────────────────────────────────────
+
+    async function forceRefresh() {
+        const btn = document.getElementById('btn-refresh');
+        btn.disabled = true;
+        btn.textContent = '⏳ Skrapar…';
+        try {
+            const r = await fetch('/api/menus?refresh=true');
+            await r.json();
+            showMsg('action-msg', '✓ Alla menyer uppdaterade!', true);
+            await loadTodayStatus();
+        } catch { showMsg('action-msg', 'Fel vid uppdatering.', false); }
+        btn.disabled = false;
+        btn.textContent = 'Kör';
+    }
+
+    async function clearCache() {
+        try {
+            const r = await fetch('/api/admin/clear-cache', { method: 'POST' });
+            const d = await r.json();
+            showMsg('action-msg', d.message || '✓ Cache rensad.', d.success !== false);
+            document.getElementById('sys-cache').innerHTML = '<span class="chip chip-yellow"><span class="chip-dot"></span>Rensad</span>';
+            document.getElementById('sys-cache-sub').textContent = '–';
+        } catch { showMsg('action-msg', 'Nätverksfel.', false); }
+    }
+
+    async function cleanupDuplicates() {
+        if (!confirm('Ta bort alla dubbletter i Firestore?')) return;
+        try {
+            const r = await fetch('/api/cleanup', { method: 'POST' });
+            const d = await r.json();
+            if (d.error) { showMsg('danger-msg', d.error, false); return; }
+            showMsg('danger-msg',
+                `✓ Klart! ${d.duplicates_removed} dubbletter borttagna, ${d.unique_urls} unika kvar.`, true);
+            await loadRestaurants();
+        } catch { showMsg('danger-msg', 'Nätverksfel.', false); }
+    }
+
+    // ── Enter key on add form ────────────────────────────────────────────────
+
+    document.getElementById('add-url').addEventListener('keydown', e => {
+        if (e.key === 'Enter') addRestaurant();
+    });
+    document.getElementById('test-url').addEventListener('keydown', e => {
+        if (e.key === 'Enter') testScrape();
+    });
+
+    // ── Boot ─────────────────────────────────────────────────────────────────
+
+    loadSystemInfo();
+    loadRestaurants();
+    loadTodayStatus();
+</script>
+{% endblock %}
