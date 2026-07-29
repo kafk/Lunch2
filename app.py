@@ -5,6 +5,7 @@ import json
 import os
 import re
 import hashlib
+import uuid
 from datetime import datetime, timedelta
 from io import BytesIO
 from pypdf import PdfReader
@@ -36,6 +37,8 @@ ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '0126')
 VERSION = '3.4.31'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
+STAGING_FILE = 'staging.json'
+VERSIONS_FILE = 'versions.json'
 
 # Firebase initialization
 db = None
@@ -1609,6 +1612,265 @@ def admin_test_scrape():
     if result.get('menu'):
         result['menu'] = strip_menu_footers(result['menu'])
     return jsonify(result)
+
+
+# ── Scrape Lab: staging & version history ────────────────────────────────────
+
+def load_staging():
+    """Ladda staging-restauranger."""
+    if db:
+        try:
+            docs = db.collection('restaurants_staging').stream()
+            result = []
+            for doc in docs:
+                data = doc.to_dict()
+                data['id'] = doc.id
+                result.append(data)
+            result.sort(key=lambda x: x.get('created_at_str', ''))
+            return result
+        except Exception as e:
+            print(f'Staging load error: {e}')
+    if os.path.exists(STAGING_FILE):
+        with open(STAGING_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return []
+
+
+def save_staging_local(entries):
+    with open(STAGING_FILE, 'w', encoding='utf-8') as f:
+        json.dump(entries, f, ensure_ascii=False, indent=2)
+
+
+def load_versions():
+    """Ladda versionshistorik."""
+    if db:
+        try:
+            docs = db.collection('scraper_versions').stream()
+            result = []
+            for doc in docs:
+                data = doc.to_dict()
+                data['id'] = doc.id
+                result.append(data)
+            result.sort(key=lambda x: x.get('timestamp_str', ''), reverse=True)
+            return result[:50]
+        except Exception as e:
+            print(f'Versions load error: {e}')
+    if os.path.exists(VERSIONS_FILE):
+        with open(VERSIONS_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return []
+
+
+def save_version_entry(entry):
+    """Spara en versionssnap."""
+    entry['timestamp_str'] = swedish_now().isoformat()
+    if db:
+        try:
+            db.collection('scraper_versions').add(entry)
+            return True
+        except Exception as e:
+            print(f'Version save error: {e}')
+    versions = load_versions()
+    entry['id'] = uuid.uuid4().hex[:12]
+    versions.insert(0, entry)
+    versions = versions[:50]
+    with open(VERSIONS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(versions, f, ensure_ascii=False, indent=2)
+    return True
+
+
+@app.route('/api/admin/staging', methods=['GET'])
+def get_staging():
+    return jsonify(load_staging())
+
+
+@app.route('/api/admin/staging', methods=['POST'])
+def add_staging():
+    data = request.get_json(silent=True) or {}
+    url = data.get('url', '').strip()
+    name = data.get('name', '').strip()
+    source_index = data.get('source_index')  # index i live-listan om kopierad
+    note = data.get('note', '').strip()
+
+    if not url:
+        return jsonify({'error': 'URL krävs'}), 400
+    if not url.startswith(('http://', 'https://')):
+        url = 'https://' + url
+    if not name:
+        name = url.split('/')[2]
+
+    entry = {
+        'url': url,
+        'name': name,
+        'source_index': source_index,
+        'note': note,
+        'created_at_str': swedish_now().isoformat(),
+    }
+    if db:
+        try:
+            doc_ref = db.collection('restaurants_staging').add(entry)
+            entry['id'] = doc_ref[1].id
+            return jsonify({'success': True, **entry})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    entries = load_staging()
+    entry['id'] = uuid.uuid4().hex[:10]
+    entries.append(entry)
+    save_staging_local(entries)
+    return jsonify({'success': True, **entry})
+
+
+@app.route('/api/admin/staging/<staging_id>', methods=['DELETE'])
+def delete_staging(staging_id):
+    if db:
+        try:
+            db.collection('restaurants_staging').document(staging_id).delete()
+            return jsonify({'success': True})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    entries = [e for e in load_staging() if e.get('id') != staging_id]
+    save_staging_local(entries)
+    return jsonify({'success': True})
+
+
+@app.route('/api/admin/staging/<staging_id>/test', methods=['POST'])
+def test_staging(staging_id):
+    """Skrapa staging-URL och jämför med live-versionen."""
+    entries = load_staging()
+    entry = next((e for e in entries if e.get('id') == staging_id), None)
+    if not entry:
+        return jsonify({'error': 'Hittades inte'}), 404
+
+    staging_result = scrape_url(entry['url'], entry['name'])
+    if staging_result.get('menu'):
+        staging_result['menu'] = strip_menu_footers(staging_result['menu'])
+
+    live_result = None
+    source_index = entry.get('source_index')
+    if source_index is not None:
+        urls = load_urls()
+        idx = int(source_index)
+        if 0 <= idx < len(urls):
+            live_result = scrape_url(urls[idx]['url'], urls[idx]['name'])
+            if live_result.get('menu'):
+                live_result['menu'] = strip_menu_footers(live_result['menu'])
+
+    return jsonify({'staging': staging_result, 'live': live_result})
+
+
+@app.route('/api/admin/staging/<staging_id>/promote', methods=['POST'])
+def promote_staging(staging_id):
+    """Lansera staging → ersätter live-restaurangen."""
+    entries = load_staging()
+    entry = next((e for e in entries if e.get('id') == staging_id), None)
+    if not entry:
+        return jsonify({'error': 'Hittades inte'}), 404
+
+    source_index = entry.get('source_index')
+    if source_index is None:
+        return jsonify({'error': 'Ingen live-restaurang kopplad'}), 400
+
+    urls = load_urls()
+    idx = int(source_index)
+    if not (0 <= idx < len(urls)):
+        return jsonify({'error': 'Live-restaurangen hittades inte'}), 404
+
+    live = urls[idx]
+
+    # Spara versionssnap innan lansering
+    save_version_entry({
+        'restaurant_name': live['name'],
+        'old_url': live['url'],
+        'new_url': entry['url'],
+        'old_name': live['name'],
+        'new_name': entry['name'],
+        'source_index': idx,
+        'live_id': live.get('id', ''),
+        'active': True,
+        'note': entry.get('note', ''),
+    })
+
+    # Uppdatera live-restaurangen
+    if db and live.get('id'):
+        try:
+            db.collection(COLLECTION_NAME).document(live['id']).update({
+                'url': entry['url'],
+                'name': entry['name'],
+            })
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    else:
+        urls[idx]['url'] = entry['url']
+        urls[idx]['name'] = entry['name']
+        save_urls(urls)
+
+    # Ta bort från staging
+    if db:
+        try:
+            db.collection('restaurants_staging').document(staging_id).delete()
+        except Exception:
+            pass
+    else:
+        remaining = [e for e in load_staging() if e.get('id') != staging_id]
+        save_staging_local(remaining)
+
+    return jsonify({'success': True, 'message': f'"{entry["name"]}" är nu live!'})
+
+
+@app.route('/api/admin/versions', methods=['GET'])
+def get_versions():
+    return jsonify(load_versions())
+
+
+@app.route('/api/admin/versions/<version_id>/rollback', methods=['POST'])
+def rollback_version(version_id):
+    """Återställ en restaurang till dess tidigare URL."""
+    versions = load_versions()
+    ver = next((v for v in versions if v.get('id') == version_id), None)
+    if not ver:
+        return jsonify({'error': 'Version hittades inte'}), 404
+    if not ver.get('active', True):
+        return jsonify({'error': 'Redan återställd'}), 400
+
+    idx = ver.get('source_index')
+    old_url  = ver.get('old_url')
+    old_name = ver.get('old_name')
+    live_id  = ver.get('live_id', '')
+
+    if idx is None or not old_url:
+        return jsonify({'error': 'Otillräcklig versionsinformation'}), 400
+
+    urls = load_urls()
+    idx = int(idx)
+    if not (0 <= idx < len(urls)):
+        return jsonify({'error': 'Restaurangen hittades inte i listan'}), 404
+
+    if db and live_id:
+        try:
+            db.collection(COLLECTION_NAME).document(live_id).update({
+                'url': old_url, 'name': old_name
+            })
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    else:
+        urls[idx]['url'] = old_url
+        urls[idx]['name'] = old_name
+        save_urls(urls)
+
+    # Markera versionen som återställd
+    if db:
+        try:
+            db.collection('scraper_versions').document(version_id).update({'active': False})
+        except Exception:
+            pass
+    else:
+        for v in versions:
+            if v.get('id') == version_id:
+                v['active'] = False
+        with open(VERSIONS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(versions, f, ensure_ascii=False, indent=2)
+
+    return jsonify({'success': True, 'message': f'Återställd till "{old_name}"'})
 
 
 @app.route('/api/debug/divan', methods=['GET'])

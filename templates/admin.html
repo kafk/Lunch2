@@ -485,6 +485,91 @@
             <div id="danger-msg"></div>
         </div>
     </div>
+</div> <!-- /admin-grid -->
+
+<!-- ── Scrape Lab ──────────────────────────────────────────────────────── -->
+<div style="margin-top:24px;">
+    <div class="acard" style="margin-bottom:0;">
+        <div class="acard-title" style="margin-bottom:20px;">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+            Scrape Lab
+            <span class="badge">Staging & lansering</span>
+        </div>
+
+        <!-- Add to staging -->
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;margin-bottom:10px;align-items:end;">
+            <div>
+                <div style="font-size:12px;font-weight:600;color:#6b7280;margin-bottom:6px;">KOPIERA FRÅN LIVE</div>
+                <select id="staging-source" style="width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;font-family:inherit;color:#374151;background:white;">
+                    <option value="">Välj restaurang...</option>
+                </select>
+            </div>
+            <div>
+                <div style="font-size:12px;font-weight:600;color:#6b7280;margin-bottom:6px;">ELLER NY URL</div>
+                <input type="url" id="staging-custom-url" placeholder="https://ny-restaurang.se/lunch"
+                    style="width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;font-family:inherit;color:#374151;">
+            </div>
+            <button class="btn-green" onclick="addToStaging()" style="align-self:end;">Lägg i staging</button>
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:20px;align-items:center;">
+            <input type="text" id="staging-name-override" placeholder="Namn (valfritt, override)"
+                style="flex:1;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;font-family:inherit;color:#374151;">
+            <input type="text" id="staging-note" placeholder="Anteckning (valfritt)"
+                style="flex:2;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;font-family:inherit;color:#374151;">
+        </div>
+        <div id="staging-add-msg"></div>
+
+        <!-- Staging list -->
+        <div style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">
+            Staging-kö <span id="staging-count-badge" style="background:#f3f4f6;color:#6b7280;padding:2px 8px;border-radius:10px;font-weight:500;margin-left:4px;">0</span>
+        </div>
+        <div id="staging-list">
+            <div style="text-align:center;padding:20px;color:#9ca3af;font-size:13px;">Inga staging-restauranger ännu.</div>
+        </div>
+    </div>
+
+    <!-- Test result comparison panel (shown after test) -->
+    <div id="staging-result-panel" style="display:none;margin-top:16px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="acard" style="margin-bottom:0;">
+                <div class="acard-title" style="color:#22c55e;">
+                    <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;"></span>
+                    Staging (ny version)
+                    <span id="stg-chip" style="margin-left:auto;"></span>
+                </div>
+                <div class="scrape-meta" id="stg-meta"></div>
+                <div class="scrape-output" id="stg-output" style="display:block;"></div>
+            </div>
+            <div class="acard" style="margin-bottom:0;">
+                <div class="acard-title" style="color:#6b7280;">
+                    <span style="width:8px;height:8px;border-radius:50%;background:#d1d5db;display:inline-block;"></span>
+                    Live (nuvarande)
+                    <span id="live-chip" style="margin-left:auto;"></span>
+                </div>
+                <div class="scrape-meta" id="live-meta"></div>
+                <div class="scrape-output" id="live-output" style="display:block;"></div>
+            </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:12px;">
+            <button class="btn-outline" onclick="document.getElementById('staging-result-panel').style.display='none'">Stäng</button>
+            <button class="btn-green" id="btn-promote-confirm" onclick="promoteStagingConfirm()">🚀 Lansera staging → Live</button>
+        </div>
+        <div id="promote-msg" style="margin-top:8px;"></div>
+    </div>
+</div>
+
+<!-- ── Versionshistorik ────────────────────────────────────────────────── -->
+<div style="margin-top:24px;">
+    <div class="acard">
+        <div class="acard-title" style="margin-bottom:20px;">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+            Versionshistorik
+            <span class="badge">Rollback tillgängligt</span>
+        </div>
+        <div id="versions-container">
+            <div style="text-align:center;padding:20px;color:#9ca3af;font-size:13px;"><span class="spin"></span></div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -577,6 +662,7 @@
                 </div>
             </div>
         `).join('');
+        populateStagingSource();
     }
 
     function renderSystemRestCount() {
@@ -748,10 +834,261 @@
         if (e.key === 'Enter') testScrape();
     });
 
+    // ── Scrape Lab ───────────────────────────────────────────────────────────
+
+    let stagingEntries = [];
+    let activeTestStagingId = null;
+
+    function populateStagingSource() {
+        const sel = document.getElementById('staging-source');
+        const prev = sel.value;
+        sel.innerHTML = '<option value="">Välj restaurang...</option>' +
+            allUrls.map((u, i) => `<option value="${i}">${escHtml(u.name)}</option>`).join('');
+        sel.value = prev;
+    }
+
+    async function loadStaging() {
+        try {
+            const r = await fetch('/api/admin/staging');
+            stagingEntries = await r.json();
+            renderStaging();
+        } catch {
+            document.getElementById('staging-list').innerHTML =
+                '<div style="color:#ef4444;font-size:13px;">Kunde inte ladda staging.</div>';
+        }
+    }
+
+    function renderStaging() {
+        const el = document.getElementById('staging-list');
+        document.getElementById('staging-count-badge').textContent = stagingEntries.length;
+        if (!stagingEntries.length) {
+            el.innerHTML = '<div style="text-align:center;padding:20px;color:#9ca3af;font-size:13px;">Inga staging-restauranger ännu.</div>';
+            return;
+        }
+        el.innerHTML = stagingEntries.map(s => {
+            const sourceLabel = s.source_index != null
+                ? `<span style="color:#9ca3af;font-size:11px;">Kopierad från: ${escHtml((allUrls[s.source_index] || {}).name || 'okänd')}</span>`
+                : `<span style="color:#9ca3af;font-size:11px;">Ny restaurang</span>`;
+            const noteHtml = s.note
+                ? `<span style="background:#fef9c3;color:#92400e;font-size:11px;padding:2px 7px;border-radius:8px;margin-left:6px;">${escHtml(s.note)}</span>`
+                : '';
+            return `
+            <div class="rest-row" id="staging-row-${escHtml(s.id)}">
+                <div class="rest-icon" style="background:#fef9c3;">🧪</div>
+                <div class="rest-info">
+                    <div class="rest-name">${escHtml(s.name)}${noteHtml}</div>
+                    <div class="rest-url">${escHtml(s.url)}</div>
+                    <div style="margin-top:2px;">${sourceLabel}</div>
+                </div>
+                <div class="rest-actions">
+                    <button class="btn-outline" style="padding:6px 12px;font-size:13px;"
+                        onclick="runStagingTest('${escHtml(s.id)}')">🔬 Testa</button>
+                    ${s.source_index != null
+                        ? `<button class="btn-green" style="padding:6px 12px;font-size:13px;"
+                            onclick="promoteStaging('${escHtml(s.id)}')">🚀 Lansera</button>`
+                        : ''}
+                    <button class="icon-btn danger" title="Ta bort" onclick="deleteStaging('${escHtml(s.id)}')">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                    </button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    async function addToStaging() {
+        const sourceIdx = document.getElementById('staging-source').value;
+        const customUrl = document.getElementById('staging-custom-url').value.trim();
+        const nameOverride = document.getElementById('staging-name-override').value.trim();
+        const note = document.getElementById('staging-note').value.trim();
+
+        let url = customUrl;
+        let name = nameOverride;
+
+        if (!url && sourceIdx !== '') {
+            const live = allUrls[parseInt(sourceIdx)];
+            url = live.url;
+            if (!name) name = live.name;
+        }
+        if (!url) return showMsg('staging-add-msg', 'Välj en live-restaurang eller ange en URL.', false);
+
+        const body = {
+            url, name, note,
+            source_index: sourceIdx !== '' ? parseInt(sourceIdx) : null
+        };
+
+        try {
+            const r = await fetch('/api/admin/staging', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
+            });
+            const d = await r.json();
+            if (d.error) return showMsg('staging-add-msg', d.error, false);
+            document.getElementById('staging-source').value = '';
+            document.getElementById('staging-custom-url').value = '';
+            document.getElementById('staging-name-override').value = '';
+            document.getElementById('staging-note').value = '';
+            showMsg('staging-add-msg', `✓ "${d.name}" lagt i staging.`, true);
+            await loadStaging();
+        } catch { showMsg('staging-add-msg', 'Nätverksfel.', false); }
+    }
+
+    async function deleteStaging(id) {
+        const entry = stagingEntries.find(s => s.id === id);
+        if (!confirm(`Ta bort "${entry?.name || id}" från staging?`)) return;
+        await fetch(`/api/admin/staging/${id}`, { method: 'DELETE' });
+        await loadStaging();
+    }
+
+    async function runStagingTest(id) {
+        activeTestStagingId = id;
+        const panel = document.getElementById('staging-result-panel');
+        panel.style.display = 'block';
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        document.getElementById('stg-output').textContent = '⏳ Skrapar staging…';
+        document.getElementById('live-output').textContent = '⏳ Skrapar live…';
+        document.getElementById('stg-meta').innerHTML = '';
+        document.getElementById('live-meta').innerHTML = '';
+        document.getElementById('stg-chip').innerHTML = '';
+        document.getElementById('live-chip').innerHTML = '';
+        document.getElementById('promote-msg').textContent = '';
+
+        const entry = stagingEntries.find(s => s.id === id);
+        document.getElementById('btn-promote-confirm').style.display =
+            entry?.source_index != null ? 'inline-block' : 'none';
+
+        const t0 = Date.now();
+        try {
+            const r = await fetch(`/api/admin/staging/${id}/test`, { method: 'POST' });
+            const d = await r.json();
+            const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+
+            // Staging panel
+            const s = d.staging;
+            document.getElementById('stg-chip').innerHTML =
+                `<span class="chip ${s.success ? 'chip-green' : 'chip-red'}">${s.success ? 'OK' : 'Fel'}</span>`;
+            document.getElementById('stg-meta').innerHTML =
+                `<span>${escHtml(s.source || '')}</span><span>${(s.menu || '').length} tecken</span><span>${elapsed}s</span>`;
+            document.getElementById('stg-output').textContent = s.menu || s.menu === '' ? (s.menu || '(tom)') : (s.error || '(inget resultat)');
+
+            // Live panel
+            if (d.live) {
+                const l = d.live;
+                document.getElementById('live-chip').innerHTML =
+                    `<span class="chip ${l.success ? 'chip-blue' : 'chip-red'}">${l.success ? 'Live' : 'Fel'}</span>`;
+                document.getElementById('live-meta').innerHTML =
+                    `<span>${escHtml(l.source || '')}</span><span>${(l.menu || '').length} tecken</span>`;
+                document.getElementById('live-output').textContent = l.menu || '(tom)';
+            } else {
+                document.getElementById('live-output').textContent = '(ingen live-version kopplad)';
+            }
+        } catch (e) {
+            document.getElementById('stg-output').textContent = 'Nätverksfel: ' + e.message;
+            document.getElementById('live-output').textContent = '';
+        }
+    }
+
+    async function promoteStaging(id) {
+        activeTestStagingId = id;
+        promoteStagingConfirm();
+    }
+
+    async function promoteStagingConfirm() {
+        if (!activeTestStagingId) return;
+        const entry = stagingEntries.find(s => s.id === activeTestStagingId);
+        if (!confirm(`Lansera "${entry?.name}" → ersätter live-versionen?\nDetta går att återställa via versionshistoriken.`)) return;
+
+        try {
+            const r = await fetch(`/api/admin/staging/${activeTestStagingId}/promote`, { method: 'POST' });
+            const d = await r.json();
+            if (d.error) { showMsg('promote-msg', d.error, false); return; }
+            document.getElementById('staging-result-panel').style.display = 'none';
+            activeTestStagingId = null;
+            showMsg('staging-add-msg', `🚀 ${d.message}`, true);
+            await loadStaging();
+            await loadVersions();
+            await loadRestaurants();
+        } catch { showMsg('promote-msg', 'Nätverksfel.', false); }
+    }
+
+    // ── Version History ──────────────────────────────────────────────────────
+
+    async function loadVersions() {
+        try {
+            const r = await fetch('/api/admin/versions');
+            const versions = await r.json();
+            renderVersions(versions);
+        } catch {
+            document.getElementById('versions-container').innerHTML =
+                '<div style="color:#ef4444;font-size:13px;">Kunde inte ladda versioner.</div>';
+        }
+    }
+
+    function renderVersions(versions) {
+        const el = document.getElementById('versions-container');
+        if (!versions.length) {
+            el.innerHTML = '<div style="text-align:center;padding:20px;color:#9ca3af;font-size:13px;">Ingen historik ännu — lansera en staging-konfiguration för att börja spåra versioner.</div>';
+            return;
+        }
+        el.innerHTML = `
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead>
+                <tr style="border-bottom:2px solid #f3f4f6;">
+                    <th style="text-align:left;padding:8px 10px;color:#6b7280;font-weight:600;font-size:12px;text-transform:uppercase;">Restaurang</th>
+                    <th style="text-align:left;padding:8px 10px;color:#6b7280;font-weight:600;font-size:12px;text-transform:uppercase;">Gammal URL</th>
+                    <th style="text-align:left;padding:8px 10px;color:#6b7280;font-weight:600;font-size:12px;text-transform:uppercase;">Ny URL</th>
+                    <th style="text-align:left;padding:8px 10px;color:#6b7280;font-weight:600;font-size:12px;text-transform:uppercase;">Tid</th>
+                    <th style="text-align:left;padding:8px 10px;color:#6b7280;font-weight:600;font-size:12px;text-transform:uppercase;">Status</th>
+                    <th style="padding:8px 10px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+            ${versions.map(v => {
+                const ts = v.timestamp_str ? new Date(v.timestamp_str).toLocaleString('sv-SE', {dateStyle:'short',timeStyle:'short'}) : '–';
+                const active = v.active !== false;
+                return `
+                <tr style="border-bottom:1px solid #f9fafb;">
+                    <td style="padding:10px 10px;font-weight:500;color:#111827;">${escHtml(v.restaurant_name || '')}</td>
+                    <td style="padding:10px 10px;color:#6b7280;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escHtml(v.old_url || '')}">${escHtml(shortenUrl(v.old_url || ''))}</td>
+                    <td style="padding:10px 10px;color:#111827;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escHtml(v.new_url || '')}">${escHtml(shortenUrl(v.new_url || ''))}</td>
+                    <td style="padding:10px 10px;color:#6b7280;white-space:nowrap;">${ts}</td>
+                    <td style="padding:10px 10px;">
+                        <span class="chip ${active ? 'chip-green' : 'chip-yellow'}">
+                            <span class="chip-dot"></span>${active ? 'Aktiv' : 'Återställd'}
+                        </span>
+                    </td>
+                    <td style="padding:10px 10px;text-align:right;">
+                        ${active ? `<button class="btn-red" style="padding:5px 12px;font-size:12px;" onclick="rollback('${escHtml(v.id)}')">↩ Återställ</button>` : '<span style="color:#d1d5db;font-size:12px;">–</span>'}
+                    </td>
+                </tr>`;
+            }).join('')}
+            </tbody>
+        </table>`;
+    }
+
+    function shortenUrl(url) {
+        try { return new URL(url).hostname.replace('www.', '') + '…'; } catch { return url; }
+    }
+
+    async function rollback(versionId) {
+        if (!confirm('Återställ restaurangen till den gamla URL:en?')) return;
+        try {
+            const r = await fetch(`/api/admin/versions/${versionId}/rollback`, { method: 'POST' });
+            const d = await r.json();
+            if (d.error) { alert(d.error); return; }
+            alert(d.message);
+            await loadVersions();
+            await loadRestaurants();
+        } catch { alert('Nätverksfel.'); }
+    }
+
     // ── Boot ─────────────────────────────────────────────────────────────────
 
     loadSystemInfo();
     loadRestaurants();
     loadTodayStatus();
+    loadStaging();
+    loadVersions();
 </script>
 {% endblock %}
