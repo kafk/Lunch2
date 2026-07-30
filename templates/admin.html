@@ -371,7 +371,7 @@
         margin: 0 16px 12px;
         background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;
         padding: 12px; font-size: 12px; line-height: 1.65;
-        white-space: pre-wrap; max-height: 220px; overflow-y: auto; color: #374151;
+        white-space: pre-wrap; max-height: 420px; overflow-y: auto; color: #374151;
     }
     .lab-card-edit-area {
         display: none;
@@ -940,8 +940,8 @@
             const stateClass = result ? (result.success ? 'lab-success' : 'lab-failed') : '';
             const disabledClass = !enabled ? 'lab-disabled' : '';
             const preview = result && result.success && result.menu
-                ? (labView === 'today' ? adminExtractToday(result.menu) : result.menu).trim().slice(0, 500)
-                  + ((labView === 'today' ? adminExtractToday(result.menu) : result.menu).length > 500 ? '\n…' : '')
+                ? (labView === 'today' ? adminExtractToday(result.menu) : result.menu).trim().slice(0, 2000)
+                  + ((labView === 'today' ? adminExtractToday(result.menu) : result.menu).length > 2000 ? '\n…' : '')
                 : null;
             return `
             <div class="lab-card ${stateClass} ${disabledClass}" id="lab-card-${i}">
@@ -1000,7 +1000,7 @@
         if (!labResults[index] || !labResults[index].menu) return;
         const fullText = labResults[index].menu;
         const text = mode === 'today' ? adminExtractToday(fullText) : fullText;
-        const shown = text.trim().slice(0, 500) + (text.length > 500 ? '\n…' : '');
+        const shown = text.trim().slice(0, 2000) + (text.length > 2000 ? '\n…' : '');
 
         const preview = document.getElementById(`lab-preview-${index}`);
         if (preview) preview.textContent = shown;
