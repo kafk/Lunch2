@@ -1599,6 +1599,20 @@ def admin_clear_cache():
     return jsonify({'success': True, 'message': '✓ Ingen Firestore-cache att rensa (kör lokalt).'})
 
 
+@app.route('/api/admin/lab/publish', methods=['POST'])
+def lab_publish():
+    """Publicera admin-testade menyer som ny cache — användarna ser dessa exakta resultat."""
+    data = request.get_json(silent=True) or {}
+    menus = data.get('menus', [])
+    if not menus:
+        return jsonify({'error': 'Inga menyer att publicera — kör "Testa alla" först.'}), 400
+    save_menus_to_cache(menus)
+    return jsonify({
+        'success': True,
+        'message': f'{len(menus)} menyer publicerade — användarna ser nu testresultaten.',
+        'published_at': swedish_now().isoformat()
+    })
+
 @app.route('/api/admin/test-scrape', methods=['POST'])
 def admin_test_scrape():
     """Skrapa en enskild URL och returnera resultatet (för admin-testsidan)."""
