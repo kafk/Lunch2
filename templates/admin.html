@@ -491,9 +491,15 @@
     <div>
         <!-- Today's menu status -->
         <div class="acard">
-            <div class="acard-title">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                Dagens status
+            <div class="acard-title" style="justify-content:space-between;">
+                <span style="display:flex;align-items:center;gap:8px;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    Dagens status
+                </span>
+                <div style="display:flex;background:#f3f4f6;border-radius:8px;padding:2px;gap:2px;">
+                    <button id="status-btn-today" onclick="setStatusView('today')" style="padding:4px 10px;border:none;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;background:white;color:#111827;box-shadow:0 1px 3px rgba(0,0,0,.1);">Idag</button>
+                    <button id="status-btn-week"  onclick="setStatusView('week')"  style="padding:4px 10px;border:none;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;background:transparent;color:#6b7280;">Vecka</button>
+                </div>
             </div>
             <div id="today-status">
                 <div style="text-align:center;padding:16px;color:#9ca3af;"><span class="spin"></span></div>
@@ -616,6 +622,80 @@
         const d = document.createElement('div');
         d.textContent = s || '';
         return d.innerHTML;
+    }
+
+    // ── Shared: today extraction & view state ────────────────────────────────
+
+    const ADMIN_WEEKDAYS = ['Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag','Söndag'];
+
+    function adminExtractToday(text) {
+        if (!text) return text;
+        const idx   = new Date().getDay();
+        const today = ADMIN_WEEKDAYS[idx === 0 ? 6 : idx - 1];
+        const lines = text.split('\n');
+        let start = -1, end = lines.length;
+        for (let i = 0; i < lines.length; i++) {
+            const l = lines[i].trim();
+            if (start === -1 && new RegExp('\\b' + today + '\\b', 'i').test(l)) {
+                start = i;
+            } else if (start !== -1) {
+                const other = ADMIN_WEEKDAYS.filter(d => d !== today)
+                    .some(d => new RegExp('\\b' + d + '\\b', 'i').test(l));
+                if (other) { end = i; break; }
+            }
+        }
+        return start === -1 ? text : lines.slice(start, end).join('\n').trim();
+    }
+
+    const isWeekday = new Date().getDay() >= 1 && new Date().getDay() <= 5;
+
+    // Lab view state
+    let labView = isWeekday ? 'today' : 'week';
+    function setLabView(mode) {
+        labView = mode;
+        const aS = 'padding:5px 12px;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;background:white;color:#111827;box-shadow:0 1px 3px rgba(0,0,0,.1);';
+        const iS = 'padding:5px 12px;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;background:transparent;color:#6b7280;';
+        document.getElementById('lab-btn-today').style.cssText = mode === 'today' ? aS : iS;
+        document.getElementById('lab-btn-week').style.cssText  = mode === 'week'  ? aS : iS;
+        renderLabCards();
+    }
+
+    // Status panel view state
+    let statusView = isWeekday ? 'today' : 'week';
+    let cachedStatusMenus = [];
+    function setStatusView(mode) {
+        statusView = mode;
+        const aS = 'padding:4px 10px;border:none;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;background:white;color:#111827;box-shadow:0 1px 3px rgba(0,0,0,.1);';
+        const iS = 'padding:4px 10px;border:none;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;background:transparent;color:#6b7280;';
+        document.getElementById('status-btn-today').style.cssText = mode === 'today' ? aS : iS;
+        document.getElementById('status-btn-week').style.cssText  = mode === 'week'  ? aS : iS;
+        if (cachedStatusMenus.length) renderStatusRows(cachedStatusMenus);
+    }
+
+    function renderStatusRows(menus) {
+        const el = document.getElementById('today-status');
+        el.innerHTML = menus.map((m, i) => {
+            const text = m.success && m.menu
+                ? (statusView === 'today' ? adminExtractToday(m.menu) : m.menu)
+                : null;
+            const preview = text ? text.trim().slice(0, 120) + (text.length > 120 ? '…' : '') : null;
+            return `
+            <div style="border-bottom:1px solid #f3f4f6;">
+                <div class="today-row" style="cursor:${text ? 'pointer' : 'default'};"
+                    onclick="${text ? `toggleStatusRow(${i})` : ''}">
+                    <div class="today-dot ${m.success ? 'dot-ok' : 'dot-fail'}"></div>
+                    <div class="today-name">${escHtml(m.name)}</div>
+                    <div class="today-src">${escHtml(m.source || '')}</div>
+                    ${text ? '<span style="font-size:11px;color:#d1d5db;margin-left:4px;">&#9660;</span>' : ''}
+                </div>
+                ${preview ? `<div id="status-preview-${i}" style="display:none;padding:0 0 10px 18px;font-size:12px;color:#374151;white-space:pre-wrap;line-height:1.65;background:#f9fafb;border-radius:8px;margin:0 0 8px;padding:10px 12px;">${escHtml(preview)}</div>` : ''}
+            </div>`;
+        }).join('');
+    }
+
+    function toggleStatusRow(i) {
+        const el = document.getElementById(`status-preview-${i}`);
+        if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
     }
 
     // ── System info ──────────────────────────────────────────────────────────
@@ -782,8 +862,8 @@
 
     async function loadTodayStatus() {
         const el = document.getElementById('today-status');
-        const cacheEl   = document.getElementById('sys-cache');
-        const cacheSub  = document.getElementById('sys-cache-sub');
+        const cacheEl  = document.getElementById('sys-cache');
+        const cacheSub = document.getElementById('sys-cache-sub');
         try {
             const r = await fetch('/api/menus');
             const d = await r.json();
@@ -804,13 +884,10 @@
                 return;
             }
 
-            el.innerHTML = menus.map(m => `
-                <div class="today-row">
-                    <div class="today-dot ${m.success ? 'dot-ok' : 'dot-fail'}"></div>
-                    <div class="today-name">${escHtml(m.name)}</div>
-                    <div class="today-src">${escHtml(m.source || '')}</div>
-                </div>
-            `).join('');
+            cachedStatusMenus = menus;
+            renderStatusRows(menus);
+            // Apply correct button styles on load
+            setStatusView(statusView);
         } catch {
             cacheEl.innerHTML = '<span class="chip chip-red">Fel</span>';
             el.innerHTML = '<div style="color:#ef4444;font-size:13px;">Kunde inte ladda status.</div>';
@@ -880,7 +957,8 @@
             const stateClass = result ? (result.success ? 'lab-success' : 'lab-failed') : '';
             const disabledClass = !enabled ? 'lab-disabled' : '';
             const preview = result && result.success && result.menu
-                ? result.menu.trim().slice(0, 500) + (result.menu.length > 500 ? '\n…' : '')
+                ? (labView === 'today' ? adminExtractToday(result.menu) : result.menu).trim().slice(0, 500)
+                  + ((labView === 'today' ? adminExtractToday(result.menu) : result.menu).length > 500 ? '\n…' : '')
                 : null;
             return `
             <div class="lab-card ${stateClass} ${disabledClass}" id="lab-card-${i}">
@@ -1306,5 +1384,6 @@
     loadRestaurants();
     loadTodayStatus();
     loadVersions();
+    setLabView(labView);
 </script>
 {% endblock %}
