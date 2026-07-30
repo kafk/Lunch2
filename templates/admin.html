@@ -373,6 +373,28 @@
         padding: 12px; font-size: 12px; line-height: 1.65;
         white-space: pre-wrap; max-height: 220px; overflow-y: auto; color: #374151;
     }
+    .lab-card-edit-area {
+        display: none;
+        margin: 0 16px 12px;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .lab-card-edit-area textarea {
+        width: 100%;
+        min-height: 200px;
+        padding: 12px;
+        border: 2px solid #22c55e;
+        border-radius: 8px;
+        font-size: 12px;
+        line-height: 1.65;
+        font-family: inherit;
+        resize: vertical;
+        color: #374151;
+        background: white;
+        box-sizing: border-box;
+    }
+    .lab-card-edit-area textarea:focus { outline: none; }
+    .lab-card-edit-area .edit-btns { display: flex; gap: 8px; }
     .lab-card-actions {
         display: flex; gap: 8px; padding: 10px 16px;
         border-top: 1px solid #f3f4f6; background: #fafafa; align-items: center;
@@ -873,10 +895,18 @@
                     </span>
                 </div>
                 <div class="lab-card-status" id="lab-status-${i}">${labStatusHtml(result)}</div>
-                ${preview != null ? `<div class="lab-card-preview" id="lab-preview-${i}">${escHtml(preview)}</div>` : ''}
+                ${preview != null ? `<div class="lab-card-preview" id="lab-preview-${i}">${escHtml(preview)}</div>
+                <div class="lab-card-edit-area" id="lab-edit-${i}">
+                    <textarea id="lab-textarea-${i}">${escHtml(result.menu || '')}</textarea>
+                    <div class="edit-btns">
+                        <button class="btn-green" style="padding:6px 14px;font-size:13px;" onclick="labSaveEdit(${i})">Spara</button>
+                        <button class="btn-outline" style="padding:6px 14px;font-size:13px;" onclick="labCancelEdit(${i})">Avbryt</button>
+                    </div>
+                </div>` : ''}
                 <div class="lab-card-actions">
                     <button class="btn-outline" style="padding:6px 14px;font-size:13px;" id="lab-btn-${i}"
                         onclick="labTestOne(${i})">Testa</button>
+                    ${result ? `<button class="btn-outline" style="padding:6px 14px;font-size:13px;" onclick="labStartEdit(${i})">✏️ Redigera</button>` : ''}
                     <a href="${escHtml(u.url)}" target="_blank" class="btn-outline"
                         style="padding:6px 14px;font-size:13px;text-decoration:none;">Öppna ↗</a>
                     <div style="flex:1;"></div>
@@ -899,6 +929,27 @@
 
     function labDomain(url) {
         try { return new URL(url).hostname.replace('www.', ''); } catch { return url; }
+    }
+
+    function labStartEdit(index) {
+        document.getElementById(`lab-preview-${index}`).style.display = 'none';
+        const editArea = document.getElementById(`lab-edit-${index}`);
+        editArea.style.display = 'flex';
+        document.getElementById(`lab-textarea-${index}`).focus();
+    }
+
+    function labCancelEdit(index) {
+        document.getElementById(`lab-preview-${index}`).style.display = 'block';
+        document.getElementById(`lab-edit-${index}`).style.display = 'none';
+    }
+
+    function labSaveEdit(index) {
+        const newText = document.getElementById(`lab-textarea-${index}`).value;
+        if (!labResults[index]) labResults[index] = { success: true };
+        labResults[index].menu = newText;
+        labResults[index].source = (labResults[index].source || '') + ' ✏️';
+        renderLabCards();
+        labUpdateSummary();
     }
 
     async function labTestOne(index) {
