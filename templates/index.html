@@ -61,6 +61,13 @@
         <div class="card">
             <div class="card-header">
                 <span class="card-title">Dagens Lunchmenyer</span>
+                <div style="display:flex;gap:8px;align-items:center;">
+                <div style="display:flex;background:#f3f4f6;border-radius:8px;padding:2px;gap:2px;">
+                    <button id="btn-view-today" onclick="setView('today')"
+                        style="padding:5px 12px;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s;background:white;color:#111827;box-shadow:0 1px 3px rgba(0,0,0,.1);">Idag</button>
+                    <button id="btn-view-week" onclick="setView('week')"
+                        style="padding:5px 12px;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s;background:transparent;color:#6b7280;">Vecka</button>
+                </div>
                 <button class="btn btn-sm" id="refreshBtn" onclick="loadMenus(true)">
                     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M23 4v6h-6M1 20v-6h6"/>
@@ -68,6 +75,7 @@
                     </svg>
                     Uppdatera
                 </button>
+                </div>
             </div>
 
             <div class="loading" id="loading">
@@ -113,6 +121,47 @@
     const refreshBtn = document.getElementById('refreshBtn');
     const emptyState = document.getElementById('emptyState');
     const restaurantList = document.getElementById('restaurantList');
+
+    let cachedMenus = [];
+    let currentView = new Date().getDay() >= 1 && new Date().getDay() <= 5 ? 'today' : 'week';
+
+    const WEEKDAYS = ['Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag','Söndag'];
+
+    function extractToday(text) {
+        if (!text) return text;
+        const dayIdx = new Date().getDay(); // 0=Sun
+        const today = WEEKDAYS[dayIdx === 0 ? 6 : dayIdx - 1]; // Mon=0 → index 0
+        const lines = text.split('\n');
+        let start = -1, end = lines.length;
+        for (let i = 0; i < lines.length; i++) {
+            const l = lines[i].trim();
+            if (start === -1 && new RegExp('\\b' + today + '\\b', 'i').test(l)) {
+                start = i;
+            } else if (start !== -1) {
+                const isOtherDay = WEEKDAYS.filter(d => d !== today)
+                    .some(d => new RegExp('\\b' + d + '\\b', 'i').test(l));
+                if (isOtherDay) { end = i; break; }
+            }
+        }
+        if (start === -1) return text;
+        return lines.slice(start, end).join('\n').trim();
+    }
+
+    function setView(mode) {
+        currentView = mode;
+        const todayBtn = document.getElementById('btn-view-today');
+        const weekBtn  = document.getElementById('btn-view-week');
+        const activeStyle   = 'padding:5px 12px;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s;background:white;color:#111827;box-shadow:0 1px 3px rgba(0,0,0,.1);';
+        const inactiveStyle = 'padding:5px 12px;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s;background:transparent;color:#6b7280;';
+        todayBtn.style.cssText = mode === 'today' ? activeStyle : inactiveStyle;
+        weekBtn.style.cssText  = mode === 'week'  ? activeStyle : inactiveStyle;
+        if (cachedMenus.length) renderCards(cachedMenus);
+    }
+
+    function menuText(menu) {
+        if (!menu.success) return menu.menu || '';
+        return currentView === 'today' ? extractToday(menu.menu) : menu.menu;
+    }
 
     // Update date/time
     function updateDateTime() {
@@ -162,41 +211,10 @@
 
             const response = await fetch('/api/menus' + (forceRefresh ? '?refresh=true' : ''));
             const data = await response.json();
-            const menus = data.menus || data;  // Support both new and old format
+            const menus = data.menus || data;
             const updatedAt = data.updated_at;
-
-            menuContainer.innerHTML = menus.map((menu, i) => {
-                const statusEl = document.getElementById(`status-${i}`);
-                if (statusEl) {
-                    statusEl.className = `device-status ${menu.success ? 'online' : 'issue'}`;
-                    statusEl.textContent = menu.success ? 'OK' : 'Fel';
-                }
-
-                return `
-                    <div class="compact-item" onclick="toggleCompact(this, event)">
-                        <div class="compact-header">
-                            <span class="compact-name"><span class="compact-dot"></span>${escapeHtml(menu.name)}</span>
-                            <a href="${escapeHtml(menu.url)}" target="_blank" class="compact-link" onclick="event.stopPropagation()">
-                                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
-                                    <polyline points="15 3 21 3 21 9"/>
-                                    <line x1="10" y1="14" x2="21" y2="3"/>
-                                </svg>
-                                ${new URL(menu.url).hostname.replace('www.', '')}
-                            </a>
-                        </div>
-                        <div class="compact-preview">${escapeHtml(getPreview(menu.menu))}</div>
-                        <div class="compact-expand">
-                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path d="M6 9l6 6 6-6"/>
-                            </svg>
-                            <span class="expand-text">Visa mer</span>
-                        </div>
-                        <div class="compact-full">${escapeHtml(menu.menu)}</div>
-                    </div>
-                `;
-            }).join('');
-
+            cachedMenus = menus;
+            renderCards(menus);
             updateStats(menus, urls, updatedAt);
 
         } catch (error) {
@@ -205,6 +223,35 @@
 
         loading.style.display = 'none';
         refreshBtn.disabled = false;
+    }
+
+    function renderCards(menus) {
+        menuContainer.innerHTML = menus.map((menu) => {
+            const text = menuText(menu);
+            return `
+                <div class="compact-item" onclick="toggleCompact(this, event)">
+                    <div class="compact-header">
+                        <span class="compact-name"><span class="compact-dot"></span>${escapeHtml(menu.name)}</span>
+                        <a href="${escapeHtml(menu.url)}" target="_blank" class="compact-link" onclick="event.stopPropagation()">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                                <polyline points="15 3 21 3 21 9"/>
+                                <line x1="10" y1="14" x2="21" y2="3"/>
+                            </svg>
+                            ${new URL(menu.url).hostname.replace('www.', '')}
+                        </a>
+                    </div>
+                    <div class="compact-preview">${escapeHtml(getPreview(text))}</div>
+                    <div class="compact-expand">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M6 9l6 6 6-6"/>
+                        </svg>
+                        <span class="expand-text">Visa mer</span>
+                    </div>
+                    <div class="compact-full">${escapeHtml(text)}</div>
+                </div>
+            `;
+        }).join('');
     }
 
     function updateStats(menus, urls, updatedAt) {
@@ -266,5 +313,6 @@
     }
 
     loadMenus();
+    setView(currentView);
 </script>
 {% endblock %}
