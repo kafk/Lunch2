@@ -330,9 +330,22 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 28px;
+    }
+
     @media (max-width: 900px) {
         .sys-grid { grid-template-columns: repeat(2, 1fr); }
+        .stats-grid { grid-template-columns: repeat(2, 1fr); }
         .admin-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 600px) {
+        .sys-grid { grid-template-columns: 1fr; }
+        .stats-grid { grid-template-columns: 1fr; }
     }
 
     /* ── Lab Cards ── */
@@ -436,6 +449,25 @@
         <div class="sys-card-label">Cache</div>
         <div id="sys-cache"><span class="spin"></span></div>
         <div class="sys-card-sub" id="sys-cache-sub">Laddar...</div>
+    </div>
+</div>
+
+<!-- Scraping statistics -->
+<div class="stats-grid">
+    <div class="sys-card" style="border-left: 4px solid #22c55e;">
+        <div class="sys-card-label" style="display: flex; align-items: center; gap: 6px;">📊 Lyckade</div>
+        <div class="sys-card-value" id="adminSuccessCount">-</div>
+        <div class="sys-card-sub" id="adminSuccessRate">Hämtar data...</div>
+    </div>
+    <div class="sys-card" style="border-left: 4px solid #3b82f6;">
+        <div class="sys-card-label" style="display: flex; align-items: center; gap: 6px;">📄 PDF-menyer</div>
+        <div class="sys-card-value" id="adminPdfCount">-</div>
+        <div class="sys-card-sub">Automatiskt extraherade</div>
+    </div>
+    <div class="sys-card" style="border-left: 4px solid #8b5cf6;">
+        <div class="sys-card-label" style="display: flex; align-items: center; gap: 6px;">🌐 HTML-menyer</div>
+        <div class="sys-card-value" id="adminHtmlCount">-</div>
+        <div class="sys-card-sub">Scrapade från webb</div>
     </div>
 </div>
 
@@ -716,6 +748,9 @@
             allUrls = await r.json();
             renderRestaurants();
             renderSystemRestCount();
+            if (cachedStatusMenus && cachedStatusMenus.length) {
+                updateAdminStats(cachedStatusMenus);
+            }
         } catch {
             document.getElementById('rest-list').innerHTML = '<div style="color:#ef4444;font-size:13px;">Kunde inte ladda restauranger.</div>';
         }
@@ -843,6 +878,18 @@
 
     // ── Today status ─────────────────────────────────────────────────────────
 
+    function updateAdminStats(menus) {
+        const total = allUrls.filter(u => u.enabled !== false).length;
+        const successful = menus.filter(m => m.success).length;
+        const pdfs = menus.filter(m => m.source && m.source.toLowerCase().includes('pdf')).length;
+        const htmls = successful - pdfs;
+
+        document.getElementById('adminSuccessCount').textContent = successful;
+        document.getElementById('adminSuccessRate').textContent = total > 0 ? `${Math.round(successful/total*100)}% framgång` : 'Inga data';
+        document.getElementById('adminPdfCount').textContent = pdfs;
+        document.getElementById('adminHtmlCount').textContent = htmls;
+    }
+
     async function loadTodayStatus() {
         const el = document.getElementById('today-status');
         const cacheEl  = document.getElementById('sys-cache');
@@ -869,6 +916,9 @@
 
             cachedStatusMenus = menus;
             renderStatusRows(menus);
+            if (allUrls && allUrls.length) {
+                updateAdminStats(menus);
+            }
             // Apply correct button styles on load
             setStatusView(statusView);
         } catch {

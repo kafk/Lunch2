@@ -19,38 +19,11 @@
     </div>
     <div class="header-right">
         <span class="date-time" id="currentDateTime"></span>
+        <span class="date-time" id="lastUpdateTimeHeader" style="margin-left: 16px; color: #6b7280;">Uppdaterad: --:--</span>
         <div class="alert-badge" id="alertBadge" style="display: none;">
             <span>⚠️</span>
             <span id="alertCount">0 Varningar</span>
         </div>
-    </div>
-</div>
-
-<!-- Stats Row -->
-<div class="stats-row" id="statsRow">
-    <div class="stat-card highlight">
-        <div class="stat-icon">📊</div>
-        <div class="stat-label">Lyckade</div>
-        <div class="stat-value" id="successCount">-</div>
-        <div class="stat-desc" id="successRate">Hämtar data...</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon">📄</div>
-        <div class="stat-label">PDF-menyer</div>
-        <div class="stat-value" id="pdfCount">-</div>
-        <div class="stat-desc">Automatiskt extraherade</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon">🌐</div>
-        <div class="stat-label">HTML-menyer</div>
-        <div class="stat-value" id="htmlCount">-</div>
-        <div class="stat-desc">Scrapade från webb</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon">⏱️</div>
-        <div class="stat-label">Senast uppdaterad</div>
-        <div class="stat-value" id="lastUpdateTime" style="font-size: 20px;">--:--</div>
-        <div class="stat-desc" id="lastUpdateDate">-</div>
     </div>
 </div>
 
@@ -289,18 +262,10 @@
         });
         const successful = visibleMenus.filter(m => m.success).length;
         const failed = total - successful;  // Only count user-enabled restaurants that failed
-        const pdfs = visibleMenus.filter(m => m.source && m.source.toLowerCase().includes('pdf')).length;
-        const htmls = successful - pdfs;
-
-        document.getElementById('successCount').textContent = successful;
-        document.getElementById('successRate').textContent = total > 0 ? `${Math.round(successful/total*100)}% framgång` : 'Inga data';
-        document.getElementById('pdfCount').textContent = pdfs;
-        document.getElementById('htmlCount').textContent = htmls;
 
         // Use the actual scraping timestamp, not page load time
         const timestamp = updatedAt ? new Date(updatedAt) : new Date();
-        document.getElementById('lastUpdateTime').textContent = timestamp.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
-        document.getElementById('lastUpdateDate').textContent = timestamp.toLocaleDateString('sv-SE');
+        document.getElementById('lastUpdateTimeHeader').textContent = 'Uppdaterad: ' + timestamp.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
 
         // Alerts - only for enabled restaurants that failed
         if (failed > 0) {
