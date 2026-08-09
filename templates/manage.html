@@ -365,6 +365,15 @@
             margin-left: 0;
         }
     }
+
+    .restaurant-item.disabled {
+        opacity: 0.5;
+    }
+
+    .restaurant-item.disabled .restaurant-name {
+        text-decoration: line-through;
+        color: #9ca3af;
+    }
 </style>
 {% endblock %}
 
@@ -375,6 +384,7 @@
     const addMessage = document.getElementById('addMessage');
     const urlCount = document.getElementById('urlCount');
     const totalCount = document.getElementById('totalCount');
+    let cachedUrls = [];
 
     // Update date/time
     function updateDateTime() {
@@ -391,6 +401,7 @@
         try {
             const response = await fetch('/api/urls');
             const urls = await response.json();
+            cachedUrls = urls;
 
             urlCount.textContent = `${urls.length} st`;
             totalCount.textContent = urls.length;
@@ -406,21 +417,29 @@
                 return;
             }
 
-            urlList.innerHTML = urls.map((item, index) => `
-                <div class="restaurant-item">
-                    <div class="restaurant-info">
-                        <div class="restaurant-name">${escapeHtml(item.name)}</div>
-                        <div class="restaurant-url">${escapeHtml(item.url)}</div>
+            const localPrefs = JSON.parse(localStorage.getItem('restaurant_user_preferences') || '{}');
+            urlList.innerHTML = urls.map((item, index) => {
+                const isChecked = localPrefs[item.name] !== undefined ? localPrefs[item.name] : (item.enabled !== false);
+                return `
+                    <div class="restaurant-item ${isChecked ? '' : 'disabled'}">
+                        <div class="restaurant-info">
+                            <div class="restaurant-name">${escapeHtml(item.name)}</div>
+                            <div class="restaurant-url">${escapeHtml(item.url)}</div>
+                        </div>
+                        <label class="toggle-switch" style="margin-left: 16px;">
+                            <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleRestaurant(${index}, this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <button class="delete-btn" onclick="deleteUrl(${index})">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                            </svg>
+                            Ta bort
+                        </button>
                     </div>
-                    <button class="delete-btn" onclick="deleteUrl(${index})">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <polyline points="3 6 5 6 21 6"/>
-                            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                        </svg>
-                        Ta bort
-                    </button>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         } catch (error) {
             urlList.innerHTML = '<div class="error-msg">Kunde inte ladda restauranger</div>';
         }
@@ -436,6 +455,25 @@
             }
         } catch (error) {
             alert('Kunde inte ta bort restaurang');
+        }
+    }
+
+    function toggleRestaurant(index, enabled) {
+        if (!cachedUrls[index]) return;
+        const name = cachedUrls[index].name;
+
+        const localPrefs = JSON.parse(localStorage.getItem('restaurant_user_preferences') || '{}');
+        localPrefs[name] = enabled;
+        localStorage.setItem('restaurant_user_preferences', JSON.stringify(localPrefs));
+
+        // Update the item class
+        const items = document.querySelectorAll('.restaurant-item');
+        if (items[index]) {
+            if (enabled) {
+                items[index].classList.remove('disabled');
+            } else {
+                items[index].classList.add('disabled');
+            }
         }
     }
 
