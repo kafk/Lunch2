@@ -123,6 +123,8 @@
     const restaurantList = document.getElementById('restaurantList');
 
     let cachedMenus = [];
+    let cachedUrls = [];
+    let lastUpdatedAt = null;
     let currentView = new Date().getDay() >= 1 && new Date().getDay() <= 5 ? 'today' : 'week';
 
     const WEEKDAYS = ['Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag','Söndag'];
@@ -195,25 +197,33 @@
             }
 
             // Show restaurant list with toggle switches
-            restaurantList.innerHTML = urls.map((url, i) => `
-                <div class="device-item ${url.enabled === false ? 'disabled' : ''}">
-                    <div class="device-icon">🍴</div>
-                    <div class="device-info">
-                        <div class="device-name">${escapeHtml(url.name)}</div>
-                        <div class="device-meta">${escapeHtml(new URL(url.url).hostname)}</div>
+            const localPrefs = JSON.parse(localStorage.getItem('restaurant_user_preferences') || '{}');
+            restaurantList.innerHTML = urls.map((url, i) => {
+                const isChecked = localPrefs[url.name] !== undefined ? localPrefs[url.name] : (url.enabled !== false);
+                return `
+                    <div class="device-item ${isChecked ? '' : 'disabled'}">
+                        <div class="device-icon">🍴</div>
+                        <div class="device-info">
+                            <div class="device-name">${escapeHtml(url.name)}</div>
+                            <div class="device-meta">${escapeHtml(new URL(url.url).hostname)}</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleRestaurant(${i}, this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" ${url.enabled !== false ? 'checked' : ''} onchange="toggleRestaurant(${i}, this.checked)">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-            `).join('');
+                `;
+            }).join('');
 
             const response = await fetch('/api/menus' + (forceRefresh ? '?refresh=true' : ''));
             const data = await response.json();
             const menus = data.menus || data;
             const updatedAt = data.updated_at;
+            
             cachedMenus = menus;
+            cachedUrls = urls;
+            lastUpdatedAt = updatedAt;
+            
             renderCards(menus);
             updateStats(menus, urls, updatedAt);
 
@@ -226,7 +236,18 @@
     }
 
     function renderCards(menus) {
-        menuContainer.innerHTML = menus.map((menu) => {
+        const localPrefs = JSON.parse(localStorage.getItem('restaurant_user_preferences') || '{}');
+        const visibleMenus = menus.filter(menu => {
+            const pref = localPrefs[menu.name];
+            return pref !== false; // If explicitly false, hide. Otherwise show.
+        });
+
+        if (visibleMenus.length === 0) {
+            menuContainer.innerHTML = '<div class="info-msg" style="text-align:center;padding:40px;color:#6b7280;">Inga restauranger valda eller tillgängliga.</div>';
+            return;
+        }
+
+        menuContainer.innerHTML = visibleMenus.map((menu) => {
             const text = menuText(menu);
             return `
                 <div class="compact-item" onclick="toggleCompact(this, event)">
@@ -255,11 +276,20 @@
     }
 
     function updateStats(menus, urls, updatedAt) {
-        const enabledUrls = urls.filter(u => u.enabled !== false);
+        const localPrefs = JSON.parse(localStorage.getItem('restaurant_user_preferences') || '{}');
+        const enabledUrls = urls.filter(url => {
+            const isChecked = localPrefs[url.name] !== undefined ? localPrefs[url.name] : (url.enabled !== false);
+            return isChecked;
+        });
         const total = enabledUrls.length;
-        const successful = menus.filter(m => m.success).length;
-        const failed = total - successful;  // Only count enabled restaurants that failed
-        const pdfs = menus.filter(m => m.source && m.source.toLowerCase().includes('pdf')).length;
+        
+        const visibleMenus = menus.filter(menu => {
+            const pref = localPrefs[menu.name];
+            return pref !== false;
+        });
+        const successful = visibleMenus.filter(m => m.success).length;
+        const failed = total - successful;  // Only count user-enabled restaurants that failed
+        const pdfs = visibleMenus.filter(m => m.source && m.source.toLowerCase().includes('pdf')).length;
         const htmls = successful - pdfs;
 
         document.getElementById('successCount').textContent = successful;
@@ -302,14 +332,27 @@
         }
     }
 
-    async function toggleRestaurant(index, enabled) {
-        try {
-            await fetch(`/api/urls/${index}/toggle`, { method: 'POST' });
-            // Reload menus to reflect the change
-            loadMenus();
-        } catch (error) {
-            console.error('Could not toggle restaurant:', error);
+    function toggleRestaurant(index, enabled) {
+        if (!cachedUrls[index]) return;
+        const name = cachedUrls[index].name;
+
+        const localPrefs = JSON.parse(localStorage.getItem('restaurant_user_preferences') || '{}');
+        localPrefs[name] = enabled;
+        localStorage.setItem('restaurant_user_preferences', JSON.stringify(localPrefs));
+
+        // Update the toggle switches UI classes
+        const items = document.querySelectorAll('.device-item');
+        if (items[index]) {
+            if (enabled) {
+                items[index].classList.remove('disabled');
+            } else {
+                items[index].classList.add('disabled');
+            }
         }
+
+        // Re-render cards and update stats using cached data
+        renderCards(cachedMenus);
+        updateStats(cachedMenus, cachedUrls, lastUpdatedAt);
     }
 
     loadMenus();
