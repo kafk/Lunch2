@@ -34,7 +34,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '0126')
 
-VERSION = '3.34'
+VERSION = '3.35'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 STAGING_FILE = 'staging.json'

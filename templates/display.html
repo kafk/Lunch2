@@ -808,8 +808,13 @@
         }
 
         return blocks
-            .map(block => `<div class="dish-block">${escapeHtml(block).replace(/\n/g, '<br>')}</div>`)
+            .map(block => `<div class="dish-block">${highlightWeekdays(escapeHtml(block).replace(/\n/g, '<br>'))}</div>`)
             .join('');
+    }
+
+    function highlightWeekdays(html) {
+        return html.replace(/(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)/gi,
+            '<strong><u>$1</u></strong>');
     }
 
     function escapeHtml(text) {

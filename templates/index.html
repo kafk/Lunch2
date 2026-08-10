@@ -250,7 +250,7 @@
                         </svg>
                         <span class="expand-text">Visa mer</span>
                     </div>
-                    <div class="compact-full">${escapeHtml(text).replace(/\n/g, '<br>')}</div>
+                    <div class="compact-full">${highlightWeekdays(escapeHtml(text).replace(/\n/g, '<br>'))}</div>
                 </div>
             `;
         }).join('');
@@ -282,6 +282,11 @@
         } else {
             document.getElementById('alertBadge').style.display = 'none';
         }
+    }
+
+    function highlightWeekdays(html) {
+        return html.replace(/(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)/gi,
+            '<strong><u>$1</u></strong>');
     }
 
     function escapeHtml(text) {
