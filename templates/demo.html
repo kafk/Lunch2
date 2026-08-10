@@ -183,6 +183,12 @@
                     <div class="lab-card-info">
                         <div class="lab-card-name">${escHtml(u.name)}</div>
                         <div class="lab-card-domain"><a href="${escHtml(u.url)}" target="_blank" style="color:#3b82f6;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${labDomain(u.url)}</a></div>
+                    </div>
+                    <span class="chip ${enabled ? 'chip-green' : 'chip-yellow'}" style="flex-shrink:0;font-size:11px;">
+                        <span class="chip-dot"></span>${enabled ? 'Live' : 'Inaktiv'}
+                    </span>
+                </div>
+                <div class="lab-card-status" id="lab-status-${i}">
                     ${labStatusHtml(result)}
                 </div>
                 ${preview != null ? `<div class="lab-card-preview" id="lab-preview-${i}">${escHtml(preview)}</div>
@@ -256,6 +262,12 @@
                     <div class="lab-card-info">
                         <div class="lab-card-name">${escHtml(u.name)}</div>
                         <div class="lab-card-domain"><a href="${escHtml(u.url)}" target="_blank" style="color:#3b82f6;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${labDomain(u.url)}</a></div>
+                    </div>
+                    <span class="chip ${enabled ? 'chip-green' : 'chip-yellow'}" style="flex-shrink:0;font-size:11px;">
+                        <span class="chip-dot"></span>${enabled ? 'Live' : 'Inaktiv'}
+                    </span>
+                </div>
+                <div class="lab-card-status" id="lab-status-${index}">
                     ${labStatusHtml(result)}
                 </div>
                 ${preview != null ? `<div class="lab-card-preview" id="lab-preview-${index}">${escHtml(preview)}</div>
