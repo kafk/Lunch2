@@ -536,23 +536,13 @@
         const menus = getVisibleMenus();
         const menuText = m => displayView === 'today' ? extractToday(m.menu || '') : (m.menu || '');
 
-        menuGrid.innerHTML = menus.map(menu => {
-            const stateClass = menu.success ? 'lab-success' : 'lab-failed';
-            const domain = (() => { try { return new URL(menu.url).hostname.replace('www.',''); } catch { return menu.url; } })();
-            return `
-                <div class="lab-card ${stateClass}">
-                    <div class="lab-card-header">
-                        <div class="lab-card-icon">${menu.success ? '🍴' : '❌'}</div>
-                        <div class="lab-card-info">
-                            <div class="lab-card-name">${escapeHtml(menu.name)}</div>
-                            <div class="lab-card-domain"><a href="${escapeHtml(menu.url)}" target="_blank" style="color:#3b82f6;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${domain}</a></div>
-                        </div>
-                        <span class="chip chip-green" style="flex-shrink:0;font-size:11px;"><span class="chip-dot"></span>Live</span>
-                    </div>
-                    <div class="lab-card-content">${formatMenuContent(menuText(menu))}</div>
-                </div>
-            `;
-        }).join('');
+        // Cards view is managed per-card by loadMenus; re-render only on view/pref toggle
+        if (allMenus.length > 0) {
+            menuGrid.innerHTML = menus.map(menu => {
+                const u = allUrls.find(u => u.name === menu.name) || menu;
+                return cardHtml(u, menu);
+            }).join('');
+        }
 
         menuList.innerHTML = menus.map(menu => {
             const isPdf = menu.source && menu.source.toLowerCase().includes('pdf');
@@ -652,6 +642,37 @@
         return '<span class="menu-card-badge html">HTML</span>';
     }
 
+    function cardHtml(u, menu) {
+        const localPrefs = JSON.parse(localStorage.getItem('restaurant_user_preferences') || '{}');
+        const domain = (() => { try { return new URL(u.url).hostname.replace('www.',''); } catch { return u.url; } })();
+        if (!menu) return `
+            <div class="lab-card lab-testing" id="disp-card-${escapeHtml(u.name).replace(/\s/g,'_')}">
+                <div class="lab-card-header">
+                    <div class="lab-card-icon">🍴</div>
+                    <div class="lab-card-info">
+                        <div class="lab-card-name">${escapeHtml(u.name)}</div>
+                        <div class="lab-card-domain"><a href="${escapeHtml(u.url)}" target="_blank" style="color:#3b82f6;text-decoration:none;">${domain}</a></div>
+                    </div>
+                </div>
+                <div style="display:flex;justify-content:center;padding:24px 0;">
+                    <span class="spin" style="width:24px;height:24px;border-width:3px;"></span>
+                </div>
+            </div>`;
+        const text = displayView === 'today' ? extractToday(menu.menu || '') : (menu.menu || '');
+        return `
+            <div class="lab-card ${menu.success ? 'lab-success' : 'lab-failed'}" id="disp-card-${escapeHtml(u.name).replace(/\s/g,'_')}">
+                <div class="lab-card-header">
+                    <div class="lab-card-icon">${menu.success ? '🍴' : '❌'}</div>
+                    <div class="lab-card-info">
+                        <div class="lab-card-name">${escapeHtml(menu.name)}</div>
+                        <div class="lab-card-domain"><a href="${escapeHtml(menu.url)}" target="_blank" style="color:#3b82f6;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${domain}</a></div>
+                    </div>
+                    <span class="chip chip-green" style="flex-shrink:0;font-size:11px;"><span class="chip-dot"></span>Live</span>
+                </div>
+                <div class="lab-card-content">${formatMenuContent(text)}</div>
+            </div>`;
+    }
+
     async function loadMenus(forceRefresh = false) {
         refreshBtn.disabled = true;
         loading.style.display = 'none';
@@ -659,6 +680,7 @@
         menuTable.innerHTML = '';
         compactList.innerHTML = '';
         emptyState.style.display = 'none';
+        allMenus = [];
 
         try {
             const urlsResponse = await fetch('/api/urls');
@@ -670,42 +692,42 @@
                 return;
             }
 
-            // Show per-card spinners immediately while menus load
             const localPrefs = JSON.parse(localStorage.getItem('restaurant_user_preferences') || '{}');
             const visibleUrls = allUrls.filter(u => {
                 const pref = localPrefs[u.name];
                 return pref !== undefined ? pref : u.enabled !== false;
             });
-            menuGrid.innerHTML = visibleUrls.map(u => {
-                const domain = (() => { try { return new URL(u.url).hostname.replace('www.',''); } catch { return u.url; } })();
-                return `
-                    <div class="lab-card lab-testing">
-                        <div class="lab-card-header">
-                            <div class="lab-card-icon">🍴</div>
-                            <div class="lab-card-info">
-                                <div class="lab-card-name">${escapeHtml(u.name)}</div>
-                                <div class="lab-card-domain"><a href="${escapeHtml(u.url)}" target="_blank" style="color:#3b82f6;text-decoration:none;">${domain}</a></div>
-                            </div>
-                        </div>
-                        <div style="display:flex;justify-content:center;padding:24px 0;">
-                            <span class="spin" style="width:24px;height:24px;border-width:3px;"></span>
-                        </div>
-                    </div>`;
-            }).join('');
 
-            const params = new URLSearchParams();
-            if (forceRefresh) params.set('refresh', 'true');
-            const response = await fetch('/api/menus?' + params.toString());
-            const data = await response.json();
-            allMenus = data.menus || data;
+            // Render all placeholder cards immediately
+            menuGrid.innerHTML = visibleUrls.map(u => cardHtml(u, null)).join('');
 
+            // Fetch each restaurant individually and update its card as it arrives
+            await Promise.all(visibleUrls.map(async u => {
+                try {
+                    const r = await fetch('/api/admin/test-scrape', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ url: u.url, name: u.name })
+                    });
+                    const menu = await r.json();
+                    allMenus.push(menu);
+                    const id = 'disp-card-' + escapeHtml(u.name).replace(/\s/g,'_');
+                    const el = document.getElementById(id);
+                    if (el) el.outerHTML = cardHtml(u, menu);
+                } catch {
+                    const id = 'disp-card-' + escapeHtml(u.name).replace(/\s/g,'_');
+                    const el = document.getElementById(id);
+                    if (el) el.outerHTML = cardHtml(u, { success: false, menu: 'Nätverksfel', url: u.url, name: u.name });
+                }
+            }));
+
+            // Populate the other views once all cards are done
             renderViews();
 
         } catch (error) {
             menuGrid.innerHTML = '<div class="error-msg">Kunde inte hämta menyer</div>';
         }
 
-        loading.style.display = 'none';
         refreshBtn.disabled = false;
     }
 
