@@ -67,6 +67,12 @@
             <button class="btn-outline" onclick="toggleAddLabForm()">+ Lägg till ny</button>
             <button class="btn-green" id="btn-test-all" onclick="labTestAll()">▶ Testa alla</button>
             <button class="btn-outline" id="btn-publish-lab" onclick="labPublish()" style="display:none;">🚀 Publicera testresultat</button>
+            <div style="display:flex;background:#f3f4f6;border-radius:8px;padding:2px;gap:2px;">
+                <button id="global-btn-today" onclick="setLabView('today')"
+                    style="padding:5px 14px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;background:white;color:#111827;box-shadow:0 1px 3px rgba(0,0,0,.1);">Idag</button>
+                <button id="global-btn-week" onclick="setLabView('week')"
+                    style="padding:5px 14px;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;background:transparent;color:#6b7280;">Vecka</button>
+            </div>
         </div>
     </div>
 
@@ -136,6 +142,10 @@
 
     function setLabView(mode) {
         labView = mode;
+        const aS = 'padding:5px 14px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;background:white;color:#111827;box-shadow:0 1px 3px rgba(0,0,0,.1);';
+        const iS = 'padding:5px 14px;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;background:transparent;color:#6b7280;';
+        document.getElementById('global-btn-today').style.cssText = mode === 'today' ? aS : iS;
+        document.getElementById('global-btn-week').style.cssText  = mode === 'week'  ? aS : iS;
         renderLabCards();
     }
 
@@ -181,12 +191,6 @@
                 </div>
                 <div class="lab-card-status" id="lab-status-${i}">
                     ${labStatusHtml(result)}
-                    <div style="margin-left:auto;display:flex;background:#f3f4f6;border-radius:6px;padding:1px;gap:1px;flex-shrink:0;${!result || !result.success || !result.menu ? 'opacity:.35;pointer-events:none;' : ''}">
-                        <button id="lab-cv-today-${i}" onclick="labCardToggleView(${i},'today')"
-                            style="padding:3px 9px;border:none;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;background:white;color:#111827;box-shadow:0 1px 2px rgba(0,0,0,.1);">Idag</button>
-                        <button id="lab-cv-week-${i}"  onclick="labCardToggleView(${i},'week')"
-                            style="padding:3px 9px;border:none;border-radius:5px;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;background:transparent;color:#9ca3af;">Vecka</button>
-                    </div>
                 </div>
                 ${preview != null ? `<div class="lab-card-preview" id="lab-preview-${i}">${escHtml(preview)}</div>
                 <div class="lab-card-edit-area" id="lab-edit-${i}">
@@ -205,21 +209,6 @@
                 </div>
             </div>`;
         }).join('');
-    }
-
-    function labCardToggleView(index, mode) {
-        if (!labResults[index] || !labResults[index].menu) return;
-        const fullText = labResults[index].menu;
-        const text = mode === 'today' ? adminExtractToday(fullText) : fullText;
-        const shown = text.trim().slice(0, 2000) + (text.length > 2000 ? '\n…' : '');
-        const preview = document.getElementById(`lab-preview-${index}`);
-        if (preview) preview.textContent = shown;
-        const aS = 'padding:3px 9px;border:none;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;background:white;color:#111827;box-shadow:0 1px 2px rgba(0,0,0,.1);';
-        const iS = 'padding:3px 9px;border:none;border-radius:5px;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;background:transparent;color:#9ca3af;';
-        const tb = document.getElementById(`lab-cv-today-${index}`);
-        const wb = document.getElementById(`lab-cv-week-${index}`);
-        if (tb) tb.style.cssText = mode === 'today' ? aS : iS;
-        if (wb) wb.style.cssText  = mode === 'week'  ? aS : iS;
     }
 
     function labStartEdit(index) {
@@ -281,12 +270,6 @@
                 </div>
                 <div class="lab-card-status" id="lab-status-${index}">
                     ${labStatusHtml(result)}
-                    <div style="margin-left:auto;display:flex;background:#f3f4f6;border-radius:6px;padding:1px;gap:1px;flex-shrink:0;${!result || !result.success || !result.menu ? 'opacity:.35;pointer-events:none;' : ''}">
-                        <button id="lab-cv-today-${index}" onclick="labCardToggleView(${index},'today')"
-                            style="padding:3px 9px;border:none;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;background:white;color:#111827;box-shadow:0 1px 2px rgba(0,0,0,.1);">Idag</button>
-                        <button id="lab-cv-week-${index}"  onclick="labCardToggleView(${index},'week')"
-                            style="padding:3px 9px;border:none;border-radius:5px;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;background:transparent;color:#9ca3af;">Vecka</button>
-                    </div>
                 </div>
                 ${preview != null ? `<div class="lab-card-preview" id="lab-preview-${index}">${escHtml(preview)}</div>
                 <div class="lab-card-edit-area" id="lab-edit-${index}">
