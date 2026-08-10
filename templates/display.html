@@ -708,6 +708,8 @@
         loading.style.display = 'none';
         refreshBtn.disabled = false;
     }
+
+    function getPreview(text) {
         const lines = text.split('\n').filter(l => l.trim());
         return lines.slice(0, 3).join(' • ');
     }
