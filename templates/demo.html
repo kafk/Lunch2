@@ -223,11 +223,19 @@
 
     function setCardLoading(index) {
         const card = document.getElementById(`lab-card-${index}`);
-        const btn  = document.getElementById(`lab-btn-${index}`);
         if (!card) return;
         card.classList.remove('lab-success', 'lab-failed');
         card.classList.add('lab-testing');
-        if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+        // Insert spinner after the header
+        const header = card.querySelector('.lab-card-header');
+        let spinner = card.querySelector('.lab-card-spinner');
+        if (!spinner) {
+            spinner = document.createElement('div');
+            spinner.className = 'lab-card-spinner';
+            spinner.style.cssText = 'display:flex;justify-content:center;padding:24px 0;';
+            spinner.innerHTML = '<span class="spin" style="width:24px;height:24px;border-width:3px;"></span>';
+            header.insertAdjacentElement('afterend', spinner);
+        }
     }
 
     function renderSingleCard(index) {
