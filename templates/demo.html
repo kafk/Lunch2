@@ -188,9 +188,6 @@
                         <span class="chip-dot"></span>${enabled ? 'Live' : 'Inaktiv'}
                     </span>
                 </div>
-                <div class="lab-card-status" id="lab-status-${i}">
-                    ${labStatusHtml(result)}
-                </div>
                 ${preview != null ? `<div class="lab-card-preview" id="lab-preview-${i}">${escHtml(preview)}</div>
                 <div class="lab-card-edit-area" id="lab-edit-${i}">
                     <textarea id="lab-textarea-${i}">${escHtml(result.menu || '')}</textarea>
@@ -225,14 +222,12 @@
     }
 
     function setCardLoading(index) {
-        const card     = document.getElementById(`lab-card-${index}`);
-        const btn      = document.getElementById(`lab-btn-${index}`);
-        const statusEl = document.getElementById(`lab-status-${index}`);
+        const card = document.getElementById(`lab-card-${index}`);
+        const btn  = document.getElementById(`lab-btn-${index}`);
         if (!card) return;
         card.classList.remove('lab-success', 'lab-failed');
         card.classList.add('lab-testing');
         if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
-        if (statusEl) statusEl.innerHTML = '<span class="spin" style="width:14px;height:14px;border-width:2px;"></span><span style="font-size:12px;color:#9ca3af;"> Skrapar…</span>';
     }
 
     function renderSingleCard(index) {
@@ -259,9 +254,6 @@
                     <span class="chip ${enabled ? 'chip-green' : 'chip-yellow'}" style="flex-shrink:0;font-size:11px;">
                         <span class="chip-dot"></span>${enabled ? 'Live' : 'Inaktiv'}
                     </span>
-                </div>
-                <div class="lab-card-status" id="lab-status-${index}">
-                    ${labStatusHtml(result)}
                 </div>
                 ${preview != null ? `<div class="lab-card-preview" id="lab-preview-${index}">${escHtml(preview)}</div>
                 <div class="lab-card-edit-area" id="lab-edit-${index}">
