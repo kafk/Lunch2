@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+
+{% block title %}Scrape Lab – Lunch Monitor{% endblock %}
+
+{% block content %}
+<style>
+    .chip { display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600; }
+    .chip-green  { background:#dcfce7;color:#166534; }
+    .chip-red    { background:#fee2e2;color:#991b1b; }
+    .chip-yellow { background:#fef3c7;color:#92400e; }
+    .chip-dot { width:7px;height:7px;border-radius:50%;background:currentColor; }
+
+    .btn-green { padding:9px 18px;background:#22c55e;color:white;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;transition:background .15s;white-space:nowrap; }
+    .btn-green:hover { background:#16a34a; }
+    .btn-green:disabled { background:#86efac;cursor:not-allowed; }
+
+    .btn-outline { padding:9px 18px;background:white;color:#374151;border:1px solid #d1d5db;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap; }
+    .btn-outline:hover { border-color:#22c55e;color:#22c55e; }
+
+    .icon-btn { width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:none;background:transparent;cursor:pointer;border-radius:7px;color:#9ca3af;transition:all .15s; }
+    .icon-btn:hover { background:#f3f4f6;color:#374151; }
+    .icon-btn.danger:hover { background:#fee2e2;color:#dc2626; }
+
+    .msg { padding:10px 14px;border-radius:8px;font-size:13px;margin-top:12px; }
+    .msg-ok  { background:#dcfce7;color:#166534; }
+    .msg-err { background:#fee2e2;color:#991b1b; }
+
+    .spin { width:18px;height:18px;border:2px solid #e5e7eb;border-top-color:#22c55e;border-radius:50%;animation:spin .7s linear infinite;display:inline-block; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* Lab Cards */
+    .lab-card { background:white;border-radius:14px;border:2px solid #e8ebe9;overflow:hidden;transition:border-color .2s,box-shadow .2s; }
+    .lab-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.07); }
+    .lab-card.lab-success { border-color:#22c55e; }
+    .lab-card.lab-failed  { border-color:#ef4444; }
+    .lab-card.lab-testing { border-color:#fbbf24; }
+    .lab-card.lab-disabled { opacity:.7; }
+
+    .lab-card-header { display:flex;align-items:center;gap:12px;padding:16px 16px 10px; }
+    .lab-card-icon { width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;background:#f0fdf4; }
+    .lab-card.lab-disabled .lab-card-icon { background:#f3f4f6; }
+    .lab-card-info { flex:1;min-width:0; }
+    .lab-card-name { font-size:14px;font-weight:600;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .lab-card-domain { font-size:12px;color:#9ca3af;margin-top:1px; }
+
+    .lab-card-status { padding:0 16px 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:#9ca3af;min-height:26px; }
+    .lab-card-preview { margin:0 16px 12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;font-size:12px;line-height:1.65;white-space:pre-wrap;max-height:420px;overflow-y:auto;color:#374151; }
+
+    .lab-card-edit-area { display:none;margin:0 16px 12px;flex-direction:column;gap:8px; }
+    .lab-card-edit-area textarea { width:100%;min-height:200px;padding:12px;border:2px solid #22c55e;border-radius:8px;font-size:12px;line-height:1.65;font-family:inherit;resize:vertical;color:#374151;background:white;box-sizing:border-box; }
+    .lab-card-edit-area textarea:focus { outline:none; }
+    .lab-card-edit-area .edit-btns { display:flex;gap:8px; }
+
+    .lab-card-actions { display:flex;gap:8px;padding:10px 16px;border-top:1px solid #f3f4f6;background:#fafafa;align-items:center; }
+</style>
+
+<div style="margin-bottom:28px;">
+    <h1 style="font-size:28px;font-weight:700;color:#111827;">🔬 Scrape Lab</h1>
+    <p style="color:#6b7280;font-size:14px;margin-top:4px;">Testa scraping privat — <strong>inget påverkar användarna</strong> förrän du klickar "Publicera testresultat".</p>
+</div>
+
+<!-- ── Scrape Lab ──────────────────────────────────────────────────────── -->
+<div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <span id="lab-summary"></span>
+            <button class="btn-outline" onclick="toggleAddLabForm()">+ Lägg till ny</button>
+            <button class="btn-green" id="btn-test-all" onclick="labTestAll()">▶ Testa alla</button>
+            <button class="btn-outline" id="btn-publish-lab" onclick="labPublish()" style="display:none;">🚀 Publicera testresultat</button>
+        </div>
+    </div>
+
+    <!-- Add new restaurant (hidden) -->
+    <div id="lab-add-form" style="display:none;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:10px;">Ny restaurang — startar som inaktiv tills du aktiverar den</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <input type="text" id="lab-add-name" placeholder="Namn (valfritt)"
+                style="flex:1;min-width:140px;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;font-family:inherit;color:#374151;">
+            <input type="url" id="lab-add-url" placeholder="https://restaurang.se/lunch"
+                style="flex:2;min-width:220px;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;font-family:inherit;color:#374151;">
+            <button class="btn-green" onclick="labAddRestaurant()">Lägg till</button>
+            <button class="btn-outline" onclick="toggleAddLabForm()">Avbryt</button>
+        </div>
+        <div id="lab-add-msg" style="margin-top:8px;"></div>
+    </div>
+
+    <div id="lab-msg"></div>
+
+    <!-- Cards grid -->
+    <div id="lab-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px;">
+        <div style="text-align:center;padding:40px;color:#9ca3af;grid-column:1/-1;"><span class="spin"></span></div>
+    </div>
+</div>
+
+<script>
+    let allUrls = [];
+    let labResults = {};
+
+    function showMsg(id, text, ok) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.className = 'msg ' + (ok ? 'msg-ok' : 'msg-err');
+        el.textContent = text;
+        setTimeout(() => { el.textContent = ''; el.className = ''; }, 5000);
+    }
+
+    function escHtml(s) {
+        const d = document.createElement('div');
+        d.textContent = s || '';
+        return d.innerHTML;
+    }
+
+    const WEEKDAYS = ['Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag','Söndag'];
+
+    function adminExtractToday(text) {
+        if (!text) return text;
+        const idx   = new Date().getDay();
+        const today = WEEKDAYS[idx === 0 ? 6 : idx - 1];
+        const lines = text.split('\n');
+        let start = -1, end = lines.length;
+        for (let i = 0; i < lines.length; i++) {
+            const l = lines[i].trim();
+            if (start === -1 && new RegExp('\\b' + today + '\\b', 'i').test(l)) {
+                start = i;
+            } else if (start !== -1) {
+                const other = WEEKDAYS.filter(d => d !== today)
+                    .some(d => new RegExp('\\b' + d + '\\b', 'i').test(l));
+                if (other) { end = i; break; }
+            }
+        }
+        return start === -1 ? text : lines.slice(start, end).join('\n').trim();
+    }
+
+    const isWeekday = new Date().getDay() >= 1 && new Date().getDay() <= 5;
+    let labView = isWeekday ? 'today' : 'week';
+
+    function setLabView(mode) {
+        labView = mode;
+        renderLabCards();
+    }
+
+    function labDomain(url) {
+        try { return new URL(url).hostname.replace('www.', ''); } catch { return url; }
+    }
+
+    function labStatusHtml(result) {
+        if (!result) return '<span style="color:#d1d5db;font-size:12px;">Inte testad ännu</span>';
+        if (!result.success)
+            return `<span class="chip chip-red">Misslyckad</span><span style="font-size:11px;">${escHtml((result.menu || 'okänt fel').slice(0, 80))}</span>`;
+        return `<span class="chip chip-green">OK</span>
+                <span>${escHtml(result.source || '')}</span>
+                <span>${(result.menu || '').length} tecken</span>`;
+    }
+
+    function renderLabCards() {
+        const el = document.getElementById('lab-cards');
+        if (!allUrls.length) {
+            el.innerHTML = '<div style="text-align:center;padding:40px;color:#9ca3af;grid-column:1/-1;">Inga restauranger. Lägg till en ovan.</div>';
+            return;
+        }
+        el.innerHTML = allUrls.map((u, i) => {
+            const enabled = u.enabled !== false;
+            const result  = labResults[i];
+            const stateClass = result ? (result.success ? 'lab-success' : 'lab-failed') : '';
+            const disabledClass = !enabled ? 'lab-disabled' : '';
+            const preview = result && result.success && result.menu
+                ? (labView === 'today' ? adminExtractToday(result.menu) : result.menu).trim().slice(0, 2000)
+                  + ((labView === 'today' ? adminExtractToday(result.menu) : result.menu).length > 2000 ? '\n…' : '')
+                : null;
+            return `
+            <div class="lab-card ${stateClass} ${disabledClass}" id="lab-card-${i}">
+                <div class="lab-card-header">
+                    <div class="lab-card-icon">${enabled ? '🍴' : '⏸'}</div>
+                    <div class="lab-card-info">
+                        <div class="lab-card-name">${escHtml(u.name)}</div>
+                        <div class="lab-card-domain">${labDomain(u.url)}</div>
+                    </div>
+                    <span class="chip ${enabled ? 'chip-green' : 'chip-yellow'}" style="flex-shrink:0;font-size:11px;">
+                        <span class="chip-dot"></span>${enabled ? 'Live' : 'Inaktiv'}
+                    </span>
+                </div>
+                <div class="lab-card-status" id="lab-status-${i}">
+                    ${labStatusHtml(result)}
+                    <div style="margin-left:auto;display:flex;background:#f3f4f6;border-radius:6px;padding:1px;gap:1px;flex-shrink:0;${!result || !result.success || !result.menu ? 'opacity:.35;pointer-events:none;' : ''}">
+                        <button id="lab-cv-today-${i}" onclick="labCardToggleView(${i},'today')"
+                            style="padding:3px 9px;border:none;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;background:white;color:#111827;box-shadow:0 1px 2px rgba(0,0,0,.1);">Idag</button>
+                        <button id="lab-cv-week-${i}"  onclick="labCardToggleView(${i},'week')"
+                            style="padding:3px 9px;border:none;border-radius:5px;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;background:transparent;color:#9ca3af;">Vecka</button>
+                    </div>
+                </div>
+                ${preview != null ? `<div class="lab-card-preview" id="lab-preview-${i}">${escHtml(preview)}</div>
+                <div class="lab-card-edit-area" id="lab-edit-${i}">
+                    <textarea id="lab-textarea-${i}">${escHtml(result.menu || '')}</textarea>
+                    <div class="edit-btns">
+                        <button class="btn-green" style="padding:6px 14px;font-size:13px;" onclick="labSaveEdit(${i})">Spara</button>
+                        <button class="btn-outline" style="padding:6px 14px;font-size:13px;" onclick="labCancelEdit(${i})">Avbryt</button>
+                    </div>
+                </div>` : ''}
+                <div class="lab-card-actions">
+                    <button class="btn-outline" style="padding:6px 14px;font-size:13px;" id="lab-btn-${i}"
+                        onclick="labTestOne(${i})">Testa</button>
+                    ${result ? `<button class="btn-outline" style="padding:6px 14px;font-size:13px;" onclick="labStartEdit(${i})">✏️ Redigera</button>` : ''}
+                    <a href="${escHtml(u.url)}" target="_blank" class="btn-outline"
+                        style="padding:6px 14px;font-size:13px;text-decoration:none;">Öppna ↗</a>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function labCardToggleView(index, mode) {
+        if (!labResults[index] || !labResults[index].menu) return;
+        const fullText = labResults[index].menu;
+        const text = mode === 'today' ? adminExtractToday(fullText) : fullText;
+        const shown = text.trim().slice(0, 2000) + (text.length > 2000 ? '\n…' : '');
+        const preview = document.getElementById(`lab-preview-${index}`);
+        if (preview) preview.textContent = shown;
+        const aS = 'padding:3px 9px;border:none;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;background:white;color:#111827;box-shadow:0 1px 2px rgba(0,0,0,.1);';
+        const iS = 'padding:3px 9px;border:none;border-radius:5px;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;background:transparent;color:#9ca3af;';
+        const tb = document.getElementById(`lab-cv-today-${index}`);
+        const wb = document.getElementById(`lab-cv-week-${index}`);
+        if (tb) tb.style.cssText = mode === 'today' ? aS : iS;
+        if (wb) wb.style.cssText  = mode === 'week'  ? aS : iS;
+    }
+
+    function labStartEdit(index) {
+        document.getElementById(`lab-preview-${index}`).style.display = 'none';
+        const editArea = document.getElementById(`lab-edit-${index}`);
+        editArea.style.display = 'flex';
+        document.getElementById(`lab-textarea-${index}`).focus();
+    }
+
+    function labCancelEdit(index) {
+        document.getElementById(`lab-preview-${index}`).style.display = 'block';
+        document.getElementById(`lab-edit-${index}`).style.display = 'none';
+    }
+
+    function labSaveEdit(index) {
+        const newText = document.getElementById(`lab-textarea-${index}`).value;
+        if (!labResults[index]) labResults[index] = { success: true };
+        labResults[index].menu = newText;
+        labResults[index].source = (labResults[index].source || '') + ' ✏️';
+        renderLabCards();
+        labUpdateSummary();
+    }
+
+    async function labTestOne(index) {
+        const u        = allUrls[index];
+        const card     = document.getElementById(`lab-card-${index}`);
+        const btn      = document.getElementById(`lab-btn-${index}`);
+        const statusEl = document.getElementById(`lab-status-${index}`);
+
+        card.classList.remove('lab-success', 'lab-failed');
+        card.classList.add('lab-testing');
+        if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+        statusEl.innerHTML = '<span class="spin" style="width:14px;height:14px;border-width:2px;"></span><span style="font-size:12px;color:#9ca3af;"> Skrapar…</span>';
+
+        try {
+            const r = await fetch('/api/admin/test-scrape', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ url: u.url, name: u.name })
+            });
+            labResults[index] = await r.json();
+        } catch (e) {
+            labResults[index] = { success: false, menu: 'Nätverksfel: ' + e.message };
+        }
+        renderLabCards();
+        labUpdateSummary();
+    }
+
+    async function labTestAll() {
+        const btn = document.getElementById('btn-test-all');
+        btn.disabled = true;
+        btn.textContent = '⏳ Testar…';
+        labResults = {};
+        renderLabCards();
+        await Promise.all(allUrls.map((_, i) => labTestOne(i)));
+        btn.disabled = false;
+        btn.textContent = '▶ Testa alla';
+        document.getElementById('btn-publish-lab').style.display = 'inline-block';
+    }
+
+    function labUpdateSummary() {
+        const tested = Object.keys(labResults).length;
+        const ok     = Object.values(labResults).filter(r => r && r.success).length;
+        const el = document.getElementById('lab-summary');
+        if (!tested) { el.innerHTML = ''; return; }
+        const color = ok === tested ? 'chip-green' : (ok === 0 ? 'chip-red' : 'chip-yellow');
+        el.innerHTML = `<span class="chip ${color}">${ok}/${tested} lyckades</span>`;
+    }
+
+    async function labPublish() {
+        const menus = Object.values(labResults);
+        if (!menus.length) {
+            showMsg('lab-msg', 'Kör "Testa alla" först — du publicerar de testade resultaten, inte en ny scraping.', false);
+            return;
+        }
+        const ok  = menus.filter(r => r && r.success).length;
+        const bad = menus.length - ok;
+        const confirm_msg = bad > 0
+            ? `${ok} av ${menus.length} lyckades. ${bad} misslyckades.\n\nPublicera ändå?`
+            : `${ok} av ${menus.length} testade menyer ser bra ut.\n\nPublicera nu för användarna?`;
+        if (!confirm(confirm_msg)) return;
+
+        const btn = document.getElementById('btn-publish-lab');
+        btn.disabled = true;
+        btn.textContent = '⏳ Publicerar…';
+        try {
+            const r = await fetch('/api/admin/lab/publish', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ menus })
+            });
+            const d = await r.json();
+            if (d.error) { showMsg('lab-msg', d.error, false); btn.disabled = false; btn.textContent = '🚀 Publicera'; return; }
+            showMsg('lab-msg', `🚀 ${d.message}`, true);
+        } catch { showMsg('lab-msg', 'Nätverksfel vid publicering.', false); }
+        btn.disabled = false;
+        btn.textContent = '🚀 Publicera testresultat';
+    }
+
+    function toggleAddLabForm() {
+        const el = document.getElementById('lab-add-form');
+        el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        if (el.style.display === 'block') document.getElementById('lab-add-url').focus();
+    }
+
+    async function labAddRestaurant() {
+        const name = document.getElementById('lab-add-name').value.trim();
+        const url  = document.getElementById('lab-add-url').value.trim();
+        if (!url) return showMsg('lab-add-msg', 'URL krävs.', false);
+        try {
+            const r = await fetch('/api/urls', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ url, name, start_disabled: true })
+            });
+            const d = await r.json();
+            if (d.error) return showMsg('lab-add-msg', d.error, false);
+            document.getElementById('lab-add-name').value = '';
+            document.getElementById('lab-add-url').value  = '';
+            showMsg('lab-add-msg', `✓ "${d.name}" lades till som inaktiv — testa den i labbet och aktivera när den funkar!`, true);
+            await loadRestaurants();
+        } catch { showMsg('lab-add-msg', 'Nätverksfel.', false); }
+    }
+
+    async function loadRestaurants() {
+        try {
+            const r = await fetch('/api/urls');
+            allUrls = await r.json();
+            renderLabCards();
+        } catch {
+            document.getElementById('lab-cards').innerHTML =
+                '<div style="color:#ef4444;font-size:13px;grid-column:1/-1;">Kunde inte ladda restauranger.</div>';
+        }
+    }
+
+    loadRestaurants();
+</script>
+{% endblock %}

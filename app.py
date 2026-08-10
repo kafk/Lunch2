@@ -1309,6 +1309,12 @@ def display():
     track_visit('/display')
     return render_template('display.html', version=VERSION)
 
+@app.route('/demo')
+def demo():
+    """Scrape Lab utan adminlösenord."""
+    track_visit('/demo')
+    return render_template('demo.html', version=VERSION)
+
 @app.route('/api/urls', methods=['GET'])
 def get_urls():
     """Hämta alla sparade URL:er."""
