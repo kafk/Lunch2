@@ -242,7 +242,7 @@
                         </svg>
                         <span class="expand-text">Visa mer</span>
                     </div>
-                    <div class="compact-full">${escapeHtml(text)}</div>
+                    <div class="compact-full">${escapeHtml(text).replace(/\n/g, '<br>')}</div>
                 </div>
             `;
         }).join('');
