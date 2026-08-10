@@ -199,13 +199,6 @@
                         <button class="btn-outline" style="padding:6px 14px;font-size:13px;" onclick="labCancelEdit(${i})">Avbryt</button>
                     </div>
                 </div>` : ''}
-                <div class="lab-card-actions">
-                    <button class="btn-outline" style="padding:6px 14px;font-size:13px;" id="lab-btn-${i}"
-                        onclick="labTestOne(${i})">Testa</button>
-                    ${result ? `<button class="btn-outline" style="padding:6px 14px;font-size:13px;" onclick="labStartEdit(${i})">✏️ Redigera</button>` : ''}
-                    <a href="${escHtml(u.url)}" target="_blank" class="btn-outline"
-                        style="padding:6px 14px;font-size:13px;text-decoration:none;">Öppna ↗</a>
-                </div>
             </div>`;
         }).join('');
     }
@@ -278,13 +271,6 @@
                         <button class="btn-outline" style="padding:6px 14px;font-size:13px;" onclick="labCancelEdit(${index})">Avbryt</button>
                     </div>
                 </div>` : ''}
-                <div class="lab-card-actions">
-                    <button class="btn-outline" style="padding:6px 14px;font-size:13px;" id="lab-btn-${index}"
-                        onclick="labTestOne(${index})">Testa</button>
-                    ${result ? `<button class="btn-outline" style="padding:6px 14px;font-size:13px;" onclick="labStartEdit(${index})">✏️ Redigera</button>` : ''}
-                    <a href="${escHtml(u.url)}" target="_blank" class="btn-outline"
-                        style="padding:6px 14px;font-size:13px;text-decoration:none;">Öppna ↗</a>
-                </div>
             </div>`;
         existing.outerHTML = html;
     }
