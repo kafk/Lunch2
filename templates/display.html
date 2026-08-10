@@ -532,6 +532,86 @@
     const modalBody = document.getElementById('modalBody');
 
     let allMenus = [];
+    let allUrls = [];
+
+    function getVisibleMenus() {
+        const localPrefs = JSON.parse(localStorage.getItem('restaurant_user_preferences') || '{}');
+        return allMenus.filter(menu => {
+            if (localPrefs[menu.name] !== undefined) return localPrefs[menu.name];
+            // Fall back to admin default from urls list
+            const urlEntry = allUrls.find(u => u.name === menu.name);
+            return urlEntry ? urlEntry.enabled !== false : true;
+        });
+    }
+
+    function renderViews() {
+        const menus = getVisibleMenus();
+
+        menuGrid.innerHTML = menus.map(menu => {
+            const isPdf = menu.source && menu.source.toLowerCase().includes('pdf');
+            return `
+                <div class="menu-card">
+                    <div class="menu-card-title">
+                        <a href="${escapeHtml(menu.url)}" target="_blank" class="menu-card-name-link">${escapeHtml(menu.name)}</a>
+                        <span class="menu-card-badge ${isPdf ? 'pdf' : 'html'}">${isPdf ? 'PDF' : 'HTML'}</span>
+                    </div>
+                    <div class="menu-card-content">${formatMenuContent(menu.menu)}</div>
+                </div>
+            `;
+        }).join('');
+
+        menuList.innerHTML = menus.map(menu => {
+            const isPdf = menu.source && menu.source.toLowerCase().includes('pdf');
+            return `
+                <div class="menu-item">
+                    <div class="menu-item-header">
+                        <span class="menu-item-name">${escapeHtml(menu.name)}</span>
+                        <span class="menu-item-badge ${isPdf ? 'pdf' : 'html'}">${isPdf ? 'PDF' : 'HTML'}</span>
+                    </div>
+                    <div class="menu-item-content">${escapeHtml(menu.menu)}</div>
+                    <div class="menu-item-footer">
+                        <span class="menu-item-time">${menu.scraped_at || ''}</span>
+                        <div class="menu-item-status">
+                            <span class="status-dot ${menu.success ? 'success' : 'error'}"></span>
+                            <a href="${escapeHtml(menu.url)}" target="_blank" style="color: #22c55e;">Besök →</a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        menuTable.innerHTML = menus.map(menu => `
+            <tr>
+                <td class="table-restaurant">${escapeHtml(menu.name)}</td>
+                <td class="table-menu">${escapeHtml(menu.menu)}</td>
+                <td class="table-source">${menu.source ? escapeHtml(menu.source.substring(0, 25)) : '-'}</td>
+            </tr>
+        `).join('');
+
+        compactList.innerHTML = menus.map((menu, i) => `
+            <div class="compact-item" onclick="toggleCompact(this, event)">
+                <div class="compact-header">
+                    <span class="compact-name"><span class="compact-dot"></span>${escapeHtml(menu.name)}</span>
+                    <a href="${escapeHtml(menu.url)}" target="_blank" class="compact-link" onclick="event.stopPropagation()">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                            <polyline points="15 3 21 3 21 9"/>
+                            <line x1="10" y1="14" x2="21" y2="3"/>
+                        </svg>
+                        ${new URL(menu.url).hostname.replace('www.', '')}
+                    </a>
+                </div>
+                <div class="compact-preview">${escapeHtml(getPreview(menu.menu))}</div>
+                <div class="compact-expand">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                    <span class="expand-text">Visa mer</span>
+                </div>
+                <div class="compact-full">${escapeHtml(menu.menu)}</div>
+            </div>
+        `).join('');
+    }
 
     // Update date/time
     function updateDateTime() {
@@ -589,9 +669,9 @@
 
         try {
             const urlsResponse = await fetch('/api/urls');
-            const urls = await urlsResponse.json();
+            allUrls = await urlsResponse.json();
 
-            if (urls.length === 0) {
+            if (allUrls.length === 0) {
                 emptyState.style.display = 'block';
                 loading.style.display = 'none';
                 refreshBtn.disabled = false;
@@ -602,76 +682,9 @@
             if (forceRefresh) params.set('refresh', 'true');
             const response = await fetch('/api/menus?' + params.toString());
             const data = await response.json();
-            allMenus = data.menus || data;  // Support both new and old format
+            allMenus = data.menus || data;
 
-            // Cards View
-            menuGrid.innerHTML = allMenus.map(menu => {
-                const isPdf = menu.source && menu.source.toLowerCase().includes('pdf');
-                return `
-                    <div class="menu-card">
-                        <div class="menu-card-title">
-                            <a href="${escapeHtml(menu.url)}" target="_blank" class="menu-card-name-link">${escapeHtml(menu.name)}</a>
-                            <span class="menu-card-badge ${isPdf ? 'pdf' : 'html'}">${isPdf ? 'PDF' : 'HTML'}</span>
-                        </div>
-                        <div class="menu-card-content">${formatMenuContent(menu.menu)}</div>
-                    </div>
-                `;
-            }).join('');
-
-            // List View (same as main page)
-            menuList.innerHTML = allMenus.map(menu => {
-                const isPdf = menu.source && menu.source.toLowerCase().includes('pdf');
-                return `
-                    <div class="menu-item">
-                        <div class="menu-item-header">
-                            <span class="menu-item-name">${escapeHtml(menu.name)}</span>
-                            <span class="menu-item-badge ${isPdf ? 'pdf' : 'html'}">${isPdf ? 'PDF' : 'HTML'}</span>
-                        </div>
-                        <div class="menu-item-content">${escapeHtml(menu.menu)}</div>
-                        <div class="menu-item-footer">
-                            <span class="menu-item-time">${menu.scraped_at || ''}</span>
-                            <div class="menu-item-status">
-                                <span class="status-dot ${menu.success ? 'success' : 'error'}"></span>
-                                <a href="${escapeHtml(menu.url)}" target="_blank" style="color: #22c55e;">Besök →</a>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            // Regular Table View
-            menuTable.innerHTML = allMenus.map(menu => `
-                <tr>
-                    <td class="table-restaurant">${escapeHtml(menu.name)}</td>
-                    <td class="table-menu">${escapeHtml(menu.menu)}</td>
-                    <td class="table-source">${menu.source ? escapeHtml(menu.source.substring(0, 25)) : '-'}</td>
-                </tr>
-            `).join('');
-
-            // Compact View
-            compactList.innerHTML = allMenus.map((menu, i) => `
-                <div class="compact-item" onclick="toggleCompact(this, event)">
-                    <div class="compact-header">
-                        <span class="compact-name"><span class="compact-dot"></span>${escapeHtml(menu.name)}</span>
-                        <a href="${escapeHtml(menu.url)}" target="_blank" class="compact-link" onclick="event.stopPropagation()">
-                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
-                                <polyline points="15 3 21 3 21 9"/>
-                                <line x1="10" y1="14" x2="21" y2="3"/>
-                            </svg>
-                            ${new URL(menu.url).hostname.replace('www.', '')}
-                        </a>
-                    </div>
-                    <div class="compact-preview">${escapeHtml(getPreview(menu.menu))}</div>
-                    <div class="compact-expand">
-                        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path d="M6 9l6 6 6-6"/>
-                        </svg>
-                        <span class="expand-text">Visa mer</span>
-                    </div>
-                    <div class="compact-full">${escapeHtml(menu.menu)}</div>
-                </div>
-            `).join('');
+            renderViews();
 
         } catch (error) {
             menuGrid.innerHTML = '<div class="error-msg">Kunde inte hämta menyer</div>';
@@ -777,6 +790,11 @@
             expandText.textContent = 'Visa mer';
         }
     }
+
+    // Re-render instantly when main page toggles a restaurant
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'restaurant_user_preferences') renderViews();
+    });
 
     // Auto-force-refresh if ?refresh=true is in the URL
     const urlParams = new URLSearchParams(window.location.search);
