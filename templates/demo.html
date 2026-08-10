@@ -243,17 +243,73 @@
         labUpdateSummary();
     }
 
-    async function labTestOne(index) {
-        const u        = allUrls[index];
+    function setCardLoading(index) {
         const card     = document.getElementById(`lab-card-${index}`);
         const btn      = document.getElementById(`lab-btn-${index}`);
         const statusEl = document.getElementById(`lab-status-${index}`);
-
+        if (!card) return;
         card.classList.remove('lab-success', 'lab-failed');
         card.classList.add('lab-testing');
         if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
-        statusEl.innerHTML = '<span class="spin" style="width:14px;height:14px;border-width:2px;"></span><span style="font-size:12px;color:#9ca3af;"> Skrapar…</span>';
+        if (statusEl) statusEl.innerHTML = '<span class="spin" style="width:14px;height:14px;border-width:2px;"></span><span style="font-size:12px;color:#9ca3af;"> Skrapar…</span>';
+    }
 
+    function renderSingleCard(index) {
+        const existing = document.getElementById(`lab-card-${index}`);
+        if (!existing) return;
+        const u = allUrls[index];
+        if (!u) return;
+        const enabled = u.enabled !== false;
+        const result  = labResults[index];
+        const stateClass    = result ? (result.success ? 'lab-success' : 'lab-failed') : '';
+        const disabledClass = !enabled ? 'lab-disabled' : '';
+        const preview = result && result.success && result.menu
+            ? (labView === 'today' ? adminExtractToday(result.menu) : result.menu).trim().slice(0, 2000)
+              + ((labView === 'today' ? adminExtractToday(result.menu) : result.menu).length > 2000 ? '\n…' : '')
+            : null;
+        const html = `
+            <div class="lab-card ${stateClass} ${disabledClass}" id="lab-card-${index}">
+                <div class="lab-card-header">
+                    <div class="lab-card-icon">${enabled ? '🍴' : '⏸'}</div>
+                    <div class="lab-card-info">
+                        <div class="lab-card-name">${escHtml(u.name)}</div>
+                        <div class="lab-card-domain">${labDomain(u.url)}</div>
+                    </div>
+                    <span class="chip ${enabled ? 'chip-green' : 'chip-yellow'}" style="flex-shrink:0;font-size:11px;">
+                        <span class="chip-dot"></span>${enabled ? 'Live' : 'Inaktiv'}
+                    </span>
+                </div>
+                <div class="lab-card-status" id="lab-status-${index}">
+                    ${labStatusHtml(result)}
+                    <div style="margin-left:auto;display:flex;background:#f3f4f6;border-radius:6px;padding:1px;gap:1px;flex-shrink:0;${!result || !result.success || !result.menu ? 'opacity:.35;pointer-events:none;' : ''}">
+                        <button id="lab-cv-today-${index}" onclick="labCardToggleView(${index},'today')"
+                            style="padding:3px 9px;border:none;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;background:white;color:#111827;box-shadow:0 1px 2px rgba(0,0,0,.1);">Idag</button>
+                        <button id="lab-cv-week-${index}"  onclick="labCardToggleView(${index},'week')"
+                            style="padding:3px 9px;border:none;border-radius:5px;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;background:transparent;color:#9ca3af;">Vecka</button>
+                    </div>
+                </div>
+                ${preview != null ? `<div class="lab-card-preview" id="lab-preview-${index}">${escHtml(preview)}</div>
+                <div class="lab-card-edit-area" id="lab-edit-${index}">
+                    <textarea id="lab-textarea-${index}">${escHtml(result.menu || '')}</textarea>
+                    <div class="edit-btns">
+                        <button class="btn-green" style="padding:6px 14px;font-size:13px;" onclick="labSaveEdit(${index})">Spara</button>
+                        <button class="btn-outline" style="padding:6px 14px;font-size:13px;" onclick="labCancelEdit(${index})">Avbryt</button>
+                    </div>
+                </div>` : ''}
+                <div class="lab-card-actions">
+                    <button class="btn-outline" style="padding:6px 14px;font-size:13px;" id="lab-btn-${index}"
+                        onclick="labTestOne(${index})">Testa</button>
+                    ${result ? `<button class="btn-outline" style="padding:6px 14px;font-size:13px;" onclick="labStartEdit(${index})">✏️ Redigera</button>` : ''}
+                    <a href="${escHtml(u.url)}" target="_blank" class="btn-outline"
+                        style="padding:6px 14px;font-size:13px;text-decoration:none;">Öppna ↗</a>
+                </div>
+            </div>`;
+        existing.outerHTML = html;
+    }
+
+    async function labTestOne(index) {
+        const u = allUrls[index];
+        setCardLoading(index);
         try {
             const r = await fetch('/api/admin/test-scrape', {
                 method: 'POST',
@@ -264,7 +320,7 @@
         } catch (e) {
             labResults[index] = { success: false, menu: 'Nätverksfel: ' + e.message };
         }
-        renderLabCards();
+        renderSingleCard(index);
         labUpdateSummary();
     }
 
@@ -274,6 +330,8 @@
         btn.textContent = '⏳ Testar…';
         labResults = {};
         renderLabCards();
+        // Pre-set all cards to loading state before parallel fetches begin
+        allUrls.forEach((_, i) => setCardLoading(i));
         await Promise.all(allUrls.map((_, i) => labTestOne(i)));
         btn.disabled = false;
         btn.textContent = '▶ Testa alla';
