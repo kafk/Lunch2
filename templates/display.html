@@ -183,78 +183,25 @@
         gap: 20px;
     }
 
-    .menu-card {
-        background: white;
-        border-radius: 16px;
-        padding: 20px;
-        border: 1px solid #f0f0f0;
-        border-left: 4px solid #22c55e;
-        transition: all 0.2s;
-    }
+    .chip { display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600; }
+    .chip-green  { background:#dcfce7;color:#166534; }
+    .chip-red    { background:#fee2e2;color:#991b1b; }
+    .chip-dot { width:7px;height:7px;border-radius:50%;background:currentColor; }
 
-    .menu-card:hover {
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    }
+    .lab-card { background:white;border-radius:14px;border:2px solid #e8ebe9;overflow:hidden;transition:border-color .2s,box-shadow .2s; }
+    .lab-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.07); }
+    .lab-card.lab-success { border-color:#22c55e; }
+    .lab-card.lab-failed  { border-color:#ef4444; }
 
-    .menu-card:nth-child(5n+2) { border-left-color: #eab308; }
-    .menu-card:nth-child(5n+3) { border-left-color: #3b82f6; }
-    .menu-card:nth-child(5n+4) { border-left-color: #8b5cf6; }
-    .menu-card:nth-child(5n+5) { border-left-color: #ec4899; }
+    .lab-card-header { display:flex;align-items:center;gap:12px;padding:16px 16px 10px; }
+    .lab-card-icon { width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;background:#f0fdf4; }
+    .lab-card-info { flex:1;min-width:0; }
+    .lab-card-name { font-size:14px;font-weight:600;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .lab-card-domain { font-size:12px;margin-top:1px; }
+    .lab-card-content { margin:0 16px 16px;font-size:13px;color:#374151;line-height:1.5;max-height:300px;overflow-y:auto; }
 
-    .menu-card-title {
-        font-size: 15px;
-        font-weight: 600;
-        color: #1f2937;
-        margin-bottom: 12px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .menu-card-name-link {
-        color: #1f2937;
-        text-decoration: none;
-        border-bottom: 1px solid transparent;
-        transition: color 0.15s, border-color 0.15s;
-    }
-
-    .menu-card-name-link:hover {
-        color: #7c3aed;
-        border-bottom-color: #7c3aed;
-    }
-
-    .menu-card-badge {
-        font-size: 11px;
-        padding: 4px 10px;
-        border-radius: 6px;
-        font-weight: 500;
-    }
-
-    .menu-card-badge.pdf {
-        background: #dbeafe;
-        color: #1d4ed8;
-    }
-
-    .menu-card-badge.html {
-        background: #f3e8ff;
-        color: #7c3aed;
-    }
-
-    .menu-card-content {
-        font-size: 13px;
-        color: #6b7280;
-        line-height: 1.5;
-        max-height: 200px;
-        overflow-y: auto;
-    }
-
-    .dish-block {
-        margin-bottom: 14px;
-    }
-
-    .dish-block:last-child {
-        margin-bottom: 0;
-    }
+    .dish-block { margin-bottom:14px; }
+    .dish-block:last-child { margin-bottom:0; }
 
     /* Modal */
     .modal {
@@ -548,14 +495,19 @@
         const menus = getVisibleMenus();
 
         menuGrid.innerHTML = menus.map(menu => {
-            const isPdf = menu.source && menu.source.toLowerCase().includes('pdf');
+            const stateClass = menu.success ? 'lab-success' : 'lab-failed';
+            const domain = (() => { try { return new URL(menu.url).hostname.replace('www.',''); } catch { return menu.url; } })();
             return `
-                <div class="menu-card">
-                    <div class="menu-card-title">
-                        <a href="${escapeHtml(menu.url)}" target="_blank" class="menu-card-name-link">${escapeHtml(menu.name)}</a>
-                        <span class="menu-card-badge ${isPdf ? 'pdf' : 'html'}">${isPdf ? 'PDF' : 'HTML'}</span>
+                <div class="lab-card ${stateClass}">
+                    <div class="lab-card-header">
+                        <div class="lab-card-icon">${menu.success ? '🍴' : '❌'}</div>
+                        <div class="lab-card-info">
+                            <div class="lab-card-name">${escapeHtml(menu.name)}</div>
+                            <div class="lab-card-domain"><a href="${escapeHtml(menu.url)}" target="_blank" style="color:#3b82f6;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${domain}</a></div>
+                        </div>
+                        <span class="chip chip-green" style="flex-shrink:0;font-size:11px;"><span class="chip-dot"></span>Live</span>
                     </div>
-                    <div class="menu-card-content">${formatMenuContent(menu.menu)}</div>
+                    <div class="lab-card-content">${formatMenuContent(menu.menu)}</div>
                 </div>
             `;
         }).join('');
