@@ -2,6 +2,14 @@
 
 {% block title %}Lunch Monitor{% endblock %}
 
+{% block styles %}
+<style>
+    /* Allow restaurant name + meta to truncate instead of overflowing the side panel */
+    .device-info { min-width: 0; }
+    .device-name, .device-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+</style>
+{% endblock %}
+
 {% block content %}
 <!-- Header -->
 <div class="header">
@@ -78,7 +86,7 @@
                     </svg>
                 </a>
             </div>
-            <div class="device-list" id="restaurantList" style="max-height:60vh;overflow-y:auto;">
+            <div class="device-list" id="restaurantList">
                 <div class="loading-text" style="text-align: center; padding: 20px;">Laddar...</div>
             </div>
         </div>
