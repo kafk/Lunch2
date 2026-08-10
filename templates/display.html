@@ -28,7 +28,8 @@
 
 <!-- View Toggle -->
 <div class="card" style="margin-bottom: 20px;">
-    <div class="view-toggle">
+    <div class="view-toggle" style="justify-content:space-between;">
+        <div style="display:flex;gap:4px;">
         <button class="view-btn active" data-view="cards">
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <rect x="3" y="3" width="7" height="7"/>
@@ -63,6 +64,13 @@
             </svg>
             Kompakt
         </button>
+        </div>
+        <div style="display:flex;background:#f3f4f6;border-radius:8px;padding:2px;gap:2px;">
+            <button id="disp-btn-today" onclick="setDisplayView('today')"
+                style="padding:5px 14px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;background:white;color:#111827;box-shadow:0 1px 3px rgba(0,0,0,.1);">Idag</button>
+            <button id="disp-btn-week" onclick="setDisplayView('week')"
+                style="padding:5px 14px;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;background:transparent;color:#6b7280;">Vecka</button>
+        </div>
     </div>
 </div>
 
@@ -481,6 +489,35 @@
     let allMenus = [];
     let allUrls = [];
 
+    const WEEKDAYS = ['M\u00e5ndag','Tisdag','Onsdag','Torsdag','Fredag','L\u00f6rdag','S\u00f6ndag'];
+    const isWeekday = new Date().getDay() >= 1 && new Date().getDay() <= 5;
+    let displayView = isWeekday ? 'today' : 'week';
+
+    function extractToday(text) {
+        if (!text) return text;
+        const idx   = new Date().getDay();
+        const today = WEEKDAYS[idx === 0 ? 6 : idx - 1];
+        const lines = text.split('\n');
+        let start = -1, end = lines.length;
+        for (let i = 0; i < lines.length; i++) {
+            const l = lines[i].trim();
+            if (start === -1 && new RegExp('\\b' + today + '\\b', 'i').test(l)) { start = i; }
+            else if (start !== -1) {
+                if (WEEKDAYS.filter(d => d !== today).some(d => new RegExp('\\b' + d + '\\b', 'i').test(l))) { end = i; break; }
+            }
+        }
+        return start === -1 ? text : lines.slice(start, end).join('\n').trim();
+    }
+
+    function setDisplayView(mode) {
+        displayView = mode;
+        const aS = 'padding:5px 14px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;background:white;color:#111827;box-shadow:0 1px 3px rgba(0,0,0,.1);';
+        const iS = 'padding:5px 14px;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;background:transparent;color:#6b7280;';
+        document.getElementById('disp-btn-today').style.cssText = mode === 'today' ? aS : iS;
+        document.getElementById('disp-btn-week').style.cssText  = mode === 'week'  ? aS : iS;
+        renderViews();
+    }
+
     function getVisibleMenus() {
         const localPrefs = JSON.parse(localStorage.getItem('restaurant_user_preferences') || '{}');
         return allMenus.filter(menu => {
@@ -493,6 +530,7 @@
 
     function renderViews() {
         const menus = getVisibleMenus();
+        const menuText = m => displayView === 'today' ? extractToday(m.menu || '') : (m.menu || '');
 
         menuGrid.innerHTML = menus.map(menu => {
             const stateClass = menu.success ? 'lab-success' : 'lab-failed';
@@ -507,7 +545,7 @@
                         </div>
                         <span class="chip chip-green" style="flex-shrink:0;font-size:11px;"><span class="chip-dot"></span>Live</span>
                     </div>
-                    <div class="lab-card-content">${formatMenuContent(menu.menu)}</div>
+                    <div class="lab-card-content">${formatMenuContent(menuText(menu))}</div>
                 </div>
             `;
         }).join('');
@@ -520,7 +558,7 @@
                         <span class="menu-item-name">${escapeHtml(menu.name)}</span>
                         <span class="menu-item-badge ${isPdf ? 'pdf' : 'html'}">${isPdf ? 'PDF' : 'HTML'}</span>
                     </div>
-                    <div class="menu-item-content">${escapeHtml(menu.menu)}</div>
+                    <div class="menu-item-content">${escapeHtml(menuText(menu))}</div>
                     <div class="menu-item-footer">
                         <span class="menu-item-time">${menu.scraped_at || ''}</span>
                         <div class="menu-item-status">
@@ -535,7 +573,7 @@
         menuTable.innerHTML = menus.map(menu => `
             <tr>
                 <td class="table-restaurant">${escapeHtml(menu.name)}</td>
-                <td class="table-menu">${escapeHtml(menu.menu)}</td>
+                <td class="table-menu">${escapeHtml(menuText(menu))}</td>
                 <td class="table-source">${menu.source ? escapeHtml(menu.source.substring(0, 25)) : '-'}</td>
             </tr>
         `).join('');
@@ -553,14 +591,14 @@
                         ${new URL(menu.url).hostname.replace('www.', '')}
                     </a>
                 </div>
-                <div class="compact-preview">${escapeHtml(getPreview(menu.menu))}</div>
+                    <div class="compact-preview">${escapeHtml(getPreview(menuText(menu)))}</div>
                 <div class="compact-expand">
                     <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M6 9l6 6 6-6"/>
                     </svg>
                     <span class="expand-text">Visa mer</span>
                 </div>
-                <div class="compact-full">${escapeHtml(menu.menu)}</div>
+                <div class="compact-full">${escapeHtml(menuText(menu)).replace(/\n/g, '<br>')}</div>
             </div>
         `).join('');
     }
@@ -630,7 +668,7 @@
                 return;
             }
 
-            const params = new URLSearchParams({ today_only: 'true' });
+            const params = new URLSearchParams();
             if (forceRefresh) params.set('refresh', 'true');
             const response = await fetch('/api/menus?' + params.toString());
             const data = await response.json();
