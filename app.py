@@ -1019,7 +1019,7 @@ def scrape_tsukihana(url, name, session):
     """Custom scraper för tsukihana.net – filtrerar till bara dagens + veckans måltider.
 
     Menyn är en kontinuerlig textblob där veckodagen sitter i måltiteln,
-    t.ex. "Dagens Kött Onsdag 120 kr Helstekt fläskfilé...".
+    t.ex. "Dagens Kött Onsdag120 kr Helstekt fläskfilé..." (pris utan mellanrum).
     Vi normaliserar texten och splitar på sektionsgränser med regex.
     """
     try:
@@ -1042,20 +1042,20 @@ def scrape_tsukihana(url, name, session):
         # Lookahead-splitten behåller startmarkören i varje bit
         split_pat = re.compile(
             r'(?=\bDagens\s+\w'
-            r'|\bVeckans\s+vegetarisk\b'
-            r'|\bCaesarsallad\s+\d'
-            r'|\bRäksallad\s+\d'
+            r'|\bVeckans\s+vegetarisk'
+            r'|\bCaesarsallad\s*\d'
+            r'|\bRäksallad\s*\d'
             r'|\bSushi\s+Extra\b)',
             re.IGNORECASE
         )
         chunks = split_pat.split(full_text)
 
         daily_re = re.compile(
-            r'^Dagens\s+(\w+)\s+(' + weekday_re_str + r')\s+(\d+\s*kr)\s+(.*)',
+            r'^Dagens\s+(\w+)\s+(' + weekday_re_str + r')\s*(\d+\s*kr)\s*(.*)',
             re.IGNORECASE | re.DOTALL
         )
         weekly_re = re.compile(
-            r'^(Veckans\s+vegetarisk|Caesarsallad|Räksallad)\s+(\d+\s*kr)\s+(.*)',
+            r'^(Veckans\s+vegetarisk|Caesarsallad|Räksallad)\s*(\d+\s*kr)\s*(.*)',
             re.IGNORECASE | re.DOTALL
         )
 
@@ -1078,7 +1078,7 @@ def scrape_tsukihana(url, name, session):
                     key = f"d-{meal_type.lower()}"
                     if key not in seen:
                         seen.add(key)
-                        menu_parts.append(f"Dagens {meal_type} {day} {price}\n{desc}")
+                        menu_parts.append(f"Dagens {meal_type} {day} {price}\n{desc}".strip())
                 continue
 
             m = weekly_re.match(chunk)
