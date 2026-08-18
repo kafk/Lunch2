@@ -1029,9 +1029,7 @@ def scrape_tsukihana(url, name, session):
             response.encoding = response.apparent_encoding
         soup = BeautifulSoup(response.text, 'lxml')
 
-        today = swedish_now()
         weekdays_sv = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag']
-        today_name = weekdays_sv[today.weekday()]
 
         # Normalisera all text till en enda rad (sidan upprepar menyn 3 ggr)
         full_text = re.sub(r'\s+', ' ', soup.get_text(separator=' ')).strip()
@@ -1059,7 +1057,8 @@ def scrape_tsukihana(url, name, session):
             re.IGNORECASE | re.DOTALL
         )
 
-        menu_parts = []
+        # Collect all days so week-view shows the full menu; frontend filters to today
+        day_parts = {day: [] for day in weekdays_sv}
         weekly_parts = []
         seen = set()
 
@@ -1071,14 +1070,13 @@ def scrape_tsukihana(url, name, session):
             m = daily_re.match(chunk)
             if m:
                 meal_type = m.group(1).strip()
-                day = m.group(2).strip()
+                day = m.group(2).strip().capitalize()
                 price = m.group(3).strip()
                 desc = m.group(4).strip()
-                if day.lower() == today_name.lower():
-                    key = f"d-{meal_type.lower()}"
-                    if key not in seen:
-                        seen.add(key)
-                        menu_parts.append(f"Dagens {meal_type} {day} {price}\n{desc}".strip())
+                key = f"d-{day.lower()}-{meal_type.lower()}"
+                if key not in seen and day in day_parts:
+                    seen.add(key)
+                    day_parts[day].append(f"Dagens {meal_type} {day} {price}\n{desc}".strip())
                 continue
 
             m = weekly_re.match(chunk)
@@ -1091,6 +1089,7 @@ def scrape_tsukihana(url, name, session):
                     seen.add(key)
                     weekly_parts.append(f"{item} {price}\n{desc}")
 
+        menu_parts = [item for day in weekdays_sv for item in day_parts[day]]
         all_parts = menu_parts + weekly_parts
 
         if all_parts:
