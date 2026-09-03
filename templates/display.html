@@ -501,16 +501,16 @@
         if (!text) return text;
         const idx   = new Date().getDay();
         const today = WEEKDAYS[idx === 0 ? 6 : idx - 1];
-        const weekdayPattern = new RegExp('\\b(' + WEEKDAYS.join('|') + ')\\b', 'gi');
-        const markers = [...text.matchAll(weekdayPattern)];
-        const todayMarker = markers.find(marker => marker[1].toLowerCase() === today.toLowerCase());
-        if (!todayMarker) return '';
-
-        const nextDayMarker = markers.find(marker =>
-            marker.index > todayMarker.index && marker[1].toLowerCase() !== today.toLowerCase()
-        );
-        const end = nextDayMarker ? nextDayMarker.index : text.length;
-        return text.slice(todayMarker.index, end).trim();
+        const lines = text.split('\n');
+        let start = -1, end = lines.length;
+        for (let i = 0; i < lines.length; i++) {
+            const l = lines[i].trim();
+            if (start === -1 && new RegExp('\\b' + today + '\\b', 'i').test(l)) { start = i; }
+            else if (start !== -1) {
+                if (WEEKDAYS.filter(d => d !== today).some(d => new RegExp('\\b' + d + '\\b', 'i').test(l))) { end = i; break; }
+            }
+        }
+        return start === -1 ? text : lines.slice(start, end).join('\n').trim();
     }
 
     function setDisplayView(mode) {
