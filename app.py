@@ -520,7 +520,7 @@ def format_menu_text(text):
     # Sortera veckodagar i rätt ordning (måndag först)
     # Matchar även veckodagar med valfri suffix, t.ex. "Torsdag - Grilltorsdag!" eller "Måndag 26/5"
     weekday_order = ['MÅNDAG', 'TISDAG', 'ONSDAG', 'TORSDAG', 'FREDAG', 'LÖRDAG', 'SÖNDAG']
-    weekday_pattern = re.compile(r'^(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)\b.*$', re.IGNORECASE | re.MULTILINE)
+    weekday_pattern = re.compile(r'^(Måndag|Tisdag|Onsdag|Torsdag(?:sgrill)?|Fredag|Lördag|Söndag)\b.*$', re.IGNORECASE | re.MULTILINE)
 
     # Hitta alla veckodagsektioner
     matches = list(weekday_pattern.finditer(text))
@@ -532,9 +532,13 @@ def format_menu_text(text):
         day_sections = {}
         for i, match in enumerate(matches):
             day_name = match.group(1).upper()
+            if day_name == 'TORSDAGSGRILL':
+                day_name = 'TORSDAG'
             start = match.start()
             end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-            day_sections[day_name] = text[start:end].strip()
+            section = text[start:end].strip()
+            section = re.sub(r'^Torsdagsgrill!?', 'Torsdag', section, count=1, flags=re.IGNORECASE)
+            day_sections[day_name] = section
 
         # Bygg om texten i rätt ordning
         sorted_sections = []
@@ -569,7 +573,7 @@ def extract_today_section(text):
     # Kolla om texten har veckodagssektioner (samma mönster som format_menu_text)
     # Matchar även veckodagar med valfri suffix, t.ex. "Torsdag - Grilltorsdag!" eller "Måndag 26/5"
     weekday_pattern = re.compile(
-        r'^(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)\b.*$',
+        r'^(Måndag|Tisdag|Onsdag|Torsdag(?:sgrill)?|Fredag|Lördag|Söndag)\b.*$',
         re.IGNORECASE | re.MULTILINE
     )
     matches = list(weekday_pattern.finditer(text))
@@ -582,9 +586,13 @@ def extract_today_section(text):
     day_sections = {}
     for i, match in enumerate(matches):
         day_name = match.group(1).upper()
+        if day_name == 'TORSDAGSGRILL':
+            day_name = 'TORSDAG'
         start = match.start()
         end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-        day_sections[day_name] = text[start:end].strip()
+        section = text[start:end].strip()
+        section = re.sub(r'^Torsdagsgrill!?', 'Torsdag', section, count=1, flags=re.IGNORECASE)
+        day_sections[day_name] = section
 
     # Kolla om det finns en veckanssektion EFTER sista veckodagen
     # (t.ex. Tildas PDF: MÅNDAG…FREDAG…KÖTT ❖ … FISK ❖ …)
