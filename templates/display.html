@@ -524,12 +524,13 @@
 
     function getVisibleMenus() {
         const localPrefs = JSON.parse(localStorage.getItem('restaurant_user_preferences') || '{}');
-        return allMenus.filter(menu => {
-            if (localPrefs[menu.name] !== undefined) return localPrefs[menu.name];
+        const visibleUrls = allUrls.filter(urlEntry => {
+            if (localPrefs[urlEntry.name] !== undefined) return localPrefs[urlEntry.name];
             // Fall back to admin default from urls list
-            const urlEntry = allUrls.find(u => u.name === menu.name);
-            return urlEntry ? urlEntry.enabled !== false : true;
+            return urlEntry.enabled !== false;
         });
+        const menusByName = new Map(allMenus.map(menu => [menu.name, menu]));
+        return visibleUrls.map(urlEntry => menusByName.get(urlEntry.name)).filter(Boolean);
     }
 
     function renderViews() {
