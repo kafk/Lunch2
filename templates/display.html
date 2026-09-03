@@ -504,7 +504,7 @@
         const weekdayPattern = new RegExp('\\b(' + WEEKDAYS.join('|') + ')\\b', 'gi');
         const markers = [...text.matchAll(weekdayPattern)];
         const todayMarker = markers.find(marker => marker[1].toLowerCase() === today.toLowerCase());
-        if (!todayMarker) return text;
+        if (!todayMarker) return '';
 
         const nextDayMarker = markers.find(marker =>
             marker.index > todayMarker.index && marker[1].toLowerCase() !== today.toLowerCase()
