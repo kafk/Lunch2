@@ -970,6 +970,26 @@ def scrape_roots(url, name, session):
             response.encoding = response.apparent_encoding
         soup = BeautifulSoup(response.text, 'lxml')
 
+        def isolate_lunch_week(menu_text):
+            first_day = re.search(r'\bMåndag\b', menu_text, re.IGNORECASE)
+            if not first_day:
+                return menu_text
+            menu_text = menu_text[first_day.start():]
+            end = re.search(r'\bVi erbjuder\b', menu_text, re.IGNORECASE)
+            return menu_text[:end.start()] if end else menu_text
+
+        def has_monday_dishes(menu_text):
+            monday_section = re.search(
+                r'\bMåndag\b(.*?)(?=\b(?:Tisdag|Onsdag|Torsdag|Fredag)\b|$)',
+                menu_text,
+                re.IGNORECASE | re.DOTALL
+            )
+            return bool(monday_section and re.search(
+                r'\b(?:Vegetariskt|Fisk|Kött|Streetfood)\s*:',
+                monday_section.group(1),
+                re.IGNORECASE
+            ))
+
         # Sök i script-taggar efter Wix-inbäddad menytext
         for script in soup.find_all('script'):
             script_text = script.string or ''
@@ -989,8 +1009,9 @@ def scrape_roots(url, name, session):
                 alpha_pos = re.search(r'\bALPHA\b', menu_text)
                 if alpha_pos and alpha_pos.start() > 100:
                     menu_text = menu_text[:alpha_pos.start()]
+                menu_text = isolate_lunch_week(menu_text)
                 menu_text = format_menu_text(menu_text)
-                if len(menu_text) > 100:
+                if len(menu_text) > 100 and has_monday_dishes(menu_text):
                     return {
                         'name': name,
                         'url': url,
@@ -1008,8 +1029,9 @@ def scrape_roots(url, name, session):
             alpha_pos = re.search(r'\bALPHA\b', menu_text)
             if alpha_pos and alpha_pos.start() > 100:
                 menu_text = menu_text[:alpha_pos.start()]
+            menu_text = isolate_lunch_week(menu_text)
             menu_text = format_menu_text(menu_text)
-            if len(menu_text) > 100:
+            if len(menu_text) > 100 and has_monday_dishes(menu_text):
                 return {
                     'name': name,
                     'url': url,
