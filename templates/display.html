@@ -67,7 +67,7 @@
     </div>
 </div>
 
-<!-- Floating Day / Week Toggle (Above Bottom Menu, Left) -->
+<!-- Floating Day / Week Toggle (Above Bottom Menu, Right) -->
 <div class="day-week-toggle-container">
     <button id="disp-btn-today" class="day-toggle-btn active" onclick="setDisplayView('today')">Idag</button>
     <button id="disp-btn-week" class="day-toggle-btn" onclick="setDisplayView('week')">Vecka</button>
@@ -145,11 +145,11 @@
         }
     }
 
-    /* Floating Day/Week Toggle above bottom nav on the left */
+    /* Floating Day/Week Toggle above bottom nav on the right */
     .day-week-toggle-container {
         position: fixed;
         bottom: 74px;
-        left: 16px;
+        right: 16px;
         z-index: 950;
         display: inline-flex;
         background: white;
@@ -183,7 +183,7 @@
     @media (min-width: 769px) {
         .day-week-toggle-container {
             bottom: 24px;
-            left: 92px;
+            right: 24px;
         }
     }
 
