@@ -8,6 +8,7 @@ import hashlib
 import uuid
 from datetime import datetime, timedelta
 from io import BytesIO
+import base64
 from pypdf import PdfReader
 try:
     from zoneinfo import ZoneInfo
@@ -34,7 +35,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '0126')
 
-VERSION = '3.41'
+VERSION = '3.42'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 STAGING_FILE = 'staging.json'
@@ -1138,6 +1139,84 @@ def scrape_tsukihana(url, name, session):
     return None
 
 
+def scrape_nordic_taste_lab(url, name, session):
+    """Custom scraper för Nordic Taste Lab (Compass Group).
+    
+    Hämtar veckans publicerade menybild (svenska-v{vecka}.png).
+    Om en Vision AI-nyckel (GEMINI_API_KEY eller OPENAI_API_KEY) är konfigurerad
+    tolkas bilden till ren text. Annars visas en länk till bilden.
+    """
+    try:
+        now = swedish_now()
+        current_week = now.isocalendar()[1]
+        candidate_weeks = [current_week, current_week + 1, current_week - 1]
+        
+        image_url = None
+        active_week = current_week
+        
+        # Sök efter veckans menybild
+        for week in candidate_weeks:
+            test_url = f"https://www.compass-group.se/contentassets/ce576758e5e44ad59e25f885b130d4ca/svenska-v{week}.png"
+            try:
+                res = session.head(test_url, timeout=5)
+                if res.status_code == 200:
+                    image_url = test_url
+                    active_week = week
+                    break
+            except Exception:
+                pass
+                
+        if not image_url:
+            return None
+            
+        # Kolla om Vision AI API är konfigurerat (Gemini eller OpenAI)
+        gemini_key = os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY')
+        if gemini_key:
+            try:
+                img_res = session.get(image_url, timeout=15)
+                img_b64 = base64.b64encode(img_res.content).decode('utf-8')
+                
+                gemini_endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
+                payload = {
+                    "contents": [{
+                        "parts": [
+                            {"text": "Extrahera veckans lunchmeny (Måndag till Fredag) från denna bild. Formatera tydligt med MÅNDAG, TISDAG, ONSDAG, TORSDAG, FREDAG och rätterna under varje dag med eventuella priser och kategorier."},
+                            {"inline_data": {"mime_type": "image/png", "data": img_b64}}
+                        ]
+                    }]
+                }
+                resp = session.post(gemini_endpoint, json=payload, timeout=20)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    extracted_text = data['candidates'][0]['content']['parts'][0]['text']
+                    formatted_menu = format_menu_text(extracted_text)
+                    if formatted_menu and len(formatted_menu) > 30:
+                        return {
+                            'name': name,
+                            'url': url,
+                            'menu': formatted_menu,
+                            'success': True,
+                            'source': f'Bild OCR (v{active_week})',
+                            'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+                        }
+            except Exception as e:
+                print(f"Gemini OCR call failed: {e}")
+
+        # Fallback om OCR inte är konfigurerat eller misslyckades: visa information och bildlänk
+        menu_desc = f"🖼️ Veckomeny (Vecka {active_week})\n\nMenyn publiceras som bild för vecka {active_week}.\n\nBildlänk:\n{image_url}"
+        return {
+            'name': name,
+            'url': url,
+            'menu': menu_desc,
+            'success': True,
+            'source': f'Bild (v{active_week})',
+            'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+        }
+    except Exception as e:
+        print(f"Nordic Taste Lab scraper error: {e}")
+        return None
+
+
 def scrape_url(url, name):
     """Scrapa en URL och returnera menyinformation."""
     try:
@@ -1153,6 +1232,12 @@ def scrape_url(url, name):
             'Upgrade-Insecure-Requests': '1'
         }
         session.headers.update(headers)
+
+        # SPECIAL: Nordic Taste Lab – Compass Group bildmeny med veckonummer-probing & OCR
+        if 'nordic-taste-lab' in url.lower() or 'ce576758e5e44ad59e25f885b130d4ca' in url.lower():
+            result = scrape_nordic_taste_lab(url, name, session)
+            if result:
+                return result
 
         # SPECIAL: Roots Food Market – Wix-sida med custom scraper
         if 'rootsfoodmarket' in url.lower():
