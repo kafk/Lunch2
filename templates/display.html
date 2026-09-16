@@ -12,6 +12,12 @@
                 <span>Alternativa Vyer</span>
             </div>
             <h1 class="header-temp" style="font-size: 32px;">Lunchöversikt</h1>
+            <a href="/manage" class="header-add-link">
+                Vill du lägga till en restaurang?
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+            </a>
         </div>
     </div>
     <div class="header-right">
@@ -26,7 +32,6 @@
     </div>
 </div>
 
-<!-- View Toggle -->
 <!-- View Toggle -->
 <div class="card" style="margin-bottom: 20px;">
     <div class="view-toggle">
@@ -143,6 +148,23 @@
             max-width: none;
             width: calc(100vw - 72px);
         }
+    }
+
+    .header-add-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 13px;
+        color: #22c55e;
+        text-decoration: none;
+        margin-top: 6px;
+        font-weight: 500;
+        transition: color 0.15s ease, opacity 0.15s ease;
+    }
+
+    .header-add-link:hover {
+        color: #16a34a;
+        text-decoration: underline;
     }
 
     /* Floating Day/Week Toggle above bottom nav on the right */
