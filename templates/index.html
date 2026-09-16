@@ -7,6 +7,31 @@
     /* Allow restaurant name + meta to truncate instead of overflowing the side panel */
     .device-info { min-width: 0; }
     .device-name, .device-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    @media (max-width: 768px) {
+        .card-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .card-header-actions {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-right {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            width: 100%;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -19,15 +44,23 @@
                 <span class="location-icon"></span>
                 <span>Göteborg, Sweden</span>
             </div>
-            <h1 class="header-temp" id="restaurantCount">-</h1>
-            <div class="header-weather">
-                <span>🍽️ Restauranger</span>
+            <div style="display: flex; align-items: baseline; gap: 10px; margin: 4px 0;">
+                <h1 class="header-temp" id="restaurantCount">-</h1>
+                <div class="header-weather" style="margin-top: 0;">
+                    <span>🍽️ Restauranger</span>
+                </div>
             </div>
+            <a href="/manage" class="header-add-link">
+                Vill du lägga till en restaurang?
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+            </a>
         </div>
     </div>
     <div class="header-right">
         <span class="date-time" id="currentDateTime"></span>
-        <span class="date-time" id="lastUpdateTimeHeader" style="margin-left: 16px; color: #6b7280;">Uppdaterad: --:--</span>
+        <span class="date-time" id="lastUpdateTimeHeader" style="color: #6b7280;">Uppdaterad: --:--</span>
         <div class="alert-badge" id="alertBadge" style="display: none;">
             <span>⚠️</span>
             <span id="alertCount">0 Varningar</span>
@@ -42,7 +75,7 @@
         <div class="card">
             <div class="card-header">
                 <span class="card-title">Dagens Lunchmenyer</span>
-                <div style="display:flex;gap:8px;align-items:center;">
+                <div class="card-header-actions" style="display:flex;gap:8px;align-items:center;">
                 <div style="display:flex;background:#f3f4f6;border-radius:8px;padding:2px;gap:2px;">
                     <button id="btn-view-today" onclick="setView('today')"
                         style="padding:5px 12px;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s;background:white;color:#111827;box-shadow:0 1px 3px rgba(0,0,0,.1);">Idag</button>

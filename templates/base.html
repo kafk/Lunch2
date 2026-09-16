@@ -221,6 +221,23 @@
             font-weight: 500;
         }
 
+        .header-add-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 13px;
+            color: #22c55e;
+            text-decoration: none;
+            margin-top: 6px;
+            font-weight: 500;
+            transition: color 0.15s ease;
+        }
+
+        .header-add-link:hover {
+            color: #16a34a;
+            text-decoration: underline;
+        }
+
         .sector-select {
             display: flex;
             align-items: center;
@@ -505,6 +522,8 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 8px;
+            gap: 8px;
+            min-width: 0;
         }
 
         .compact-name {
@@ -513,6 +532,11 @@
             font-size: 14px;
             display: flex;
             align-items: center;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
         }
 
         .compact-dot {
@@ -595,6 +619,11 @@
             align-items: center;
             gap: 4px;
             font-size: 12px;
+            max-width: 145px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
 
         .compact-link:hover {
