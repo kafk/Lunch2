@@ -35,7 +35,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '0126')
 
-VERSION = '3.46'
+VERSION = '3.47'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 STAGING_FILE = 'staging.json'
@@ -1192,7 +1192,36 @@ def scrape_nordic_taste_lab(url, name, session):
                     }]
                 }
                 
-                for model in ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']:
+                # 1. Fråga Google API efter tillgängliga modeller för nyckeln dynamiskt
+                candidate_models = []
+                try:
+                    models_res = session.get(f"https://generativelanguage.googleapis.com/v1beta/models?key={gemini_key.strip()}", timeout=8)
+                    if models_res.status_code == 200:
+                        m_data = models_res.json()
+                        for m in m_data.get('models', []):
+                            m_name = m.get('name', '').replace('models/', '')
+                            if 'generateContent' in m.get('supportedGenerationMethods', []):
+                                if 'gemini' in m_name:
+                                    candidate_models.append(m_name)
+                except Exception as list_err:
+                    print(f"List models error: {list_err}")
+
+                # Standardfallback om models-list inte svarade
+                if not candidate_models:
+                    candidate_models = [
+                        'gemini-2.0-flash',
+                        'gemini-2.0-flash-exp',
+                        'gemini-1.5-flash-latest',
+                        'gemini-1.5-flash-001',
+                        'gemini-1.5-flash-002',
+                        'gemini-1.5-flash',
+                        'gemini-2.5-flash'
+                    ]
+
+                # Prioritera flash-modeller (snabbast)
+                candidate_models.sort(key=lambda x: (0 if 'flash' in x.lower() else 1))
+                
+                for model in candidate_models[:6]:
                     try:
                         gemini_endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={gemini_key.strip()}"
                         resp = session.post(gemini_endpoint, json=payload, headers={'Content-Type': 'application/json'}, timeout=25)
@@ -1214,7 +1243,7 @@ def scrape_nordic_taste_lab(url, name, session):
                                             'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
                                         }
                         else:
-                            debug_status = f"{model} HTTP {resp.status_code}: {resp.text[:120]}"
+                            debug_status = f"{model} HTTP {resp.status_code}: {resp.text[:100]}"
                     except Exception as me:
                         debug_status = f"{model} error: {str(me)}"
             except Exception as e:
