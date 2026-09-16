@@ -283,10 +283,23 @@
                         </svg>
                         <span class="expand-text">Visa mer</span>
                     </div>
-                    <div class="compact-full">${highlightWeekdays(escapeHtml(text).replace(/\n/g, '<br>'))}</div>
+                    <div class="compact-full">${linkify(highlightWeekdays(escapeHtml(text).replace(/\n/g, '<br>')))}</div>
                 </div>
             `;
         }).join('');
+    }
+
+    function linkify(html) {
+        if (!html) return '';
+        return html.replace(/(https?:\/\/[^\s<"']+)/g, (url) => {
+            let cleanUrl = url;
+            let suffix = '';
+            if (/[.,;)]$/.test(cleanUrl) && !/\.(png|jpg|jpeg|gif|webp|pdf)$/i.test(cleanUrl)) {
+                suffix = cleanUrl.slice(-1);
+                cleanUrl = cleanUrl.slice(0, -1);
+            }
+            return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" style="color: #22c55e; text-decoration: underline; word-break: break-all; font-weight: 500;" onclick="event.stopPropagation();">${cleanUrl}</a>${suffix}`;
+        });
     }
 
     function updateStats(menus, urls, updatedAt) {

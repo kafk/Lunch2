@@ -731,7 +731,7 @@
                         <span class="menu-item-name">${escapeHtml(menu.name)}</span>
                         <span class="menu-item-badge ${isPdf ? 'pdf' : 'html'}">${isPdf ? 'PDF' : 'HTML'}</span>
                     </div>
-                    <div class="menu-item-content">${escapeHtml(menuText(menu))}</div>
+                    <div class="menu-item-content">${formatMenuContent(menuText(menu))}</div>
                     <div class="menu-item-footer">
                         <span class="menu-item-time">${menu.scraped_at || ''}</span>
                         <div class="menu-item-status">
@@ -746,7 +746,7 @@
         menuTable.innerHTML = menus.map(menu => `
             <tr>
                 <td class="table-restaurant">${escapeHtml(menu.name)}</td>
-                <td class="table-menu">${escapeHtml(menuText(menu))}</td>
+                <td class="table-menu">${linkify(highlightWeekdays(escapeHtml(menuText(menu)).replace(/\n/g, '<br>')))}</td>
                 <td class="table-source">${menu.source ? escapeHtml(menu.source.substring(0, 25)) : '-'}</td>
             </tr>
         `).join('');
@@ -764,14 +764,14 @@
                         ${new URL(menu.url).hostname.replace('www.', '')}
                     </a>
                 </div>
-                    <div class="compact-preview">${escapeHtml(getPreview(menuText(menu)))}</div>
+                <div class="compact-preview">${escapeHtml(getPreview(menuText(menu)))}</div>
                 <div class="compact-expand">
                     <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M6 9l6 6 6-6"/>
                     </svg>
                     <span class="expand-text">Visa mer</span>
                 </div>
-                <div class="compact-full">${escapeHtml(menuText(menu)).replace(/\n/g, '<br>')}</div>
+                <div class="compact-full">${linkify(highlightWeekdays(escapeHtml(menuText(menu)).replace(/\n/g, '<br>')))}</div>
             </div>
         `).join('');
     }
@@ -987,8 +987,21 @@
         }
 
         return blocks
-            .map(block => `<div class="dish-block">${highlightWeekdays(escapeHtml(block).replace(/\n/g, '<br>'))}</div>`)
+            .map(block => `<div class="dish-block">${linkify(highlightWeekdays(escapeHtml(block).replace(/\n/g, '<br>')))}</div>`)
             .join('');
+    }
+
+    function linkify(html) {
+        if (!html) return '';
+        return html.replace(/(https?:\/\/[^\s<"']+)/g, (url) => {
+            let cleanUrl = url;
+            let suffix = '';
+            if (/[.,;)]$/.test(cleanUrl) && !/\.(png|jpg|jpeg|gif|webp|pdf)$/i.test(cleanUrl)) {
+                suffix = cleanUrl.slice(-1);
+                cleanUrl = cleanUrl.slice(0, -1);
+            }
+            return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" style="color: #22c55e; text-decoration: underline; word-break: break-all; font-weight: 500;" onclick="event.stopPropagation();">${cleanUrl}</a>${suffix}`;
+        });
     }
 
     function highlightWeekdays(html) {
