@@ -35,7 +35,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '0126')
 
-VERSION = '3.45'
+VERSION = '3.46'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 STAGING_FILE = 'staging.json'
@@ -1171,6 +1171,8 @@ def scrape_nordic_taste_lab(url, name, session):
             
         # Kolla om Vision AI API är konfigurerat (Gemini eller OpenAI)
         gemini_key = os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY')
+        debug_status = "Ingen GEMINI_API_KEY hittades i miljövariabler" if not gemini_key else "Key laddad"
+        
         if gemini_key:
             try:
                 img_res = session.get(image_url, timeout=15)
@@ -1208,15 +1210,15 @@ def scrape_nordic_taste_lab(url, name, session):
                                             'url': url,
                                             'menu': formatted_menu,
                                             'success': True,
-                                            'source': f'AI Bild OCR (v{active_week})',
+                                            'source': f'AI Bild OCR ({model}, v{active_week})',
                                             'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
                                         }
                         else:
-                            print(f"Gemini {model} returned status {resp.status_code}: {resp.text[:200]}")
+                            debug_status = f"{model} HTTP {resp.status_code}: {resp.text[:120]}"
                     except Exception as me:
-                        print(f"Gemini {model} error: {me}")
+                        debug_status = f"{model} error: {str(me)}"
             except Exception as e:
-                print(f"Gemini OCR processing error: {e}")
+                debug_status = f"Img/API fel: {str(e)}"
 
         # Fallback om OCR inte är konfigurerat eller misslyckades: visa information och bildlänk
         menu_desc = f"🖼️ Veckomeny (Vecka {active_week})\n\nMenyn publiceras som bild för vecka {active_week}.\n\nBildlänk:\n{image_url}"
@@ -1225,7 +1227,7 @@ def scrape_nordic_taste_lab(url, name, session):
             'url': url,
             'menu': menu_desc,
             'success': True,
-            'source': f'Bild (v{active_week})',
+            'source': f'Bild (v{active_week}) [{debug_status}]',
             'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
         }
     except Exception as e:
