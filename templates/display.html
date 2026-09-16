@@ -32,8 +32,8 @@
     </div>
 </div>
 
-<!-- View Toggle -->
-<div class="card" style="margin-bottom: 20px;">
+<!-- View Toggle & Day/Week Toggle -->
+<div class="card view-bar-card" style="margin-bottom: 20px;">
     <div class="view-toggle">
         <button class="view-btn active" data-view="cards">
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -70,12 +70,12 @@
             Kompakt
         </button>
     </div>
-</div>
 
-<!-- Floating Day / Week Toggle (Above Bottom Menu, Right) -->
-<div class="day-week-toggle-container">
-    <button id="disp-btn-today" class="day-toggle-btn active" onclick="setDisplayView('today')">Idag</button>
-    <button id="disp-btn-week" class="day-toggle-btn" onclick="setDisplayView('week')">Vecka</button>
+    <!-- Day / Week Toggle (Desktop: inline right; Mobile: floating bottom-right) -->
+    <div class="day-week-toggle-container">
+        <button id="disp-btn-today" class="day-toggle-btn active" onclick="setDisplayView('today')">Idag</button>
+        <button id="disp-btn-week" class="day-toggle-btn" onclick="setDisplayView('week')">Vecka</button>
+    </div>
 </div>
 
 <div class="loading" id="loading">
@@ -167,18 +167,20 @@
         text-decoration: underline;
     }
 
-    /* Floating Day/Week Toggle above bottom nav on the right */
+    .view-bar-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    /* Day/Week Toggle styling (Desktop: inline; Mobile: floating bottom-right) */
     .day-week-toggle-container {
-        position: fixed;
-        bottom: 74px;
-        right: 16px;
-        z-index: 950;
         display: inline-flex;
-        background: white;
+        background: #f3f4f6;
         padding: 4px;
-        border-radius: 12px;
-        border: 1px solid #e5e7eb;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0,0,0,0.06);
+        border-radius: 10px;
         gap: 4px;
     }
 
@@ -202,10 +204,16 @@
         box-shadow: 0 1px 4px rgba(34, 197, 94, 0.35);
     }
 
-    @media (min-width: 769px) {
+    @media (max-width: 768px) {
         .day-week-toggle-container {
-            bottom: 24px;
-            right: 24px;
+            position: fixed;
+            bottom: 74px;
+            right: 16px;
+            z-index: 950;
+            background: white;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0,0,0,0.06);
+            border-radius: 12px;
         }
     }
 
