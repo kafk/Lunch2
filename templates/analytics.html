@@ -677,9 +677,17 @@
             }
             const rows = visitors.map(v => {
                 const icon = DEVICE_ICONS[v.device] || '🖥️';
-                const trail = v.pages.map((p, i) => {
+                // Deduplicate any consecutive identical steps (e.g. reload of same page)
+                const cleanPages = [];
+                (v.pages || []).forEach(p => {
+                    const last = cleanPages[cleanPages.length - 1];
+                    if (!last || last.page !== p.page || last.time !== p.time) {
+                        cleanPages.push(p);
+                    }
+                });
+                const trail = cleanPages.map((p, i) => {
                     const label = PAGE_LABELS[p.page] || p.page;
-                    const arrow = i < v.pages.length - 1 ? '<span class="visit-arrow">→</span>' : '';
+                    const arrow = i < cleanPages.length - 1 ? '<span class="visit-arrow">→</span>' : '';
                     return `<span class="visit-step"><span class="visit-step-page">${label}</span><span class="visit-step-time">${p.time}</span></span>${arrow}`;
                 }).join('');
                 return `<tr>

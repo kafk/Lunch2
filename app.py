@@ -35,7 +35,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '0126')
 
-VERSION = '3.43'
+VERSION = '3.44'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 STAGING_FILE = 'staging.json'
@@ -1558,36 +1558,68 @@ def detect_device(ua):
     return 'Dator'
 
 
+@app.after_request
+def set_visitor_cookie(response):
+    """Sätt anonym sessionsidentifierare (cookie) om den saknas."""
+    try:
+        if not request.cookies.get('lunch_uid'):
+            uid = uuid.uuid4().hex[:16]
+            response.set_cookie(
+                'lunch_uid',
+                uid,
+                max_age=180 * 24 * 3600,
+                httponly=True,
+                samesite='Lax'
+            )
+    except Exception:
+        pass
+    return response
+
+
 def track_visit(page):
-    """Spara ett sidbesök i Firestore för analytics."""
+    """Spara ett sidbesök i Firestore för analytics med deduplicering och prefetch-filter."""
     if not db:
         return
     try:
-        # Hash IP for privacy (first 16 chars of sha256)
-        ip = request.headers.get('X-Forwarded-For', request.remote_addr or '')
-        ip = ip.split(',')[0].strip()
-        ip_hash = hashlib.sha256(ip.encode()).hexdigest()[:16]
+        # 1. Ignorera webbläsarens automatiska bakgrunds- och förladdningsanrop (Prefetch/Preview)
+        purpose = (request.headers.get('Sec-Purpose') or request.headers.get('Purpose') or request.headers.get('X-Purpose') or '').lower()
+        if 'prefetch' in purpose or 'preview' in purpose:
+            return
 
-        # Filter out obvious bots
+        # 2. Filtrera bort kända bots och crawlers
         ua = request.headers.get('User-Agent', '').lower()
-        bot_keywords = ['bot', 'crawler', 'spider', 'scraper', 'curl', 'python-requests', 'wget']
+        bot_keywords = ['bot', 'crawler', 'spider', 'scraper', 'curl', 'python-requests', 'wget', 'bytespider', 'ahrefs', 'semrush']
         if any(kw in ua for kw in bot_keywords):
             return
 
+        # 3. Stabil besökaridentifiering: använd anonym cookie eller hash av IP som fallback
+        cookie_uid = request.cookies.get('lunch_uid')
+        if cookie_uid and len(cookie_uid) <= 36:
+            visitor_id = cookie_uid
+        else:
+            ip = request.headers.get('X-Forwarded-For', request.remote_addr or '')
+            ip = ip.split(',')[0].strip()
+            visitor_id = hashlib.sha256(ip.encode()).hexdigest()[:16]
+
         today = swedish_now().strftime('%Y-%m-%d')
+        now_dt = swedish_now()
+        now_time_str = now_dt.strftime('%H:%M')
+        now_ts = int(now_dt.timestamp())
+
         doc_ref = db.collection('analytics').document(today)
 
         visit_entry = {
-            'time': swedish_now().strftime('%H:%M'),
+            'time': now_time_str,
             'page': page,
             'device': detect_device(ua),
-            'ip': ip_hash,
+            'ip': visitor_id,
+            'ts': now_ts
         }
 
         doc_ref.set({
             'date': today,
             'visits': firestore.Increment(1),
-            'unique_visitors': firestore.ArrayUnion([ip_hash]),
+            'unique_visitors': firestore.ArrayUnion([visitor_id]),
             'visit_log': firestore.ArrayUnion([visit_entry]),
         }, merge=True)
     except Exception:
@@ -1633,7 +1665,7 @@ def api_analytics():
 
 @app.route('/api/analytics/today-detail', methods=['GET'])
 def api_analytics_today_detail():
-    """Returnera unika besökare för idag, grupperade per ip-hash med besökshistorik."""
+    """Returnera unika besökare för idag, grupperade per visitor_id med deduplicerad besökshistorik."""
     today = swedish_now().strftime('%Y-%m-%d')
     if not db:
         return jsonify([])
@@ -1642,23 +1674,40 @@ def api_analytics_today_detail():
         if not doc.exists:
             return jsonify([])
         log = doc.to_dict().get('visit_log', [])
-        # Sort all entries by time first
-        log.sort(key=lambda x: x.get('time', ''))
-        # Group by ip_hash – preserve insertion order (first seen = visitor number)
+        # Sortera alla händelser efter timestamp eller klockslag
+        log.sort(key=lambda x: x.get('ts') or x.get('time', ''))
+        
         visitors = {}
         for e in log:
-            ip = e.get('ip', 'unknown')
-            if ip not in visitors:
-                visitors[ip] = {
+            vid = e.get('ip', 'unknown')
+            if vid not in visitors:
+                visitors[vid] = {
                     'device': e.get('device', '?'),
                     'first_visit': e.get('time', ''),
                     'pages': []
                 }
-            visitors[ip]['pages'].append({
-                'time': e.get('time', ''),
-                'page': e.get('page', '/')
+            
+            page = e.get('page', '/')
+            time_str = e.get('time', '')
+            ts = e.get('ts', 0)
+            
+            # Deduplicera konsekutiva identiska sidladdningar inom samma minut / < 60s
+            existing_pages = visitors[vid]['pages']
+            if existing_pages:
+                last_page = existing_pages[-1]
+                is_same_page = (last_page.get('page') == page)
+                is_same_time = (last_page.get('time') == time_str)
+                is_rapid = bool(ts and last_page.get('ts') and (abs(ts - last_page.get('ts')) < 60))
+                if is_same_page and (is_same_time or is_rapid):
+                    continue
+
+            visitors[vid]['pages'].append({
+                'time': time_str,
+                'page': page,
+                'ts': ts
             })
-        # Build response with sequential visitor numbers, no ip
+
+        # Bygg respons med sekventiella besöksnummer
         result = [
             {
                 'visitor': i + 1,
@@ -1669,7 +1718,8 @@ def api_analytics_today_detail():
             for i, v in enumerate(visitors.values())
         ]
         return jsonify(result)
-    except Exception:
+    except Exception as e:
+        print(f"Analytics today detail error: {e}")
         return jsonify([])
 
 
