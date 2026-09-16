@@ -885,7 +885,21 @@
                 return pref !== undefined ? pref : u.enabled !== false;
             });
 
-            // Render all placeholder cards immediately
+            // 1. Om vi inte tvingar uppdatering, hämta delad daglig cache först
+            if (!forceRefresh) {
+                try {
+                    const cacheRes = await fetch('/api/menus');
+                    const cacheData = await cacheRes.json();
+                    if (cacheData && cacheData.menus && cacheData.menus.length > 0 && cacheData.updated_at) {
+                        allMenus = cacheData.menus;
+                        renderViews();
+                        refreshBtn.disabled = false;
+                        return;
+                    }
+                } catch (e) {}
+            }
+
+            // 2. Render all placeholder cards immediately för live-skrapning
             menuGrid.innerHTML = visibleUrls.map(u => cardHtml(u, null)).join('');
 
             // Fetch each restaurant individually and update its card as it arrives
@@ -907,6 +921,17 @@
                     if (el) el.outerHTML = cardHtml(u, { success: false, menu: 'Nätverksfel', url: u.url, name: u.name });
                 }
             }));
+
+            // Spara den nya menyn till delad cache så alla andra användare slipper skrapa idag
+            if (allMenus.length > 0) {
+                try {
+                    fetch('/api/admin/lab/publish', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ menus: allMenus })
+                    });
+                } catch (e) {}
+            }
 
             // Populate the other views once all cards are done
             renderViews();
