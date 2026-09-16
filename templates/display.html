@@ -138,10 +138,12 @@
 </div>
 
 <style>
-    /* Täck hela skärmen — override base.html max-width */
-    .main-content {
-        max-width: none;
-        width: calc(100vw - 72px);
+    /* Desktop full width */
+    @media (min-width: 769px) {
+        .main-content {
+            max-width: none;
+            width: calc(100vw - 72px);
+        }
     }
 
     .view-toggle {
@@ -462,16 +464,122 @@
     @media (max-width: 768px) {
         .menu-grid {
             grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .menu-card {
+            padding: 14px 16px;
+            border-radius: 12px;
+        }
+
+        .menu-card-title {
+            font-size: 15px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .menu-card-content {
+            font-size: 13.5px;
+            max-height: 280px;
+        }
+
+        .dish-block {
+            margin-bottom: 10px;
         }
 
         .view-toggle {
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            width: 100%;
         }
 
         .view-btn {
-            flex: 1;
-            min-width: 100px;
+            padding: 9px 4px;
+            font-size: 12px;
+            min-width: 0;
             justify-content: center;
+            border-radius: 8px;
+            gap: 4px;
+        }
+
+        .view-btn svg {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+        }
+
+        #tableView .card {
+            padding: 0;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .menu-table {
+            min-width: 480px;
+        }
+
+        .menu-table th, .menu-table td {
+            padding: 12px 14px;
+            font-size: 13px;
+        }
+
+        .compact-item {
+            padding: 12px 0;
+        }
+
+        .compact-item:hover {
+            margin: 0;
+            padding: 12px 0;
+            background: transparent;
+        }
+
+        .compact-item.expanded {
+            background: #fcfdfd;
+        }
+
+        .compact-preview {
+            margin-left: 0;
+            margin-top: 6px;
+        }
+
+        .compact-expand {
+            margin-left: 0;
+        }
+
+        .compact-full {
+            margin-left: 0;
+            padding: 12px;
+        }
+
+        .modal-content {
+            width: 95%;
+            max-height: 85vh;
+            border-radius: 14px;
+            margin: 10px;
+        }
+
+        .modal-header {
+            padding: 14px 16px;
+        }
+
+        .modal-body {
+            padding: 14px 16px;
+            font-size: 13.5px;
+        }
+    }
+
+    @media (max-width: 380px) {
+        .view-btn {
+            font-size: 11px;
+            padding: 8px 2px;
+            gap: 2px;
+        }
+
+        .view-btn svg {
+            width: 12px;
+            height: 12px;
         }
     }
 </style>
