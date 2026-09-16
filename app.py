@@ -35,7 +35,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '0126')
 
-VERSION = '3.44'
+VERSION = '3.45'
 URLS_FILE = 'urls.json'
 COLLECTION_NAME = 'restaurants'
 STAGING_FILE = 'staging.json'
@@ -1176,31 +1176,47 @@ def scrape_nordic_taste_lab(url, name, session):
                 img_res = session.get(image_url, timeout=15)
                 img_b64 = base64.b64encode(img_res.content).decode('utf-8')
                 
-                gemini_endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
                 payload = {
                     "contents": [{
                         "parts": [
-                            {"text": "Extrahera veckans lunchmeny (Måndag till Fredag) från denna bild. Formatera tydligt med MÅNDAG, TISDAG, ONSDAG, TORSDAG, FREDAG och rätterna under varje dag med eventuella priser och kategorier."},
-                            {"inline_data": {"mime_type": "image/png", "data": img_b64}}
+                            {"text": "Extrahera veckans lunchmeny (Måndag till Fredag) från denna bild. Formatera tydligt med rubriker MÅNDAG, TISDAG, ONSDAG, TORSDAG, FREDAG och rätterna under varje dag med eventuella priser och kategorier. Returnera endast menyn på svenska."},
+                            {
+                                "inlineData": {
+                                    "mimeType": "image/png",
+                                    "data": img_b64
+                                }
+                            }
                         ]
                     }]
                 }
-                resp = session.post(gemini_endpoint, json=payload, timeout=20)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    extracted_text = data['candidates'][0]['content']['parts'][0]['text']
-                    formatted_menu = format_menu_text(extracted_text)
-                    if formatted_menu and len(formatted_menu) > 30:
-                        return {
-                            'name': name,
-                            'url': url,
-                            'menu': formatted_menu,
-                            'success': True,
-                            'source': f'Bild OCR (v{active_week})',
-                            'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
-                        }
+                
+                for model in ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']:
+                    try:
+                        gemini_endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={gemini_key.strip()}"
+                        resp = session.post(gemini_endpoint, json=payload, headers={'Content-Type': 'application/json'}, timeout=25)
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            candidates = data.get('candidates', [])
+                            if candidates and 'content' in candidates[0]:
+                                parts = candidates[0]['content'].get('parts', [])
+                                if parts and 'text' in parts[0]:
+                                    extracted_text = parts[0]['text']
+                                    formatted_menu = format_menu_text(extracted_text)
+                                    if formatted_menu and len(formatted_menu) > 30:
+                                        return {
+                                            'name': name,
+                                            'url': url,
+                                            'menu': formatted_menu,
+                                            'success': True,
+                                            'source': f'AI Bild OCR (v{active_week})',
+                                            'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+                                        }
+                        else:
+                            print(f"Gemini {model} returned status {resp.status_code}: {resp.text[:200]}")
+                    except Exception as me:
+                        print(f"Gemini {model} error: {me}")
             except Exception as e:
-                print(f"Gemini OCR call failed: {e}")
+                print(f"Gemini OCR processing error: {e}")
 
         # Fallback om OCR inte är konfigurerat eller misslyckades: visa information och bildlänk
         menu_desc = f"🖼️ Veckomeny (Vecka {active_week})\n\nMenyn publiceras som bild för vecka {active_week}.\n\nBildlänk:\n{image_url}"
