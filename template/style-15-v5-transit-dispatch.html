@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StatusKoll v5 • Live Transit & Dispatch Board</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800&family=Syne:wght@700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-terminal: #0D1117;
+            --surface-board: #161B22;
+            --surface-inner: #0E131A;
+            --border-board: #30363D;
+            --border-amber: #F59E0B;
+            
+            --dispatch-amber: #FFB703;
+            --dispatch-yellow: #FB8500;
+            --dispatch-green: #06D6A0;
+            --dispatch-red: #EF476F;
+            
+            --text-board: #F0F6FC;
+            --text-dim: #8B949E;
+            
+            --radius-board: 12px;
+            --radius-pill: 999px;
+            
+            --shadow-board: 0 10px 30px rgba(0,0,0,0.6);
+            --glow-amber: 0 0 15px rgba(255, 183, 3, 0.35);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--bg-terminal);
+            color: var(--text-board);
+            font-family: 'JetBrains Mono', monospace;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        .font-syne { font-family: 'Syne', sans-serif; }
+
+        /* Top Dispatch Navigation */
+        .dispatch-nav {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(13, 17, 23, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 2px solid var(--border-amber);
+            padding: 10px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .dispatch-pills {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .disp-link {
+            text-decoration: none;
+            padding: 5px 12px;
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--text-dim);
+            border: 1px solid var(--border-board);
+            border-radius: 4px;
+            transition: all .15s;
+        }
+        .disp-link:hover { color: var(--dispatch-amber); border-color: var(--dispatch-amber); }
+        .disp-link.active {
+            background: var(--dispatch-amber);
+            color: #000;
+            border-color: var(--dispatch-amber);
+            box-shadow: var(--glow-amber);
+        }
+
+        /* Flight/Train Style Master Dispatch Board */
+        .master-board-header {
+            max-width: 1300px;
+            margin: 28px auto 20px;
+            padding: 0 24px;
+            width: 100%;
+        }
+        .board-marquee-frame {
+            background: var(--surface-board);
+            border: 2px solid var(--border-board);
+            border-radius: var(--radius-board);
+            padding: 24px 28px;
+            box-shadow: var(--shadow-board);
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 24px;
+            position: relative;
+        }
+        .board-marquee-frame::before {
+            content: '● LINDHOLMEN LUNCH TERMINAL // DEPARTURES & AVAILABILITY';
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            background: var(--dispatch-amber);
+            color: #000;
+            font-size: 9.5px;
+            font-weight: 900;
+            padding: 2px 10px;
+            border-radius: 2px;
+            letter-spacing: 0.5px;
+        }
+
+        .board-title {
+            font-size: 34px;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+            color: var(--dispatch-amber);
+            margin: 8px 0;
+        }
+
+        .stat-dispatch-cell {
+            background: var(--surface-inner);
+            border: 1px solid var(--border-board);
+            border-radius: 8px;
+            padding: 14px 18px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .stat-dispatch-val {
+            font-size: 26px;
+            font-weight: 900;
+            color: var(--text-board);
+            margin-top: 4px;
+        }
+
+        /* Controls Ribbon */
+        .dispatch-controls {
+            max-width: 1300px;
+            margin: 0 auto 24px;
+            padding: 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            width: 100%;
+        }
+        .dispatch-search {
+            background: var(--surface-board);
+            border: 1px solid var(--border-board);
+            border-radius: 6px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 280px;
+        }
+        .dispatch-search input {
+            border: none;
+            outline: none;
+            background: transparent;
+            font-family: inherit;
+            font-size: 12px;
+            color: var(--text-board);
+            width: 100%;
+        }
+
+        .dispatch-filters {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .btn-disp-filter {
+            background: var(--surface-board);
+            border: 1px solid var(--border-board);
+            color: var(--text-dim);
+            padding: 6px 14px;
+            font-size: 11px;
+            font-weight: 800;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all .15s;
+        }
+        .btn-disp-filter:hover { border-color: var(--dispatch-amber); color: var(--dispatch-amber); }
+        .btn-disp-filter.active {
+            background: var(--dispatch-yellow);
+            color: #000;
+            border-color: var(--dispatch-yellow);
+        }
+
+        .view-seg-disp {
+            display: flex;
+            border: 1px solid var(--border-board);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .vsd-btn {
+            border: none;
+            background: var(--surface-board);
+            color: var(--text-dim);
+            padding: 6px 14px;
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .vsd-btn.active {
+            background: var(--text-board);
+            color: #000;
+        }
+
+        /* Cards Grid */
+        .dispatch-grid {
+            max-width: 1300px;
+            margin: 0 auto 60px;
+            padding: 0 24px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(390px, 1fr));
+            gap: 22px;
+            width: 100%;
+        }
+
+        /* Dispatch Card */
+        .dispatch-card {
+            background: var(--surface-board);
+            border: 1px solid var(--border-board);
+            border-radius: var(--radius-board);
+            padding: 22px;
+            box-shadow: var(--shadow-board);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 18px;
+            transition: all .2s;
+            position: relative;
+        }
+        .dispatch-card:hover {
+            border-color: var(--dispatch-amber);
+            transform: translateY(-2px);
+        }
+        .dispatch-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .disp-rest-name {
+            font-size: 20px;
+            font-weight: 900;
+            color: var(--text-board);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .price-badge-disp {
+            background: rgba(255, 183, 3, 0.15);
+            color: var(--dispatch-amber);
+            border: 1px solid var(--dispatch-amber);
+            padding: 3px 8px;
+            font-size: 12px;
+            font-weight: 800;
+            border-radius: 4px;
+        }
+
+        .dispatch-status-banner {
+            background: var(--surface-inner);
+            border: 1px solid var(--border-board);
+            border-left: 4px solid var(--dispatch-green);
+            padding: 8px 12px;
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dish-disp-item {
+            background: var(--surface-inner);
+            border: 1px solid var(--border-board);
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .dish-disp-item:hover {
+            border-color: var(--dispatch-amber);
+            background: rgba(255, 183, 3, 0.05);
+        }
+        .dish-disp-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-board);
+        }
+        .dish-disp-desc {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+        .tag-disp {
+            font-size: 9px;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 3px;
+            background: var(--border-board);
+            color: var(--text-board);
+            text-transform: uppercase;
+        }
+
+        .dispatch-card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 14px;
+            border-top: 1px solid var(--border-board);
+        }
+        .btn-disp-action {
+            background: var(--dispatch-amber);
+            color: #000;
+            border: none;
+            padding: 8px 18px;
+            font-family: inherit;
+            font-size: 11.5px;
+            font-weight: 800;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all .15s;
+        }
+        .btn-disp-action:hover {
+            background: #FFAA00;
+            box-shadow: var(--glow-amber);
+        }
+
+        /* Modal */
+        .dispatch-modal-bg {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(6px);
+            z-index: 2000;
+            display: none;
+            place-items: center;
+            padding: 20px;
+        }
+        .dispatch-modal-bg.active { display: grid; }
+        .dispatch-modal-panel {
+            background: var(--surface-board);
+            border: 2px solid var(--dispatch-amber);
+            max-width: 480px;
+            width: 100%;
+            padding: 28px;
+            border-radius: var(--radius-board);
+            position: relative;
+            box-shadow: 0 0 40px rgba(0,0,0,0.8);
+        }
+        .disp-modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: var(--border-board);
+            color: #FFF;
+            border: none;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            font-weight: 800;
+        }
+
+        .dispatch-toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--dispatch-amber);
+            color: #000;
+            padding: 10px 22px;
+            font-size: 12px;
+            font-weight: 800;
+            border-radius: 4px;
+            box-shadow: var(--glow-amber);
+            opacity: 0;
+            transition: all .25s ease;
+            z-index: 3000;
+        }
+        .dispatch-toast.active {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        @media (max-width: 900px) {
+            .board-marquee-frame { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="dispatch-nav">
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span style="color:var(--dispatch-amber); font-weight:900;">⚡ DISPATCH BOARD</span>
+        </div>
+        <div class="dispatch-pills">
+            <a href="style-15-v1-live-ops.html" class="disp-link">v1 Live Ops</a>
+            <a href="style-15-v2-swiss-grid.html" class="disp-link">v2 Swiss Precision</a>
+            <a href="style-15-v3-dark-cockpit.html" class="disp-link">v3 Dark Cockpit</a>
+            <a href="style-15-v4-modular-bento.html" class="disp-link">v4 Modular Bento</a>
+            <a href="style-15-v5-transit-dispatch.html" class="disp-link active">v5 Transit Dispatch</a>
+            <a href="style-15-v6-appnest.html" class="disp-link">v6 Appnest ✦</a>
+            <a href="style-15-statuskoll.html" class="disp-link">Baseline</a>
+        </div>
+    </nav>
+
+    <header class="master-board-header">
+        <div class="board-marquee-frame">
+            <div>
+                <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase;">REALTIME LUNCH TRACKER</div>
+                <h1 class="board-title font-syne">STATUSKOLL DISPATCH</h1>
+                <p style="font-size:12.5px; color:var(--text-dim); line-height:1.5;">
+                    Centraliserad avgångs- och kapacitetstavla för Lindholmens lunchserveringar.
+                </p>
+            </div>
+
+            <div class="stat-dispatch-cell">
+                <span style="font-size:10px; color:var(--text-dim);">SYSTEMSTATUS</span>
+                <span class="stat-dispatch-val" style="color:var(--dispatch-green);">ONLINE</span>
+                <span style="font-size:10.5px; color:var(--text-dim);">14 / 14 Enheter</span>
+            </div>
+
+            <div class="stat-dispatch-cell">
+                <span style="font-size:10px; color:var(--text-dim);">TID TILL RUSH</span>
+                <span class="stat-dispatch-val font-syne" style="color:var(--dispatch-amber);">11:45</span>
+                <span style="font-size:10.5px; color:var(--text-dim);">Toppbelastning</span>
+            </div>
+        </div>
+    </header>
+
+    <section class="dispatch-controls">
+        <div class="dispatch-search">
+            <span>🔎</span>
+            <input type="text" placeholder="FILTER ENHET / RÄTT..." oninput="onSearch(this.value)">
+        </div>
+
+        <div class="dispatch-filters">
+            <button class="btn-disp-filter active" onclick="setCategory('Alla', this)">ALLA (14)</button>
+            <button class="btn-disp-filter" onclick="setCategory('Husman', this)">🥩 HUSMAN</button>
+            <button class="btn-disp-filter" onclick="setCategory('Fisk', this)">🐟 FISK</button>
+            <button class="btn-disp-filter" onclick="setCategory('Veg', this)">🌱 VEG</button>
+            <button class="btn-disp-filter" onclick="setCategory('Asiatiskt', this)">🍜 ASIATISKT</button>
+        </div>
+
+        <div class="view-seg-disp">
+            <button class="vsd-btn active" id="dispToday" onclick="setViewMode('today')">DAGENS</button>
+            <button class="vsd-btn" id="dispWeek" onclick="setViewMode('week')">VECKOPLAN</button>
+        </div>
+    </section>
+
+    <main class="dispatch-grid" id="dispGrid"></main>
+
+    <!-- Modal -->
+    <div class="dispatch-modal-bg" id="dispModal" onclick="if(event.target===this) closeModal()">
+        <div class="dispatch-modal-panel">
+            <button class="disp-modal-close" onclick="closeModal()">✕</button>
+            <div style="font-size:10px; font-weight:800; color:var(--dispatch-amber); text-transform:uppercase;">
+                DISPATCH // ORDER CONFIRMATION
+            </div>
+            <h2 id="dRest" style="font-size:22px; font-weight:900; margin:6px 0;" class="font-syne">Kooperativet</h2>
+            <div id="dDish" style="font-size:14px; font-weight:800; color:var(--dispatch-amber); margin-bottom:12px;">Helstekt Ryggbiff</div>
+            <p id="dDesc" style="font-size:12px; color:var(--text-dim); line-height:1.6; margin-bottom:18px;">
+                Serveras nylagad med tillbehör och kaffe.
+            </p>
+            <div style="background:var(--surface-inner); border:1px solid var(--border-board); padding:12px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:11px; color:var(--text-dim);">PRIS / ENHET:</span>
+                <span id="dPrice" style="font-size:15px; font-weight:900; color:var(--dispatch-amber);">135 SEK</span>
+            </div>
+            <button class="btn-disp-action" style="width:100%; padding:12px;" onclick="confirmOrder()">BEKRÄFTA DISPATCH ✅</button>
+        </div>
+    </div>
+
+    <div class="dispatch-toast" id="dispToast">STATUS UPPDATERAD</div>
+
+    <script>
+        const restaurants = [
+            {
+                id: 'kooperativet',
+                name: 'Kooperativet',
+                area: 'Lindholmen',
+                distance: '250 m',
+                price: '135 SEK',
+                rating: '4.8',
+                status: 'Kort kö • 12 lediga bord',
+                category: 'Husman',
+                today: [
+                    { title: 'Helstekt Ryggbiff & Rödvinssky', desc: 'Rostad potatis, örtsmör, primörer', tag: 'Kött' },
+                    { title: 'Ugnsbakad Laxfilé & Sandefjordsås', desc: 'Dillpotatis, fänkålscrudité', tag: 'Fisk' },
+                    { title: 'Rostad Blomkålsbiff med Linser', desc: 'Örtaioli, picklad rödlök', tag: 'Veg' }
+                ],
+                week: [
+                    { day: 'Mån', dish: 'Wallenbergare med skirat smör & potatismos' },
+                    { day: 'Tis', dish: 'Stekt fläsk med raggmunk & lingon' },
+                    { day: 'Ons', dish: 'Fiskgryta med saffran & aioli' },
+                    { day: 'Tor', dish: 'Ärtsoppa & pannkakor med sylt och grädde' },
+                    { day: 'Fre', dish: 'Helstekt Ryggbiff & rödvinssås' }
+                ]
+            },
+            {
+                id: 'porten',
+                name: 'Restaurang Porten',
+                area: 'Science Park',
+                distance: '400 m',
+                price: '129 SEK',
+                rating: '4.6',
+                status: 'Snabb kassa • God plats',
+                category: 'Husman',
+                today: [
+                    { title: 'Klassiska Köttbullar & Gräddsås', desc: 'Potatismos, rårörda lingon, pressgurka', tag: 'Husman' },
+                    { title: 'Smörstekt Torskrygg & Äggsås', desc: 'Kokt potatis, citron & dill', tag: 'Fisk' }
+                ],
+                week: [
+                    { day: 'Mån', dish: 'Kycklingfilé med dragonsås & ris' },
+                    { day: 'Tis', dish: 'Köttbullar med gräddsås & lingon' },
+                    { day: 'Ons', dish: 'Pannbiff med stekt lök & skysås' },
+                    { day: 'Tor', dish: 'Gulaschsoppa med hembakt bröd' },
+                    { day: 'Fre', dish: 'Smörstekt Torskrygg & citron' }
+                ]
+            },
+            {
+                id: 'ls_resto',
+                name: 'L\'s Resto',
+                area: 'Lindholmen',
+                distance: '300 m',
+                price: '125 SEK',
+                rating: '4.5',
+                status: 'Direktbord • Kök redo',
+                category: 'Asiatiskt',
+                today: [
+                    { title: 'Vietnamesisk Pho Bo Biffsoppa', desc: 'Risnudlar, färska örter, lime & chili', tag: 'Asiatiskt' },
+                    { title: 'Wokad Tofu & Grönsaker', desc: 'Jasminris, sweet chili, cashewnötter', tag: 'Veg' }
+                ],
+                week: [
+                    { day: 'Mån', dish: 'Pad Thai med kyckling & jordnötter' },
+                    { day: 'Tis', dish: 'Biff i röd curry & bambuskott' },
+                    { day: 'Ons', dish: 'Pho Bo & färsk koriander' },
+                    { day: 'Tor', dish: 'Crispy Duck med plommonsås' },
+                    { day: 'Fre', dish: 'Vietnamesisk Nudelwok' }
+                ]
+            },
+            {
+                id: 'cuckoos',
+                name: 'Cuckoo\'s Nest',
+                area: 'Radisson Riverside',
+                distance: '550 m',
+                price: '155 SEK',
+                rating: '4.9',
+                status: 'Hög efterfrågan • Boka i förväg',
+                category: 'Husman',
+                today: [
+                    { title: 'Majskycklingbröst & Tryffelrisotto', desc: 'Parmesan, rostade hasselnötter', tag: 'Gourmet' },
+                    { title: 'Grillad Spetskål & Vit bönkräm', desc: 'Rostad mandel, brynt smör', tag: 'Veg' }
+                ],
+                week: [
+                    { day: 'Mån', dish: 'Rimmad lax med dillstuvad potatis' },
+                    { day: 'Tis', dish: 'Biff Rydberg med dijonsenap' },
+                    { day: 'Ons', dish: 'Hjortgryta med enbär & svamp' },
+                    { day: 'Tor', dish: 'Fisk & skaldjursgryta' },
+                    { day: 'Fre', dish: 'Majskycklingbröst & Tryffelrisotto' }
+                ]
+            }
+        ];
+
+        let curView = 'today';
+        let curCat = 'Alla';
+        let searchQuery = '';
+        let favorites = ['kooperativet'];
+
+        function setViewMode(v) {
+            curView = v;
+            document.getElementById('dispToday').classList.toggle('active', v === 'today');
+            document.getElementById('dispWeek').classList.toggle('active', v === 'week');
+            render();
+            showToast(`VY: ${v.toUpperCase()}`);
+        }
+
+        function setCategory(c, btn) {
+            curCat = c;
+            document.querySelectorAll('.btn-disp-filter').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            render();
+            showToast(`FILTER: ${c}`);
+        }
+
+        function onSearch(val) {
+            searchQuery = val.toLowerCase();
+            render();
+        }
+
+        function toggleFav(id, e) {
+            e.stopPropagation();
+            favorites = favorites.includes(id) ? favorites.filter(x => x !== id) : [...favorites, id];
+            showToast('BEVAKNINGSLISTA UPPDATERAD');
+            render();
+        }
+
+        function openModal(name, dish, desc, price) {
+            document.getElementById('dRest').textContent = name;
+            document.getElementById('dDish').textContent = dish;
+            document.getElementById('dDesc').textContent = desc;
+            document.getElementById('dPrice').textContent = price;
+            document.getElementById('dispModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('dispModal').classList.remove('active');
+        }
+
+        function confirmOrder() {
+            closeModal();
+            showToast('ORDER BEKRÄFTAD I DISPATCH ✅');
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('dispToast');
+            t.textContent = msg;
+            t.classList.add('active');
+            clearTimeout(window._td);
+            window._td = setTimeout(() => t.classList.remove('active'), 2200);
+        }
+
+        function render() {
+            const grid = document.getElementById('dispGrid');
+            const items = restaurants.filter(r => {
+                const mc = curCat === 'Alla' || r.category === curCat || (curCat === 'Fisk' && r.today.some(x => x.tag === 'Fisk')) || (curCat === 'Veg' && r.today.some(x => x.tag === 'Veg'));
+                const ms = r.name.toLowerCase().includes(searchQuery) || r.today.some(t => t.title.toLowerCase().includes(searchQuery));
+                return mc && ms;
+            });
+
+            if (items.length === 0) {
+                grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--text-dim);">INGA ENHETER I DISPATCH-KÖN.</div>';
+                return;
+            }
+
+            grid.innerHTML = items.map(r => {
+                const isFav = favorites.includes(r.id);
+                return `
+                    <div class="dispatch-card">
+                        <div>
+                            <div class="dispatch-card-top">
+                                <div>
+                                    <h3 class="disp-rest-name font-syne">
+                                        ${r.name}
+                                        <button onclick="toggleFav('${r.id}', event)" style="background:none; border:none; cursor:pointer; font-size:16px;">
+                                            ${isFav ? '★' : '☆'}
+                                        </button>
+                                    </h3>
+                                    <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">
+                                        GATE: ${r.area.toUpperCase()} // DIST: ${r.distance} // RATING: ${r.rating}
+                                    </div>
+                                </div>
+                                <span class="price-badge-disp">${r.price}</span>
+                            </div>
+
+                            <div class="dispatch-status-banner" style="margin:14px 0 16px;">
+                                <span style="font-weight:800; color:var(--dispatch-green);">● ON SCHEDULE</span>
+                                <span style="color:var(--text-dim);">${r.status}</span>
+                            </div>
+
+                            ${curView === 'today' ? `
+                                <div>
+                                    ${r.today.map(d => `
+                                        <div class="dish-disp-item" onclick="openModal('${r.name}', '${d.title}', '${d.desc}', '${r.price}')">
+                                            <div>
+                                                <div class="dish-disp-title">${d.title}</div>
+                                                <div class="dish-disp-desc">${d.desc}</div>
+                                            </div>
+                                            <span class="tag-disp">${d.tag}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : `
+                                <div style="display:flex; flex-direction:column; gap:6px; font-size:11px;">
+                                    ${r.week.map(w => `
+                                        <div style="background:var(--surface-inner); border:1px solid var(--border-board); padding:6px 10px; border-radius:4px; display:flex; gap:8px;">
+                                            <strong style="color:var(--dispatch-amber); min-width:32px;">${w.day}:</strong>
+                                            <span>${w.dish}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `}
+                        </div>
+
+                        <div class="dispatch-card-footer">
+                            <span style="font-size:11px; color:var(--text-dim);">Kaffe & buffé ingår</span>
+                            <button class="btn-disp-action" onclick="openModal('${r.name}', 'LUNCH DISPATCH', 'Boka lunch och bord i avgångshallen', '${r.price}')">
+                                BOKA BORD →
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.addEventListener('DOMContentLoaded', render);
+    </script>
+</body>
+</html>

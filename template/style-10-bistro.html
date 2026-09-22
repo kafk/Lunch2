@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lunch2 • European Grand Bistro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Orbitron:wght@600;800&family=Outfit:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+
+:root {
+    --bg-page: #121215;
+    --bg-card: #1c1c21;
+    --border: #33333d;
+    --gold: #d4af37;
+    --gold-light: #fef08a;
+    --text-main: #f4f4f5;
+    --text-muted: #a1a1aa;
+    --radius: 10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    background: var(--bg-page);
+    color: var(--text-main);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+    padding: 30px 20px;
+    background-image: radial-gradient(circle at center top, rgba(212, 175, 55, 0.08), transparent 50%);
+}
+.app-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+}
+.bistro-header {
+    border: 2px solid var(--gold);
+    border-radius: var(--radius);
+    background: #18181e;
+    padding: 26px 36px;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+}
+.header-title {
+    font-family: 'Cinzel', Georgia, serif;
+    font-size: 32px;
+    letter-spacing: 2px;
+    color: var(--gold);
+    text-transform: uppercase;
+}
+.header-sub { color: var(--text-muted); font-size: 13.5px; margin-top: 6px; letter-spacing: 0.5px; }
+
+.control-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.search-input {
+    background: #1c1c21;
+    border: 1px solid var(--border);
+    color: white;
+    padding: 8px 14px 8px 34px;
+    border-radius: 6px;
+    font-size: 13px;
+    width: 280px;
+    outline: none;
+}
+.search-input:focus { border-color: var(--gold); }
+.search-box { position: relative; }
+.search-icon { position: absolute; left: 12px; top: 10px; color: var(--gold); }
+
+.filter-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.filter-pill {
+    background: #1c1c21;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 12.5px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.filter-pill:hover, .filter-pill.active {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: #24242c;
+}
+.view-switch {
+    background: #1c1c21;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px;
+    display: flex;
+}
+.view-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 6px 14px;
+    font-size: 12px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.view-btn.active {
+    background: var(--gold);
+    color: #000;
+    font-weight: 700;
+}
+
+.main-layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 24px;
+}
+.restaurant-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+.card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 14px;
+    border-bottom: 1px solid #282832;
+    padding-bottom: 12px;
+}
+.r-name {
+    font-family: 'Cinzel', Georgia, serif;
+    font-size: 21px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 0.5px;
+}
+.r-area { font-size: 12.5px; color: var(--text-muted); margin-top: 3px; }
+.r-price {
+    font-size: 16px;
+    font-weight: 700;
+    color: #000;
+    background: var(--gold);
+    padding: 4px 12px;
+    border-radius: 4px;
+}
+.tag-chip {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: #141418;
+    border: 1px solid #282832;
+    color: #a1a1aa;
+}
+.dish-item {
+    background: #141418;
+    border: 1px solid #26262e;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+.dish-item:hover { border-color: var(--gold); background: #1c1c24; }
+.dish-title { font-size: 14px; font-weight: 600; color: #fff; }
+.dish-desc { font-size: 12.5px; color: var(--text-muted); margin-top: 3px; font-style: italic; }
+.dish-tag {
+    font-size: 11px;
+    color: var(--gold);
+    background: rgba(212,175,55,0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(212,175,55,0.3);
+}
+.includes-bar { margin-top: 14px; font-size: 12px; color: var(--text-muted); }
+
+.side-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+}
+.side-title {
+    font-family: 'Cinzel', Georgia, serif;
+    font-size: 14px;
+    color: var(--gold);
+    margin-bottom: 14px;
+    letter-spacing: 1px;
+}
+.quick-row {
+    padding: 8px 10px;
+    font-size: 13px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    cursor: pointer;
+}
+.quick-row:hover { background: #262630; }
+.status-dot { width: 7px; height: 7px; background: var(--gold); border-radius: 50%; }
+
+.btn-primary {
+    background: var(--gold);
+    color: #000;
+    font-weight: 700;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 12.5px;
+    cursor: pointer;
+}
+.fav-btn { background: none; border: none; font-size: 16px; color: #52525b; cursor: pointer; }
+.fav-btn.active { color: #f43f5e; }
+
+.toast-bubble {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #18181e;
+    border: 1px solid var(--gold);
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 4px;
+    font-size: 13px;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all .2s;
+    z-index: 9999;
+}
+.toast-bubble.visible { transform: translateY(0); opacity: 1; }
+
+@media (max-width: 860px) {
+    .main-layout { grid-template-columns: 1fr; }
+}
+
+        /* Style Hub Switcher Floating Bar */
+        .style-hub-floater {
+            position: fixed;
+            top: 14px;
+            right: 18px;
+            z-index: 10000;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .hub-btn {
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(12px);
+            color: #fff;
+            text-decoration: none;
+            padding: 7px 14px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: transform .15s, background .15s;
+        }
+        .hub-btn:hover {
+            background: rgba(15, 23, 42, 1);
+            transform: translateY(-1px);
+        }
+        /* Modal for dish details */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(6px);
+            z-index: 9999;
+            display: none;
+            place-items: center;
+            padding: 20px;
+        }
+        .modal-overlay.active { display: grid; }
+        .modal-card {
+            background: #18191f;
+            color: #fff;
+            border: 1px solid #333;
+            border-radius: 14px;
+            padding: 28px;
+            max-width: 480px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+            position: relative;
+        }
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 18px;
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 22px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Quick Floating Nav Back to Style Gallery -->
+    <div class="style-hub-floater">
+        <a href="index.html" class="hub-btn">🎨 Alla 10 Stilar</a>
+        <button class="hub-btn" onclick="triggerRefresh()">⚡ Mock Update</button>
+    </div>
+
+    <!-- Main App Container -->
+    <div class="app-container">
+        
+        <!-- Header -->
+        <header class="top-header" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px;">
+            <div>
+                <div style="font-size:12px; font-weight:600; opacity:0.8; margin-bottom:4px;">📍 GÖTEBORG • DAGENS LUNCHMONITOR</div>
+                <h1 style="font-size:28px; font-weight:700;">Lunch2 <span style="font-size:16px; font-weight:400; opacity:0.6;">(European Grand Bistro)</span></h1>
+                <div style="font-size:13px; opacity:0.75; margin-top:4px;" id="lastUpdateHeader">Uppdaterad idag kl 11:15 • 6 anslutna restauranger</div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <button class="btn-primary" id="refreshBtn" onclick="triggerRefresh()">
+                    <span>🔄</span> Uppdatera menyer
+                </button>
+            </div>
+        </header>
+
+        <!-- Controls: Search, Category Filters, View Switcher -->
+        <div class="control-bar">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" id="searchBox" placeholder="Sök raggmunk, burgare, ramen, lax..." oninput="onSearch(this.value)">
+            </div>
+
+            <div class="filter-group">
+                <button class="filter-pill active" data-category="Alla" onclick="setFilter('Alla')">Alla</button>
+                <button class="filter-pill" data-category="Husman" onclick="setFilter('Husman')">Husmanskost</button>
+                <button class="filter-pill" data-category="Grill" onclick="setFilter('Grill')">Grill & BBQ</button>
+                <button class="filter-pill" data-category="Pasta" onclick="setFilter('Pasta')">Pasta & Italienskt</button>
+                <button class="filter-pill" data-category="Peruanskt/Fisk" onclick="setFilter('Peruanskt/Fisk')">Ceviche & Fisk</button>
+                <button class="filter-pill" data-category="Japanskt/Ramen" onclick="setFilter('Japanskt/Ramen')">Ramen & Sushi</button>
+                <button class="filter-pill" data-category="Favoriter" onclick="setFilter('Favoriter')">❤️ Favoriter</button>
+            </div>
+
+            <div class="view-switch">
+                <button class="view-btn active" data-view="today" onclick="setView('today')">Idag</button>
+                <button class="view-btn" data-view="week" onclick="setView('week')">Hela Veckan</button>
+            </div>
+        </div>
+
+        <!-- Layout Grid -->
+        <div class="main-layout">
+            
+            <!-- Left: Main Menu Cards List -->
+            <div class="cards-grid" id="mainCardsContainer"></div>
+
+            <!-- Right: Quick Navigation & Stats Side Area -->
+            <aside class="side-panel">
+                <div class="side-card">
+                    <div class="side-title">Snabböversikt</div>
+                    <div id="quickListContainer"></div>
+                </div>
+
+                <div class="side-card">
+                    <div class="side-title">Lunchfakta Göteborg</div>
+                    <div style="font-size:12.5px; opacity:0.8; line-height:1.6;">
+                        <p>🍽️ <strong>Medelpris:</strong> 136 kr</p>
+                        <p>☕ <strong>Ingår:</strong> Kaffe & salladsbuffé hos 90%%</p>
+                        <p>⏱️ <strong>Serveras oftast:</strong> 11:00 - 14:30</p>
+                        <p>🌟 <strong>Toppbetyg:</strong> Ceviche Taste of Peru (4.9 ★)</p>
+                    </div>
+                </div>
+            </aside>
+
+        </div>
+
+    </div>
+
+    <!-- Dish Modal -->
+    <div class="modal-overlay" id="dishModal" onclick="closeDishModal()">
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <button class="modal-close" onclick="closeDishModal()">&times;</button>
+            <div id="modalRestName" style="font-size:12px; color:#a1a1aa; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;"></div>
+            <h3 id="modalDishTitle" style="font-size:20px; margin-bottom:10px;"></h3>
+            <p id="modalDishDesc" style="font-size:14px; color:#cbd5e1; line-height:1.5; margin-bottom:16px;"></p>
+            <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #333; padding-top:14px;">
+                <span id="modalDishTag" style="font-size:12px; background:#333; padding:3px 10px; border-radius:999px;"></span>
+                <span id="modalDishPrice" style="font-size:18px; font-weight:700; color:#34d399;"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interactive Script -->
+    <script>
+
+let appData = {"city": "Göteborg, Sweden", "updated": "Idag kl 11:15", "totalCount": 6, "restaurants": [{"id": "tildas", "name": "Tildas Restaurang", "area": "Kvillebäcken / Hisingen", "distance": "450 m", "price": "135 kr", "rating": "4.8", "reviews": 342, "status": "Öppen nu (11:00-14:30)", "isOpen": true, "category": "Husman", "tags": ["Husmanskost", "Kött", "Fisk", "Salladsbuffé"], "includes": "Salladsbuffé, nybakat bröd, lingondricka, kaffe & kaka", "badge": "Populärast i Kville", "today": [{"title": "Raggmunk med stekt rimmat sidfläsk", "desc": "Klassisk svensk raggmunk serveras med nystekt krispigt fläsk och rårörda lingon.", "tag": "Klassiker", "price": "135 kr", "type": "meat"}, {"title": "Ugnsbakad Laxfilé med vitvinssås", "desc": "Färsk norsk lax med krämig vitvinssås, dillslungad delikatesspotatis och sockerärtor.", "tag": "Fisk", "price": "135 kr", "type": "fish"}, {"title": "Krämig Skogssvamprisotto", "desc": "Arborioris med stekt karljohanssvamp, tryffelolja, babyspenat och 24 månaders parmesan.", "tag": "Vegetarisk", "price": "130 kr", "type": "veg"}], "week": [{"day": "Måndag", "dish": "Korvstroganoff på svensk oxkorv med basmatiris, saltgurka och gräddfil."}, {"day": "Tisdag", "dish": "Raggmunk med rimmat sidfläsk & lingon / Stekt fläsk med löksås & kokt potatis."}, {"day": "Onsdag", "dish": "Wallenbergare på svensk kalvfärs med skirat smör, gröna ärtor, rårörda lingon och potatispuré."}, {"day": "Torsdag", "dish": "Ärtsoppa med fläskbog samt nygräddade tunnpannkakor med hemlagad sylt & vispad grädde."}, {"day": "Fredag", "dish": "Helstekt mör biff med hemslagen bearnaisesås, rödvinssås och friterad klyftpotatis."}]}, {"id": "thegrill", "name": "The Grill", "area": "Eriksberg / Hamnen", "distance": "700 m", "price": "145 kr", "rating": "4.7", "reviews": 218, "status": "Öppen nu (11:00-14:00)", "isOpen": true, "category": "Grill", "tags": ["Grill", "BBQ", "Burgare", "Kött"], "includes": "Varm soppbuffé, krispig salladsbar, måltidsdryck & kaffe", "badge": "Rökigt & Mums", "today": [{"title": "Charcoal Smoked Chuck Roll", "desc": "Långrökt högrev med chipotle-honungsglaze, grillad majskolv och rostad sötpotatis.", "tag": "Chef's Choice", "price": "145 kr", "type": "meat"}, {"title": "Black Angus Smash Burger (Lunch Edition)", "desc": "150g nymald angusfärs med dubbel cheddar, karamelliserad lök, tryffelmajo och krispiga fries.", "tag": "Burgare", "price": "140 kr", "type": "meat"}, {"title": "Grillad Halloumiburgare", "desc": "Cypriotisk halloumi med avokadocrème, picklad rödlök, krispsallad och sötpotatispommes.", "tag": "Vegetarisk", "price": "135 kr", "type": "veg"}], "week": [{"day": "Måndag", "dish": "BBQ Glazed Baby Back Ribs med krämig coleslaw och rostad klyftpotatis."}, {"day": "Tisdag", "dish": "Charcoal Smoked Chuck Roll med majskolv & Black Angus Smash Burger."}, {"day": "Onsdag", "dish": "Grillad majskycklingfilé med färsk chimichurri och bakad potatis med kryddsmör."}, {"day": "Torsdag", "dish": "Pulled Pork Sliders med syrad rödkål, jalapeños och krispiga pommes frites."}, {"day": "Fredag", "dish": "The Grill's Mixed BBQ Platter med tri-tip, chorizo, rökig bearnaise och potatisgratäng."}]}, {"id": "mrtomato", "name": "Mr Tomato", "area": "Centrum / Avenyn", "distance": "1.1 km", "price": "129 kr", "rating": "4.6", "reviews": 195, "status": "Öppen nu (11:00-15:00)", "isOpen": true, "category": "Pasta", "tags": ["Italienskt", "Pasta", "Pizza", "Sallad"], "includes": "Färsk hembakt focaccia, tapenad, sallad & italiensk espresso", "badge": "Äkta Färskpasta", "today": [{"title": "Tagliatelle al Tartufo", "desc": "Färsk bandpasta med skogschampinjoner, tryffelcrème, persilja och riven Grana Padano.", "tag": "Pasta Fresca", "price": "129 kr", "type": "veg"}, {"title": "Pizza Capricciosa Tradizionale", "desc": "San Marzano-tomatsås, fior di latte mozzarella, prosciutto cotto, färska champinjoner och kronärtskocka.", "tag": "Stenugnsbakad", "price": "129 kr", "type": "meat"}, {"title": "Pollo alla Cacciatore", "desc": "Kycklingbröst i mustig tomat-, rosmarin- och olivsås med rostad örtpotatis.", "tag": "Kött", "price": "135 kr", "type": "meat"}], "week": [{"day": "Måndag", "dish": "Spaghetti alla Carbonara på äkta guanciale, äggula och pecorino romano."}, {"day": "Tisdag", "dish": "Tagliatelle al Tartufo / Pizza Capricciosa Tradizionale / Pollo Cacciatore."}, {"day": "Onsdag", "dish": "Lasagne al Forno med husets långkokta ragù bolognese och bechamelsås."}, {"day": "Torsdag", "dish": "Penne al Salmone med färsk babyspenat, vitlök, vitt vin och citroncrème."}, {"day": "Fredag", "dish": "Pizza Diavola med stark ventricina & Risotto ai Frutti di Mare med blåmusslor & räkor."}]}, {"id": "ceviche", "name": "Ceviche - Taste of Peru", "area": "Linné / Vasa", "distance": "1.4 km", "price": "139 kr", "rating": "4.9", "reviews": 425, "status": "Öppen nu (11:30-14:30)", "isOpen": true, "category": "Peruanskt/Fisk", "tags": ["Peruanskt", "Fisk", "Glutenfritt", "Latin"], "includes": "Chicha Morada måltidsdryck, rostad canchita & kaffe", "badge": "Toppbetyg 4.9 ★", "today": [{"title": "Ceviche Clásico Peruano", "desc": "Färsk fångst av vit fisk marinerad i lime, leche de tigre, röd lök, koriander, choclo & karamelliserad camote.", "tag": "Signaturrätt", "price": "139 kr", "type": "fish"}, {"title": "Lomo Saltado Criollo", "desc": "Wokad mör oxfilé på hög flamma med rödlök, tomat, färsk koriander, krispiga pommes och fluffigt jasminris.", "tag": "Kött", "price": "145 kr", "type": "meat"}, {"title": "Causa Limeña Vegetariana", "desc": "Lager av gul ají amarillo-potatismos med avokado, palmhjärtan, tomat och huancaína-crème.", "tag": "Glutenfri / Veg", "price": "129 kr", "type": "veg"}], "week": [{"day": "Måndag", "dish": "Ceviche Mixto (fisk, bläckfisk & räkor) samt Arroz con Mariscos i saffransbuljong."}, {"day": "Tisdag", "dish": "Ceviche Clásico Peruano / Lomo Saltado Criollo / Causa Limeña."}, {"day": "Onsdag", "dish": "Seco de Pollo i mustig koriander- och chilisås med peruanska bönor och ris."}, {"day": "Torsdag", "dish": "Causa Limeña med kyckling & avokado samt Tiradito de Atún Nikkei."}, {"day": "Fredag", "dish": "Chaufa Especial de Mariscos (peruansk skaldjurschaufaris) & Ceviche Carretillero med friterad calamares."}]}, {"id": "divan", "name": "Divan Kolgrill", "area": "Hisingen / Wieselgrensplatsen", "distance": "600 m", "price": "130 kr", "rating": "4.7", "reviews": 510, "status": "Öppen nu (10:30-15:00)", "isOpen": true, "category": "Grill", "tags": ["Kolgrill", "Mellanöstern", "Kött", "Halal"], "includes": "Nybakt tandûrbröd, mezebuffé med 6 röror & turkiskt te", "badge": "Stor Mezebuffé", "today": [{"title": "Adana Kebab på Kolgrill", "desc": "Handhackad kryddad lammfärs på brett spett, grillad över ekkolsglöd. Serveras med örtslungad bulgur, sumaklök och grillad spetspaprika.", "tag": "Kolgrillat", "price": "130 kr", "type": "meat"}, {"title": "Tavuk Sis (Marinerat Kycklingspett)", "desc": "Möra kycklingfilébitar marinerade i paprika, vitlök och örter. Serveras med tzatziki, ris och grillad tomat.", "tag": "Favorit", "price": "130 kr", "type": "meat"}, {"title": "Klassisk Falafeltallrik", "desc": "Krispiga nystekta kikärtsfalafel med sammetslen hummus, tabbouleh, sesamtahini och picklad kålrot.", "tag": "Vegansk", "price": "120 kr", "type": "veg"}], "week": [{"day": "Måndag", "dish": "Beyti Kebab rullad i lavasbröd med fyllig vitlöksyoghurt och brynt tomatsmör."}, {"day": "Tisdag", "dish": "Adana Kebab över kolbädd / Tavuk Sis kycklingspett / Falafeltallrik."}, {"day": "Onsdag", "dish": "Kuzu Tandir (långbakat lamm som faller isär) med kaneldoftande ris och mandel."}, {"day": "Torsdag", "dish": "Ali Nazik Kebab över rökig auberginemos med vitlöksyoghurt och smörsky."}, {"day": "Fredag", "dish": "Divan Grand Mix Grill med lammracks, adana, kycklingspett och heta mezeröror."}]}, {"id": "tsukihana", "name": "Tsukihana Ramen & Sushi", "area": "Vasa / Viktoriagatan", "distance": "1.3 km", "price": "140 kr", "rating": "4.8", "reviews": 294, "status": "Öppen nu (11:30-14:30)", "isOpen": true, "category": "Japanskt/Ramen", "tags": ["Japanskt", "Sushi", "Ramen", "Bowls"], "includes": "Hembryggd misosoppa, ekologiskt grönt te & edamamebönor", "badge": "Handrullat & Färskt", "today": [{"title": "Tonkotsu Rich Ramen", "desc": "12-timmars fyllig fläskbuljong, färska ramen-nudlar, långbakat chashu-fläsk, marinerat ajitsuke-ägg, mayu (svart vitlöksolja) och böngroddar.", "tag": "Signatur Ramen", "price": "140 kr", "type": "meat"}, {"title": "Moriawase Lunch Sushi (12 bitar)", "desc": "4 flammad lax med chilimajo, 2 tonfisk, 2 räka, 1 avokado och 3 rullar med friterad sparris.", "tag": "Sushi", "price": "140 kr", "type": "fish"}, {"title": "Tofu & Shiitake Yasai Ramen", "desc": "Dashi på torkad shiitake och kombu-alger med friterad silkestofu, pak choi, sesam och majs.", "tag": "Vegansk Ramen", "price": "135 kr", "type": "veg"}], "week": [{"day": "Måndag", "dish": "Spicy Salmon Poke Bowl med färsk mango, edamame, gari och sesamdressing."}, {"day": "Tisdag", "dish": "Tonkotsu Rich Ramen / Moriawase Sushi 12 bitar / Yasai Vegansk Ramen."}, {"day": "Onsdag", "dish": "Gyudon (tunnskivad biff med lök sjuden i söt mirin-soja över japanskt ris med onsen-ägg)."}, {"day": "Torsdag", "dish": "Tokyo Shoyu Ramen med grillat ankbröst, nori och marinerad bambu / Tempura Maki."}, {"day": "Fredag", "dish": "Ebi Furai Don med krispiga panko-jätteräkor, tonkatsusås & Tsukihana Premium Sashimi Lunch."}]}]};
+let currentView = 'today';
+let activeFilter = 'Alla';
+let searchQuery = '';
+let favorites = JSON.parse(localStorage.getItem('lunch_favs') || '[]');
+
+function init() {
+    renderStats();
+    renderRestaurants();
+    renderQuickList();
+    setupEvents();
+}
+
+function setView(view) {
+    currentView = view;
+    document.querySelectorAll('.view-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.view === view);
+    });
+    renderRestaurants();
+}
+
+function setFilter(cat) {
+    activeFilter = cat;
+    document.querySelectorAll('.filter-pill').forEach(p => {
+        p.classList.toggle('active', p.dataset.category === cat);
+    });
+    renderRestaurants();
+}
+
+function toggleFavorite(id, e) {
+    if (e) e.stopPropagation();
+    if (favorites.includes(id)) {
+        favorites = favorites.filter(f => f !== id);
+    } else {
+        favorites.push(id);
+    }
+    localStorage.setItem('lunch_favs', JSON.stringify(favorites));
+    renderRestaurants();
+    renderQuickList();
+    showToast(favorites.includes(id) ? 'Sparad som favorit ❤️' : 'Borttagen från favoriter');
+}
+
+function filterData() {
+    return appData.restaurants.filter(r => {
+        const matchesCategory = activeFilter === 'Alla' || 
+            (activeFilter === 'Favoriter' ? favorites.includes(r.id) : (r.category === activeFilter || r.tags.includes(activeFilter)));
+        const q = searchQuery.toLowerCase();
+        const matchesSearch = !q || 
+            r.name.toLowerCase().includes(q) || 
+            r.area.toLowerCase().includes(q) || 
+            r.tags.some(t => t.toLowerCase().includes(q)) ||
+            r.today.some(d => d.title.toLowerCase().includes(q) || d.desc.toLowerCase().includes(q));
+        return matchesCategory && matchesSearch;
+    });
+}
+
+function renderStats() {
+    const elCount = document.getElementById('statCount');
+    if (elCount) elCount.textContent = appData.restaurants.length;
+    const elTime = document.getElementById('statTime');
+    if (elTime) elTime.textContent = new Date().toLocaleTimeString('sv-SE', {hour:'2-digit', minute:'2-digit'});
+}
+
+function showToast(msg) {
+    let t = document.getElementById('toastNotification');
+    if (!t) {
+        t = document.createElement('div');
+        t.id = 'toastNotification';
+        t.className = 'toast-bubble';
+        document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.classList.add('visible');
+    setTimeout(() => t.classList.remove('visible'), 2400);
+}
+
+function openDishModal(rName, dish) {
+    const m = document.getElementById('dishModal');
+    if (!m) return;
+    document.getElementById('modalRestName').textContent = rName;
+    document.getElementById('modalDishTitle').textContent = dish.title;
+    document.getElementById('modalDishDesc').textContent = dish.desc;
+    document.getElementById('modalDishPrice').textContent = dish.price;
+    document.getElementById('modalDishTag').textContent = dish.tag;
+    m.classList.add('active');
+}
+
+function closeDishModal() {
+    const m = document.getElementById('dishModal');
+    if (m) m.classList.remove('active');
+}
+
+function triggerRefresh() {
+    const btn = document.getElementById('refreshBtn');
+    if (btn) btn.classList.add('spinning');
+    showToast('Hämtar färska menyer från Göteborg...');
+    setTimeout(() => {
+        if (btn) btn.classList.remove('spinning');
+        showToast('Menyer uppdaterade just nu! ✅');
+        const updateHeader = document.getElementById('lastUpdateHeader');
+        if (updateHeader) updateHeader.textContent = 'Uppdaterad nyss';
+    }, 900);
+}
+
+
+    function onSearch(val) {
+        searchQuery = val;
+        renderRestaurants();
+    }
+
+    function renderRestaurants() {
+        const container = document.getElementById('mainCardsContainer');
+        if (!container) return;
+        const filtered = filterData();
+
+        if (filtered.length === 0) {
+            container.innerHTML = `
+                <div style="text-align:center; padding:50px 20px; opacity:0.6;">
+                    <div style="font-size:40px; margin-bottom:10px;">🍽️</div>
+                    <h3>Inga luncher matchade din sökning</h3>
+                    <p style="font-size:13px; margin-top:4px;">Prova att rensa filter eller ändra sökord.</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = filtered.map(r => {
+            const isFav = favorites.includes(r.id);
+            let bodyContent = '';
+
+            if (currentView === 'today') {
+                bodyContent = `
+                    <div class="dishes-list">
+                        ${r.today.map(d => `
+                            <div class="dish-item" onclick='openDishModal("${r.name}", ${JSON.stringify(d)})'>
+                                <div style="flex:1;">
+                                    <div class="dish-title">${d.title}</div>
+                                    <div class="dish-desc">${d.desc}</div>
+                                </div>
+                                <div style="text-align:right; margin-left:14px;">
+                                    <span class="dish-tag">${d.tag}</span>
+                                    <div style="font-size:13px; font-weight:600; margin-top:4px; opacity:0.85;">${d.price}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else {
+                bodyContent = `
+                    <div class="week-list" style="display:flex; flex-direction:column; gap:8px;">
+                        ${r.week.map(w => `
+                            <div style="padding:10px 14px; background:rgba(0,0,0,0.08); border-radius:6px; font-size:13px;">
+                                <span style="font-weight:700; opacity:0.9; margin-right:8px;">${w.day}:</span>
+                                <span style="opacity:0.8;">${w.dish}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="restaurant-card" id="card-${r.id}">
+                    <div class="card-top">
+                        <div>
+                            <div class="r-name">
+                                ${r.name}
+                                <button class="fav-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite('${r.id}', event)">
+                                    ${isFav ? '❤️' : '🤍'}
+                                </button>
+                            </div>
+                            <div class="r-area">📍 ${r.area} • ${r.distance} • ⭐ ${r.rating} (${r.reviews})</div>
+                        </div>
+                        <div class="r-price">${r.price}</div>
+                    </div>
+
+                    <div class="tag-list">
+                        ${r.tags.map(t => `<span class="tag-chip">${t}</span>`).join('')}
+                    </div>
+
+                    ${bodyContent}
+
+                    <div class="includes-bar">
+                        <span>☕</span>
+                        <span><strong>Ingår:</strong> ${r.includes}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderQuickList() {
+        const container = document.getElementById('quickListContainer');
+        if (!container) return;
+        container.innerHTML = appData.restaurants.map(r => `
+            <div class="quick-row" onclick="document.getElementById('card-${r.id}')?.scrollIntoView({behavior:'smooth'})">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="status-dot"></span>
+                    <span style="font-weight:500;">${r.name}</span>
+                </div>
+                <span style="opacity:0.6; font-size:12px;">${r.price}</span>
+            </div>
+        `).join('');
+    }
+
+    function setupEvents() {}
+
+    window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

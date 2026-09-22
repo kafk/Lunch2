@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lunch2 • StatusKoll Edition</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* StatusKoll Design System Tokens */
+            --bg-page: hsl(228, 17%, 98%);
+            --fg-page: hsl(200, 11%, 22%);
+            --card-bg: #FFFFFF;
+            --card-border: hsl(205, 22%, 91%);
+            
+            --primary: hsl(10, 100%, 64%);
+            --primary-light: hsl(10, 100%, 96%);
+            --primary-glow: rgba(255, 107, 74, 0.35);
+            
+            --secondary: hsl(174, 58%, 55%);
+            --secondary-light: hsl(174, 58%, 95%);
+            
+            --success: hsl(134, 38%, 65%);
+            --success-light: hsl(134, 38%, 95%);
+            
+            --warning: hsl(47, 100%, 62%);
+            --warning-light: hsl(47, 100%, 95%);
+            
+            --muted-bg: hsl(210, 40%, 96%);
+            --muted-fg: hsl(199, 12%, 50%);
+            
+            --radius-pill: 999px;
+            --radius-card: 1.25rem; /* 20px */
+            --radius-sm: 0.75rem; /* 12px */
+            
+            --shadow-sm: 0 2px 8px rgba(45, 52, 54, 0.06);
+            --shadow-md: 0 8px 20px rgba(45, 52, 54, 0.08);
+            --shadow-primary: 0 6px 18px rgba(255, 107, 74, 0.35);
+            
+            --gradient-primary: linear-gradient(135deg, hsl(10, 100%, 64%), hsl(18, 100%, 71%));
+            --gradient-timeline: linear-gradient(180deg, hsl(10, 100%, 64%) 0%, hsl(174, 58%, 55%) 50%, hsl(47, 100%, 62%) 100%);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-page);
+            color: var(--fg-page);
+            font-family: 'Space Mono', monospace;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Ambient Glow Backdrop */
+        .ambient-glow-top {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1000px;
+            height: 380px;
+            background: radial-gradient(ellipse at 50% -20%, rgba(255, 107, 74, 0.15), rgba(72, 209, 204, 0.08) 60%, transparent 80%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Typography utility classes */
+        .font-display {
+            font-family: 'Syne', -apple-system, sans-serif;
+        }
+
+        /* Floating Style Switcher */
+        .style-hub-floater {
+            position: fixed;
+            top: 14px;
+            right: 18px;
+            z-index: 10000;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .hub-btn {
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(12px);
+            color: var(--fg-page);
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: var(--radius-pill);
+            font-size: 13px;
+            font-weight: 700;
+            font-family: 'Syne', sans-serif;
+            border: 1px solid var(--card-border);
+            box-shadow: var(--shadow-sm);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all .2s cubic-bezier(0.16, 1, 0.3, 1);
+            cursor: pointer;
+        }
+        .hub-btn:hover {
+            transform: translateY(-2px);
+            color: var(--primary);
+            border-color: var(--primary);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* StatusKoll Hero Banner */
+        .sk-header {
+            position: relative;
+            z-index: 1;
+            padding: 48px 24px 32px;
+            text-align: center;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .sk-badge-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--primary-light);
+            color: var(--primary);
+            border: 1px solid rgba(255, 107, 74, 0.25);
+            padding: 6px 18px;
+            border-radius: var(--radius-pill);
+            font-size: 12.5px;
+            font-weight: 700;
+            font-family: 'Syne', sans-serif;
+            letter-spacing: 0.4px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(255, 107, 74, 0.12);
+        }
+        .sk-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 44px;
+            font-weight: 800;
+            letter-spacing: -1.2px;
+            color: var(--fg-page);
+            margin-bottom: 10px;
+            line-height: 1.15;
+        }
+        .sk-subtitle {
+            font-size: 14.5px;
+            color: var(--muted-fg);
+            line-height: 1.6;
+            max-width: 620px;
+            margin: 0 auto 28px;
+        }
+
+        /* Status Overview Dashboard Stats (StatusKoll metrics) */
+        .kpi-deck {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            max-width: 1240px;
+            margin: 0 auto 36px;
+            padding: 0 24px;
+            position: relative;
+            z-index: 1;
+        }
+        .kpi-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-card);
+            padding: 18px 20px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: all .2s;
+        }
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary);
+            box-shadow: var(--shadow-md);
+        }
+        .kpi-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .kpi-icon-pill {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            display: grid;
+            place-items: center;
+            font-size: 15px;
+        }
+        .kpi-num {
+            font-family: 'Syne', sans-serif;
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--fg-page);
+        }
+        .kpi-desc {
+            font-size: 11.5px;
+            color: var(--muted-fg);
+        }
+
+        /* Controls: Search, View Switch, Category Filters */
+        .control-strip {
+            max-width: 1240px;
+            margin: 0 auto 28px;
+            padding: 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            position: relative;
+            z-index: 1;
+        }
+        .search-box-sk {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-pill);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 320px;
+            box-shadow: var(--shadow-sm);
+            transition: all .2s;
+        }
+        .search-box-sk:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+        .search-box-sk input {
+            border: none;
+            outline: none;
+            font-family: inherit;
+            font-size: 13px;
+            color: var(--fg-page);
+            width: 100%;
+            background: transparent;
+        }
+
+        .category-filters-pills {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .filter-sk-btn {
+            border: 1px solid var(--card-border);
+            background: var(--card-bg);
+            padding: 8px 18px;
+            border-radius: var(--radius-pill);
+            font-size: 12.5px;
+            font-weight: 700;
+            font-family: 'Syne', sans-serif;
+            color: var(--muted-fg);
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .filter-sk-btn:hover {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+        .filter-sk-btn.active {
+            background: var(--gradient-primary);
+            color: #FFFFFF;
+            border-color: transparent;
+            box-shadow: var(--shadow-primary);
+        }
+
+        /* View Toggle (Idag vs Vecka) */
+        .view-pill-toggle {
+            background: #EAEFF5;
+            padding: 4px;
+            border-radius: var(--radius-pill);
+            display: inline-flex;
+            gap: 4px;
+        }
+        .view-pill-btn {
+            border: none;
+            background: transparent;
+            padding: 6px 16px;
+            border-radius: var(--radius-pill);
+            font-size: 12px;
+            font-weight: 700;
+            font-family: 'Syne', sans-serif;
+            color: var(--muted-fg);
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .view-pill-btn.active {
+            background: #FFFFFF;
+            color: var(--fg-page);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        /* Main Workspace: Restaurant Cards Grid */
+        .restaurants-container {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 0 24px 60px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* StatusKoll Signature Restaurant Card */
+        .sk-restaurant-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-card);
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 20px;
+            transition: all .25s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .sk-restaurant-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Card Top Header */
+        .sk-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .sk-rest-name {
+            font-family: 'Syne', sans-serif;
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.4px;
+            color: var(--fg-page);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sk-price-badge {
+            font-family: 'Space Mono', monospace;
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--primary);
+            background: var(--primary-light);
+            border: 1px solid rgba(255, 107, 74, 0.25);
+            padding: 4px 12px;
+            border-radius: var(--radius-pill);
+        }
+        .sk-meta-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 11.5px;
+            color: var(--muted-fg);
+            margin-top: 4px;
+        }
+
+        /* Status Timeline Indicator (Check-in / Kitchen / Cleaning Status) */
+        .sk-status-rail {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--muted-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            font-size: 11.5px;
+        }
+        .sk-status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+        }
+        .sk-status-dot.dot-warning {
+            background: var(--warning);
+            box-shadow: 0 0 8px var(--warning);
+        }
+
+        /* Dishes Stack */
+        .sk-dishes-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .sk-dish-item {
+            background: #FDFEFE;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .sk-dish-item:hover {
+            border-color: var(--secondary);
+            background: var(--secondary-light);
+        }
+        .sk-dish-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--fg-page);
+        }
+        .sk-dish-desc {
+            font-size: 11px;
+            color: var(--muted-fg);
+            margin-top: 2px;
+        }
+        .sk-tag-chip {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: var(--radius-pill);
+            background: #EEF2F6;
+            color: var(--fg-page);
+            font-family: 'Syne', sans-serif;
+        }
+
+        /* Card Action Footer */
+        .sk-card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 14px;
+            border-top: 1px solid var(--card-border);
+        }
+        .sk-btn-order {
+            background: var(--gradient-primary);
+            color: #FFFFFF;
+            border: none;
+            padding: 9px 18px;
+            border-radius: var(--radius-pill);
+            font-size: 12.5px;
+            font-weight: 700;
+            font-family: 'Syne', sans-serif;
+            cursor: pointer;
+            box-shadow: var(--shadow-primary);
+            transition: all .2s;
+        }
+        .sk-btn-order:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.05);
+        }
+        .sk-fav-btn {
+            background: transparent;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: var(--muted-fg);
+            transition: transform .15s;
+        }
+        .sk-fav-btn:hover { transform: scale(1.2); }
+        .sk-fav-btn.active { color: var(--primary); }
+
+        /* Modal Dialog */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(30, 41, 59, 0.45);
+            backdrop-filter: blur(6px);
+            z-index: 10002;
+            display: none;
+            place-items: center;
+            padding: 20px;
+        }
+        .modal-backdrop.active { display: grid; }
+        .modal-card-sk {
+            background: #FFFFFF;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 460px;
+            padding: 28px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+            position: relative;
+            animation: modalPop .2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes modalPop {
+            from { transform: scale(0.94); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .modal-close-btn {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid var(--card-border);
+            background: var(--bg-page);
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        /* Toast Banner */
+        .toast-banner {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--fg-page);
+            color: #FFFFFF;
+            padding: 12px 24px;
+            border-radius: var(--radius-pill);
+            font-size: 13px;
+            font-weight: 700;
+            font-family: 'Syne', sans-serif;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            opacity: 0;
+            transition: all .25s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 10001;
+            pointer-events: none;
+        }
+        .toast-banner.visible {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        @media (max-width: 900px) {
+            .kpi-deck { grid-template-columns: 1fr 1fr; }
+            .control-strip { flex-direction: column; align-items: stretch; }
+            .search-box-sk { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-glow-top"></div>
+
+    <!-- Floating Top Bar -->
+    <div class="style-hub-floater">
+        <a href="index.html" class="hub-btn">← Galleri</a>
+        <a href="style-15-v1-live-ops.html" class="hub-btn">v1 Live Ops</a>
+        <a href="style-15-v2-swiss-grid.html" class="hub-btn">v2 Swiss Grid</a>
+        <a href="style-15-v3-dark-cockpit.html" class="hub-btn">v3 Dark Cockpit</a>
+        <a href="style-15-v4-modular-bento.html" class="hub-btn">v4 Modular Bento</a>
+        <a href="style-15-v5-transit-dispatch.html" class="hub-btn">v5 Transit Dispatch</a>
+        <a href="style-15-v6-appnest.html" class="hub-btn">v6 Appnest ✦</a>
+        <button class="hub-btn" onclick="toggleFavoriteFilter()">❤️ <span id="favCountBadge">2 sparade</span></button>
+    </div>
+
+    <!-- StatusKoll Hero Banner -->
+    <header class="sk-header">
+        <div class="sk-badge-pill">
+            <span>✨</span> StatusKoll Design System • Göteborg Lunch
+        </div>
+        <h1 class="sk-title">StatusKoll • Dagens Lunch</h1>
+        <p class="sk-subtitle">
+            Håll full koll på menyer, köksstatus, bordsbokningar och priser i realtid med StatusKoll designsystem.
+        </p>
+
+        <div class="view-pill-toggle">
+            <button class="view-pill-btn active" id="btnViewToday" onclick="setViewMode('today')">Idag • Fredag</button>
+            <button class="view-pill-btn" id="btnViewWeek" onclick="setViewMode('week')">Hela Veckan</button>
+        </div>
+    </header>
+
+    <!-- KPI Metrics Strip from StatusKoll -->
+    <div class="kpi-deck">
+        <div class="kpi-card">
+            <div class="kpi-top">
+                <span class="kpi-desc font-display">Öppna Restauranger</span>
+                <div class="kpi-icon-pill" style="background: var(--primary-light); color: var(--primary);">🍽️</div>
+            </div>
+            <div class="kpi-num">14 st</div>
+            <div style="font-size: 11px; color: var(--success); font-weight: 700;">● Alla uppdaterade idag</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-top">
+                <span class="kpi-desc font-display">Genomsnittspris</span>
+                <div class="kpi-icon-pill" style="background: var(--secondary-light); color: var(--secondary);">💳</div>
+            </div>
+            <div class="kpi-num">132 SEK</div>
+            <div style="font-size: 11px; color: var(--muted-fg);">Inkl. kaffe, bröd & buffé</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-top">
+                <span class="kpi-desc font-display">Kök & Servering</span>
+                <div class="kpi-icon-pill" style="background: var(--success-light); color: var(--success);">⚡</div>
+            </div>
+            <div class="kpi-num">Serveras nu</div>
+            <div style="font-size: 11px; color: var(--success); font-weight: 700;">Lunchtid 11:00 – 14:00</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-top">
+                <span class="kpi-desc font-display">Sparade Favoriter</span>
+                <div class="kpi-icon-pill" style="background: var(--warning-light); color: var(--warning);">⭐</div>
+            </div>
+            <div class="kpi-num" id="kpiFavCount">2 st</div>
+            <div style="font-size: 11px; color: var(--primary); font-weight: 700;">Snabbåtkomst aktiverad</div>
+        </div>
+    </div>
+
+    <!-- Filter & Search Controls -->
+    <div class="control-strip">
+        <div class="search-box-sk">
+            <span>🔍</span>
+            <input type="text" id="searchInput" placeholder="Sök restaurang eller rätt..." oninput="onSearch(this.value)">
+        </div>
+
+        <div class="category-filters-pills">
+            <button class="filter-sk-btn active" onclick="setCategory('Alla', this)">Alla (14)</button>
+            <button class="filter-sk-btn" onclick="setCategory('Husman', this)">🥩 Husman</button>
+            <button class="filter-sk-btn" onclick="setCategory('Fisk', this)">🐟 Fisk</button>
+            <button class="filter-sk-btn" onclick="setCategory('Veg', this)">🌱 Vegetariskt</button>
+            <button class="filter-sk-btn" onclick="setCategory('Asiatiskt', this)">🍜 Asiatiskt</button>
+        </div>
+    </div>
+
+    <!-- Restaurant Cards Grid -->
+    <main class="restaurants-container" id="restaurantsContainer">
+        <!-- Rendered by JS -->
+    </main>
+
+    <!-- Modal for Order & Detailed Status Check -->
+    <div class="modal-backdrop" id="statusModal" onclick="if(event.target===this) closeModal()">
+        <div class="modal-card-sk">
+            <button class="modal-close-btn" onclick="closeModal()">✕</button>
+            <div style="font-size: 11px; font-weight: 700; color: var(--primary); margin-bottom: 6px;" class="font-display">
+                ● STATUSKOLL • BORDSBOKNING
+            </div>
+            <h2 style="font-size: 22px; font-weight: 800; color: var(--fg-page); margin-bottom: 4px;" class="font-display" id="modalRestName">Kooperativet</h2>
+            <div style="font-size: 14.5px; font-weight: 700; color: var(--primary); margin-bottom: 12px;" class="font-display" id="modalDishTitle">Helstekt Ryggbiff</div>
+            
+            <p style="font-size: 12.5px; color: var(--muted-fg); line-height: 1.6; margin-bottom: 18px;" id="modalDishDesc">
+                Serveras med krispig rostad potatis, rödvinssås, sauterade primörer och färska örter. Inkluderar stor salladsbuffé, nybakat surdegsbröd och kaffe.
+            </p>
+
+            <div style="background: var(--bg-page); border: 1px solid var(--card-border); border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 20px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:12px;">
+                    <span style="color:var(--muted-fg);">Köksstatus:</span>
+                    <span style="font-weight:700; color:var(--success);">● Tillagas nylagad</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700;">
+                    <span>Pris:</span>
+                    <span style="color:var(--primary);" id="modalPrice">135 SEK</span>
+                </div>
+            </div>
+
+            <button class="sk-btn-order" style="width: 100%; padding: 12px;" onclick="confirmOrderAction()">Bekräfta Lunchval ✅</button>
+        </div>
+    </div>
+
+    <!-- Toast Banner -->
+    <div class="toast-banner" id="toastBanner">
+        <span id="toastMsg">Välkommen till Lunch2 StatusKoll!</span>
+    </div>
+
+    <script>
+        const restaurants = [
+            {
+                id: 'kooperativet',
+                name: 'Kooperativet',
+                area: 'Lindholmen',
+                address: 'Anders Carlssons gata 2',
+                distance: '250 m',
+                price: '135 SEK',
+                rating: '4.8',
+                status: 'Serverar nu • 8 bord lediga',
+                statusType: 'normal',
+                category: 'Husman',
+                today: [
+                    { title: 'Helstekt Ryggbiff & Rödvinssky', desc: 'Rostad potatis, örtsmör, primörer', tag: 'Kött' },
+                    { title: 'Ugnsbakad Laxfilé & Sandefjordsås', desc: 'Dillpotatis, fänkålscrudité', tag: 'Fisk' },
+                    { title: 'Rostad Blomkålsbiff med Linser', desc: 'Örtaioli, picklad rödlök', tag: 'Veg' }
+                ],
+                week: [
+                    { day: 'Mån', dish: 'Wallenbergare med skirat smör & potatismos' },
+                    { day: 'Tis', dish: 'Stekt fläsk med raggmunk & lingon' },
+                    { day: 'Ons', dish: 'Fiskgryta med saffran & aioli' },
+                    { day: 'Tor', dish: 'Ärtsoppa & pannkakor med sylt och grädde' },
+                    { day: 'Fre', dish: 'Helstekt Ryggbiff & rödvinssås' }
+                ]
+            },
+            {
+                id: 'porten',
+                name: 'Restaurang Porten',
+                area: 'Science Park',
+                address: 'Lindholmspiren 5',
+                distance: '400 m',
+                price: '129 SEK',
+                rating: '4.6',
+                status: 'Full meny aktiv',
+                statusType: 'normal',
+                category: 'Husman',
+                today: [
+                    { title: 'Klassiska Köttbullar & Gräddsås', desc: 'Potatismos, rårörda lingon, pressgurka', tag: 'Husman' },
+                    { title: 'Smörstekt Torskrygg & Äggsås', desc: 'Kokt potatis, citron & dill', tag: 'Fisk' }
+                ],
+                week: [
+                    { day: 'Mån', dish: 'Kycklingfilé med dragonsås & ris' },
+                    { day: 'Tis', dish: 'Köttbullar med gräddsås & lingon' },
+                    { day: 'Ons', dish: 'Pannbiff med stekt lök & skysås' },
+                    { day: 'Tor', dish: 'Gulaschsoppa med hembakt bröd' },
+                    { day: 'Fre', dish: 'Smörstekt Torskrygg & citron' }
+                ]
+            },
+            {
+                id: 'ls_resto',
+                name: 'L\'s Resto',
+                area: 'Lindholmen',
+                address: 'Götaverksgatan 10',
+                distance: '300 m',
+                price: '125 SEK',
+                rating: '4.5',
+                status: 'Kort kö • Snabb servering',
+                statusType: 'normal',
+                category: 'Asiatiskt',
+                today: [
+                    { title: 'Vietnamesisk Pho Bo Biffsoppa', desc: 'Risnudlar, färska örter, lime & chili', tag: 'Asiatiskt' },
+                    { title: 'Wokad Tofu & Grönsaker', desc: 'Jasminris, sweet chili, cashewnötter', tag: 'Veg' }
+                ],
+                week: [
+                    { day: 'Mån', dish: 'Pad Thai med kyckling & jordnötter' },
+                    { day: 'Tis', dish: 'Biff i röd curry & bambuskott' },
+                    { day: 'Ons', dish: 'Pho Bo & färsk koriander' },
+                    { day: 'Tor', dish: 'Crispy Duck med plommonsås' },
+                    { day: 'Fre', dish: 'Vietnamesisk Nudelwok' }
+                ]
+            },
+            {
+                id: 'cuckoos',
+                name: 'Cuckoo\'s Nest',
+                area: 'Radisson Riverside',
+                address: 'Lindholmsallén 101',
+                distance: '550 m',
+                price: '155 SEK',
+                rating: '4.9',
+                status: 'Hög efterfrågan • Boka i förväg',
+                statusType: 'warning',
+                category: 'Husman',
+                today: [
+                    { title: 'Majskycklingbröst & Tryffelrisotto', desc: 'Parmesan, rostade hasselnötter', tag: 'Gourmet' },
+                    { title: 'Grillad Spetskål & Vit bönkräm', desc: 'Rostad mandel, brynt smör', tag: 'Veg' }
+                ],
+                week: [
+                    { day: 'Mån', dish: 'Rimmad lax med dillstuvad potatis' },
+                    { day: 'Tis', dish: 'Biff Rydberg med dijonsenap' },
+                    { day: 'Ons', dish: 'Hjortgryta med enbär & svamp' },
+                    { day: 'Tor', dish: 'Fisk & skaldjursgryta' },
+                    { day: 'Fre', dish: 'Majskycklingbröst & Tryffelrisotto' }
+                ]
+            }
+        ];
+
+        let currentView = 'today';
+        let currentCat = 'Alla';
+        let searchQuery = '';
+        let favorites = ['kooperativet', 'cuckoos'];
+
+        function setViewMode(view) {
+            currentView = view;
+            document.getElementById('btnViewToday').classList.toggle('active', view === 'today');
+            document.getElementById('btnViewWeek').classList.toggle('active', view === 'week');
+            renderCards();
+            showToast(`Visar ${view === 'today' ? 'dagens meny' : 'veckomeny'}`);
+        }
+
+        function setCategory(cat, btn) {
+            currentCat = cat;
+            document.querySelectorAll('.filter-sk-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderCards();
+            showToast(`Filtrerar på: ${cat}`);
+        }
+
+        function onSearch(val) {
+            searchQuery = val.toLowerCase();
+            renderCards();
+        }
+
+        function toggleFavorite(id, e) {
+            e.stopPropagation();
+            if (favorites.includes(id)) {
+                favorites = favorites.filter(f => f !== id);
+                showToast('Tog bort från favoriter');
+            } else {
+                favorites.push(id);
+                showToast('Lade till i favoriter ❤️');
+            }
+            document.getElementById('kpiFavCount').textContent = favorites.length + ' st';
+            document.getElementById('favCountBadge').textContent = favorites.length + ' sparade';
+            renderCards();
+        }
+
+        function toggleFavoriteFilter() {
+            showToast(`Du har ${favorites.length} sparade restauranger`);
+        }
+
+        function openModal(rName, dishTitle, desc, price) {
+            document.getElementById('modalRestName').textContent = rName;
+            document.getElementById('modalDishTitle').textContent = dishTitle;
+            document.getElementById('modalDishDesc').textContent = desc;
+            document.getElementById('modalPrice').textContent = price;
+            document.getElementById('statusModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('statusModal').classList.remove('active');
+        }
+
+        function confirmOrderAction() {
+            closeModal();
+            showToast('Lunchbokning bekräftad! Notis skickad ✅');
+        }
+
+        function renderCards() {
+            const container = document.getElementById('restaurantsContainer');
+            if (!container) return;
+
+            const filtered = restaurants.filter(r => {
+                const matchesCat = currentCat === 'Alla' || r.category === currentCat || (currentCat === 'Fisk' && r.today.some(d => d.tag === 'Fisk')) || (currentCat === 'Veg' && r.today.some(d => d.tag === 'Veg'));
+                const matchesSearch = r.name.toLowerCase().includes(searchQuery) || r.today.some(d => d.title.toLowerCase().includes(searchQuery));
+                return matchesCat && matchesSearch;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 50px; color: var(--muted-fg);">Inga menyer matchade sökningen.</div>';
+                return;
+            }
+
+            container.innerHTML = filtered.map(r => {
+                const isFav = favorites.includes(r.id);
+
+                let bodyHtml = '';
+                if (currentView === 'today') {
+                    bodyHtml = `
+                        <div class="sk-dishes-stack">
+                            ${r.today.map(d => `
+                                <div class="sk-dish-item" onclick="openModal('${r.name}', '${d.title}', '${d.desc}', '${r.price}')">
+                                    <div>
+                                        <div class="sk-dish-title">${d.title}</div>
+                                        <div class="sk-dish-desc">${d.desc}</div>
+                                    </div>
+                                    <span class="sk-tag-chip">${d.tag}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                } else {
+                    bodyHtml = `
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            ${r.week.map(w => `
+                                <div style="background: var(--bg-page); padding: 8px 12px; border-radius: 8px; font-size: 11.5px; display: flex; gap: 10px;">
+                                    <strong style="color: var(--primary); min-width: 32px;" class="font-display">${w.day}:</strong>
+                                    <span>${w.dish}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="sk-restaurant-card">
+                        <div>
+                            <div class="sk-card-top">
+                                <div>
+                                    <h3 class="sk-rest-name">
+                                        ${r.name}
+                                        <button class="sk-fav-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite('${r.id}', event)">
+                                            ${isFav ? '❤️' : '🤍'}
+                                        </button>
+                                    </h3>
+                                    <div class="sk-meta-row">
+                                        <span>📍 ${r.area} (${r.distance})</span>
+                                        <span>⭐ ${r.rating}</span>
+                                    </div>
+                                </div>
+                                <span class="sk-price-badge">${r.price}</span>
+                            </div>
+
+                            <div class="sk-status-rail" style="margin: 14px 0 16px;">
+                                <span class="sk-status-dot ${r.statusType === 'warning' ? 'dot-warning' : ''}"></span>
+                                <span style="font-weight: 700; color: var(--fg-page);" class="font-display">Status:</span>
+                                <span style="color: var(--muted-fg);">${r.status}</span>
+                            </div>
+
+                            ${bodyHtml}
+                        </div>
+
+                        <div class="sk-card-footer">
+                            <span style="font-size: 11px; color: var(--muted-fg);">☕ Inkl. sallad, bröd & kaffe</span>
+                            <button class="sk-btn-order" onclick="openModal('${r.name}', 'Dagens Lunch', 'Inkluderar salladsbuffé, nybakat bröd, bordsvatten och kaffe.', '${r.price}')">
+                                Boka Bord
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toastBanner');
+            const msgEl = document.getElementById('toastMsg');
+            msgEl.textContent = msg;
+            toast.classList.add('visible');
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => {
+                toast.classList.remove('visible');
+            }, 2400);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderCards();
+        });
+    </script>
+</body>
+</html>

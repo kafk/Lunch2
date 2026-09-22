@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XPO Logistics • Permitted Boxes, 3D Cargo Bay & Fleet Manifest</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-page: #F3F4F6;
+            --bg-card: #FFFFFF;
+            --bg-subtle: #F9FAFB;
+            --border-color: #E5E7EB;
+            --border-dark: #D1D5DB;
+            
+            /* Signature XPO Safety Orange & High-Contrast */
+            --xpo-orange: #FF5500;
+            --xpo-orange-hover: #E04B00;
+            --xpo-orange-light: #FFF1EB;
+            --xpo-orange-glow: rgba(255, 85, 0, 0.35);
+            
+            --badge-green: #10B981;
+            --badge-green-light: #D1FAE5;
+            --badge-blue: #0284C7;
+            --badge-blue-light: #E0F2FE;
+            --badge-amber: #F59E0B;
+            --badge-amber-light: #FEF3C7;
+            --badge-red: #EF4444;
+            --badge-red-light: #FEE2E2;
+            
+            --text-dark: #111827;
+            --text-gray: #4B5563;
+            --text-muted: #9CA3AF;
+            
+            --radius-xl: 20px;
+            --radius-lg: 14px;
+            --radius-md: 10px;
+            --radius-pill: 999px;
+            
+            --shadow-card: 0 4px 20px -2px rgba(0,0,0,0.06);
+            --shadow-float: 0 20px 40px -8px rgba(0,0,0,0.14);
+            --shadow-orange: 0 8px 24px rgba(255, 85, 0, 0.35);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: var(--bg-page);
+            color: var(--text-dark);
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            overflow-x: hidden;
+        }
+
+        /* Top Hub Bar */
+        .style-hub-floater {
+            position: fixed;
+            top: 14px;
+            right: 18px;
+            z-index: 10000;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .hub-btn {
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(12px);
+            color: var(--text-dark);
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: var(--radius-pill);
+            font-size: 13px;
+            font-weight: 700;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all .2s;
+            cursor: pointer;
+        }
+        .hub-btn:hover {
+            transform: translateY(-2px);
+            color: var(--xpo-orange);
+            border-color: var(--xpo-orange);
+        }
+
+        /* Left Navigation Rail */
+        .left-dock-rail {
+            width: 72px;
+            background: #FFFFFF;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 0;
+            gap: 16px;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            flex-shrink: 0;
+        }
+        .xpo-logo-mark {
+            font-size: 16px;
+            font-weight: 900;
+            color: var(--xpo-orange);
+            letter-spacing: -1px;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+        .dock-icon-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: none;
+            background: transparent;
+            color: #6B7280;
+            display: grid;
+            place-items: center;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all .15s;
+            position: relative;
+        }
+        .dock-icon-btn:hover {
+            background: var(--xpo-orange-light);
+            color: var(--xpo-orange);
+            transform: scale(1.05);
+        }
+        .dock-icon-btn.active {
+            background: var(--xpo-orange);
+            color: #FFFFFF;
+            box-shadow: 0 4px 14px rgba(255, 85, 0, 0.4);
+        }
+        .dock-icon-btn .tooltip {
+            position: absolute;
+            left: calc(100% + 12px);
+            background: #111827;
+            color: #FFFFFF;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 8px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .15s, transform .15s;
+            transform: translateX(-6px);
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .dock-icon-btn:hover .tooltip {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* App Main Wrapper */
+        .app-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Top Reimagined App Bar & Navigation Tabs */
+        .top-app-bar {
+            background: #FFFFFF;
+            border-bottom: 1px solid var(--border-color);
+            padding: 14px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .app-brand-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .app-brand-title {
+            font-size: 20px;
+            font-weight: 900;
+            color: var(--text-dark);
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .badge-cert {
+            background: var(--badge-green-light);
+            color: var(--badge-green);
+            font-size: 11px;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: var(--radius-pill);
+        }
+
+        /* Top Tabs */
+        .app-nav-tabs {
+            display: flex;
+            background: #F3F4F6;
+            padding: 4px;
+            border-radius: var(--radius-pill);
+            gap: 4px;
+        }
+        .app-tab-btn {
+            padding: 8px 16px;
+            border-radius: var(--radius-pill);
+            border: none;
+            background: transparent;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-gray);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all .2s;
+        }
+        .app-tab-btn:hover { color: var(--text-dark); }
+        .app-tab-btn.active {
+            background: #FFFFFF;
+            color: var(--xpo-orange);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        /* Top Right Actions */
+        .app-bar-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-orange-primary {
+            background: var(--xpo-orange);
+            color: #FFFFFF;
+            border: none;
+            padding: 9px 20px;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: var(--shadow-orange);
+            transition: all .2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-orange-primary:hover {
+            background: var(--xpo-orange-hover);
+            transform: translateY(-2px);
+        }
+        .btn-gray-secondary {
+            background: #F3F4F6;
+            color: var(--text-dark);
+            border: 1px solid var(--border-color);
+            padding: 9px 16px;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .btn-gray-secondary:hover { background: #E5E7EB; }
+
+        /* Workspace Main Views Container */
+        .workspace-content {
+            padding: 24px 32px 60px;
+            flex: 1;
+            max-width: 1720px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .view-section {
+            display: none;
+            animation: viewFade .25s ease-out;
+        }
+        .view-section.active {
+            display: block;
+        }
+        @keyframes viewFade {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 1. VIEW: 3D CARGO SPACE BAY */
+        .cargo-space-grid {
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            gap: 24px;
+        }
+
+        .bay-viewport-card {
+            background: #FFFFFF;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-card);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .bay-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .truck-model-select {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #F9FAFB;
+            padding: 6px 14px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        /* 3D Isometric Cargo Hull Visualizer */
+        .isometric-cargo-bay {
+            height: 420px;
+            background: linear-gradient(180deg, #1E293B 0%, #0F172A 100%);
+            border-radius: var(--radius-lg);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            perspective: 1000px;
+        }
+        .cargo-hull-3d {
+            width: 580px;
+            height: 260px;
+            border: 2px solid rgba(255, 85, 0, 0.4);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            transform: rotateX(25deg) rotateY(-15deg) rotateZ(2deg);
+            transform-style: preserve-3d;
+            position: relative;
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 8px;
+            padding: 12px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            transition: transform .4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .cargo-hull-3d:hover {
+            transform: rotateX(20deg) rotateY(-10deg) rotateZ(0deg) scale(1.02);
+        }
+
+        .pallet-box-3d {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #CBD5E1;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 800;
+            color: #0F172A;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.25);
+            cursor: pointer;
+            transition: all .2s;
+            position: relative;
+        }
+        .pallet-box-3d:hover {
+            background: var(--xpo-orange);
+            color: #FFFFFF;
+            transform: translateZ(20px);
+            box-shadow: 0 12px 24px rgba(255, 85, 0, 0.5);
+        }
+        .pallet-box-3d.highlight {
+            background: rgba(255, 85, 0, 0.2);
+            border: 2px dashed var(--xpo-orange);
+            color: var(--xpo-orange);
+        }
+
+        /* 3D Viewport Toolbar */
+        .viewport-controls-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #F9FAFB;
+            padding: 12px 20px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+        }
+        .layer-btn-group {
+            display: flex;
+            gap: 6px;
+        }
+        .layer-pill {
+            padding: 6px 14px;
+            border-radius: var(--radius-pill);
+            font-size: 12px;
+            font-weight: 700;
+            border: 1px solid var(--border-color);
+            background: #FFFFFF;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .layer-pill:hover { border-color: var(--xpo-orange); color: var(--xpo-orange); }
+        .layer-pill.active {
+            background: #111827;
+            color: #FFFFFF;
+            border-color: #111827;
+        }
+
+        /* Telemetry Load Sidebar */
+        .bay-telemetry-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .telemetry-card-panel {
+            background: #FFFFFF;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-card);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .telemetry-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--text-dark);
+        }
+        .capacity-bar-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .cap-bar-track {
+            height: 10px;
+            background: #E5E7EB;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        .cap-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10B981, var(--xpo-orange));
+            border-radius: 999px;
+        }
+
+        /* 2. VIEW: PERMITTED BOXES CATALOG */
+        .boxes-catalog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .box-catalog-card {
+            background: #FFFFFF;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            box-shadow: var(--shadow-card);
+            transition: all .2s;
+        }
+        .box-catalog-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--xpo-orange);
+            box-shadow: var(--shadow-float);
+        }
+        .box-icon-preview {
+            width: 56px;
+            height: 56px;
+            background: var(--xpo-orange-light);
+            color: var(--xpo-orange);
+            border-radius: 14px;
+            display: grid;
+            place-items: center;
+            font-size: 26px;
+        }
+        .box-title {
+            font-size: 17px;
+            font-weight: 800;
+            color: var(--text-dark);
+        }
+        .box-specs-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--text-gray);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* 3. VIEW: FLEET VEHICLES */
+        .fleet-trucks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+        }
+        .fleet-card {
+            background: #FFFFFF;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            box-shadow: var(--shadow-card);
+        }
+
+        /* 4. VIEW: CUSTOMS & e-CMR */
+        .customs-table-card {
+            background: #FFFFFF;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            padding: 28px;
+            box-shadow: var(--shadow-card);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .data-table-xpo {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13.5px;
+        }
+        .data-table-xpo th {
+            text-align: left;
+            padding: 12px 16px;
+            background: #F9FAFB;
+            color: var(--text-gray);
+            font-weight: 700;
+            border-bottom: 2px solid var(--border-color);
+        }
+        .data-table-xpo td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* Toast & Modals */
+        .toast-banner {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #111827;
+            color: #FFFFFF;
+            padding: 12px 24px;
+            border-radius: var(--radius-pill);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+            font-size: 14px;
+            font-weight: 700;
+            z-index: 30000;
+            transition: transform .3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .toast-banner.visible {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        @media (max-width: 1100px) {
+            .cargo-space-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 768px) {
+            .left-dock-rail { display: none; }
+            .workspace-content { padding: 16px; }
+            .top-app-bar { flex-direction: column; align-items: flex-start; }
+            .app-nav-tabs { width: 100%; overflow-x: auto; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Floating Top Style Switcher -->
+    <div class="style-hub-floater">
+        <a href="index.html" class="hub-btn">
+            <span>⚡ Alla Mallar (15)</span>
+        </a>
+        <a href="style-14-ev-energy.html" class="hub-btn">
+            <span>Nästa: GreenCharge EV ➔</span>
+        </a>
+    </div>
+
+    <!-- Left Dock Rail -->
+    <aside class="left-dock-rail">
+        <div class="xpo-logo-mark" onclick="switchXPOView('cargo-3d')">XPO</div>
+        
+        <button class="dock-icon-btn active" id="dockBtn1" onclick="switchXPOView('cargo-3d', this)">
+            <span>📦</span>
+            <span class="tooltip">3D Cargo Bay Planner</span>
+        </button>
+        <button class="dock-icon-btn" id="dockBtn2" onclick="switchXPOView('boxes-catalog', this)">
+            <span>📐</span>
+            <span class="tooltip">Tillåtna Lådor (Permitted Boxes)</span>
+        </button>
+        <button class="dock-icon-btn" id="dockBtn3" onclick="switchXPOView('fleet-trucks', this)">
+            <span>🚛</span>
+            <span class="tooltip">Fordonsflotta & Modeller</span>
+        </button>
+        <button class="dock-icon-btn" id="dockBtn4" onclick="switchXPOView('customs-cmr', this)">
+            <span>📑</span>
+            <span class="tooltip">e-CMR & Fraktsedlar</span>
+        </button>
+        <button class="dock-icon-btn" id="dockBtn5" onclick="switchXPOView('iot-telemetry', this)">
+            <span>📡</span>
+            <span class="tooltip">IoT Sensorer & Tilt</span>
+        </button>
+
+        <div style="margin-top: auto;">
+            <button class="dock-icon-btn" onclick="showToast('Hjälp & XPO API-dokumentation')">
+                <span>❓</span>
+                <span class="tooltip">Dokumentation</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Container -->
+    <div class="app-container">
+
+        <!-- Top App Bar with Reimagined Navigation -->
+        <header class="top-app-bar">
+            <div class="app-brand-left">
+                <h1 class="app-brand-title">
+                    XPO 3D CARGO SPACE
+                    <span class="badge-cert">ISO-9001 VERIFIERAD</span>
+                </h1>
+            </div>
+
+            <!-- Top Navigation Tabs -->
+            <nav class="app-nav-tabs">
+                <button class="app-tab-btn active" id="tabBtn1" onclick="switchXPOView('cargo-3d', null, this)">
+                    <span>📦 3D Lastutrymme</span>
+                </button>
+                <button class="app-tab-btn" id="tabBtn2" onclick="switchXPOView('boxes-catalog', null, this)">
+                    <span>📐 Tillåtna Lådor</span>
+                </button>
+                <button class="app-tab-btn" id="tabBtn3" onclick="switchXPOView('fleet-trucks', null, this)">
+                    <span>🚛 Fordonsmodeller</span>
+                </button>
+                <button class="app-tab-btn" id="tabBtn4" onclick="switchXPOView('customs-cmr', null, this)">
+                    <span>📑 e-CMR Tull</span>
+                </button>
+                <button class="app-tab-btn" id="tabBtn5" onclick="switchXPOView('iot-telemetry', null, this)">
+                    <span>📡 IoT Sensorer</span>
+                </button>
+            </nav>
+
+            <!-- Top Action Controls -->
+            <div class="app-bar-actions">
+                <button class="btn-gray-secondary" onclick="simulateTilt()">🔄 Testa 15° Lutning</button>
+                <button class="btn-orange-primary" onclick="autoPack3D()">⚡ AI Auto-Pack 3D</button>
+            </div>
+        </header>
+
+        <!-- Main Views Body -->
+        <main class="workspace-content">
+
+            <!-- 1. VIEW: 3D CARGO SPACE -->
+            <div class="view-section active" id="sec-cargo-3d">
+                <div class="cargo-space-grid">
+                    
+                    <div class="bay-viewport-card">
+                        <div class="bay-header-bar">
+                            <div class="truck-model-select">
+                                <span>🚛 Aktiv Dragbil:</span>
+                                <strong>Mercedes Actros 2545 (88.4 m³)</strong>
+                            </div>
+                            <div style="font-size: 13px; color: var(--text-gray); font-family: 'JetBrains Mono', monospace;">
+                                Dimension: 13.62m × 2.48m × 2.70m
+                            </div>
+                        </div>
+
+                        <!-- 3D Isometric Cargo Space Viewport -->
+                        <div class="isometric-cargo-bay" id="isoBay">
+                            <div class="cargo-hull-3d" id="cargoHull">
+                                <div class="pallet-box-3d" onclick="inspectBox('XPO-BX1', 'EUR Standard 1200x800', '420kg')">BX-1<br>420kg</div>
+                                <div class="pallet-box-3d" onclick="inspectBox('XPO-BX2', 'Heavy Machinery Box', '850kg')">BX-2<br>850kg</div>
+                                <div class="pallet-box-3d" onclick="inspectBox('XPO-BX3', 'Fragile Electronics', '310kg')">BX-3<br>310kg</div>
+                                <div class="pallet-box-3d" onclick="inspectBox('XPO-BX4', 'Standard Pallet', '500kg')">BX-4<br>500kg</div>
+                                <div class="pallet-box-3d" onclick="inspectBox('XPO-BX5', 'Chemical Drum', '620kg')">BX-5<br>620kg</div>
+                                <div class="pallet-box-3d" onclick="inspectBox('XPO-BX6', 'Textile Cargo', '290kg')">BX-6<br>290kg</div>
+
+                                <div class="pallet-box-3d" onclick="inspectBox('XPO-BX7', 'EUR Standard', '440kg')">BX-7<br>440kg</div>
+                                <div class="pallet-box-3d" onclick="inspectBox('XPO-BX8', 'Industrial Crate', '710kg')">BX-8<br>710kg</div>
+                                <div class="pallet-box-3d" onclick="inspectBox('XPO-BX9', 'Glassware Pack', '380kg')">BX-9<br>380kg</div>
+                                <div class="pallet-box-3d" onclick="inspectBox('XPO-BX10', 'Auto Parts', '530kg')">BX-10<br>530kg</div>
+                                <div class="pallet-box-3d" onclick="inspectBox('XPO-BX11', 'Food Cargo', '480kg')">BX-11<br>480kg</div>
+                                <div class="pallet-box-3d" onclick="inspectBox('XPO-BX12', 'Paper Rolls', '600kg')">BX-12<br>600kg</div>
+
+                                <div class="pallet-box-3d highlight" onclick="addCustomBox()">+ LÄGG TILL</div>
+                                <div class="pallet-box-3d highlight" onclick="addCustomBox()">+ LÄGG TILL</div>
+                                <div class="pallet-box-3d highlight" onclick="addCustomBox()">+ LÄGG TILL</div>
+                                <div class="pallet-box-3d highlight" onclick="addCustomBox()">+ LÄGG TILL</div>
+                                <div class="pallet-box-3d highlight" onclick="addCustomBox()">+ LÄGG TILL</div>
+                                <div class="pallet-box-3d highlight" onclick="addCustomBox()">+ LÄGG TILL</div>
+                            </div>
+                        </div>
+
+                        <!-- 3D Controls -->
+                        <div class="viewport-controls-bottom">
+                            <div class="layer-btn-group">
+                                <span style="font-size: 12px; font-weight: 700; align-self: center; margin-right: 6px;">Lager:</span>
+                                <button class="layer-pill active" onclick="setLayer('all', this)">Alla Nivåer</button>
+                                <button class="layer-pill" onclick="setLayer('tier1', this)">Nivå 1 (Golv)</button>
+                                <button class="layer-pill" onclick="setLayer('tier2', this)">Nivå 2 (Dubbelstaplat)</button>
+                            </div>
+                            <button class="btn-gray-secondary" onclick="exportCAD()">💾 Exportera 3D CAD/GLTF</button>
+                        </div>
+                    </div>
+
+                    <!-- Telemetry Load Sidebar -->
+                    <aside class="bay-telemetry-sidebar">
+                        <div class="telemetry-card-panel">
+                            <h2 class="telemetry-title">📊 Volym- & Viktutnyttjande</h2>
+                            
+                            <div class="capacity-bar-wrap">
+                                <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700;">
+                                    <span>Kubikvolym:</span>
+                                    <span style="color: var(--xpo-orange);" id="volTxt">68.2 m³ / 88.4 m³ (77%)</span>
+                                </div>
+                                <div class="cap-bar-track">
+                                    <div class="cap-bar-fill" style="width: 77%;"></div>
+                                </div>
+                            </div>
+
+                            <div class="capacity-bar-wrap">
+                                <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700;">
+                                    <span>Nyttolast (Vikt):</span>
+                                    <span style="color: var(--badge-green);" id="wtTxt">18,420 kg / 24,000 kg (76%)</span>
+                                </div>
+                                <div class="cap-bar-track">
+                                    <div class="cap-bar-fill" style="width: 76%; background: #10B981;"></div>
+                                </div>
+                            </div>
+
+                            <hr style="border: 0; border-top: 1px solid var(--border-color);">
+
+                            <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="color: var(--text-gray);">Antal Lådor/Pallar:</span>
+                                    <strong>24 st (12 st i kön)</strong>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="color: var(--text-gray);">Tyngdpunktshöjd (CoG):</span>
+                                    <strong style="color: var(--badge-green);">1.12 m (Stabil)</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="telemetry-card-panel">
+                            <h2 class="telemetry-title">⚡ Snabbåtgärder</h2>
+                            <button class="btn-orange-primary" style="width: 100%; justify-content: center;" onclick="autoPack3D()">🤖 Kör Optimeringsalgoritm</button>
+                            <button class="btn-gray-secondary" style="width: 100%;" onclick="printLabels()">🏷️ Skriv ut QR-Godsmärken</button>
+                        </div>
+                    </aside>
+
+                </div>
+            </div>
+
+            <!-- 2. VIEW: PERMITTED BOXES CATALOG -->
+            <div class="view-section" id="sec-boxes-catalog">
+                <div style="margin-bottom: 20px;">
+                    <h2 style="font-size: 22px; font-weight: 800;">📐 Godkända Pall- & Lådformat (Permitted Dimensions)</h2>
+                    <p style="font-size: 14px; color: var(--text-gray);">Samtliga tillåtna standardiserade fraktcontainrar och pallar för XPO trailers.</p>
+                </div>
+
+                <div class="boxes-catalog-grid">
+                    <div class="box-catalog-card">
+                        <div class="box-icon-preview">📦</div>
+                        <h3 class="box-title">EUR-1 Standardpall</h3>
+                        <div class="box-specs-list">
+                            <span>Mått: 1200 × 800 × 144 mm</span>
+                            <span>Maxvikt: 1,500 kg</span>
+                            <span>Staplingsbar: Ja (Upp till 3 nivåer)</span>
+                        </div>
+                        <button class="btn-gray-secondary" onclick="addSpecificBox('EUR-1')">+ Lägg till i lasten</button>
+                    </div>
+
+                    <div class="box-catalog-card">
+                        <div class="box-icon-preview">🏗️</div>
+                        <h3 class="box-title">EUR-2 Industri / Sjöpall</h3>
+                        <div class="box-specs-list">
+                            <span>Mått: 1200 × 1000 × 144 mm</span>
+                            <span>Maxvikt: 2,000 kg</span>
+                            <span>Staplingsbar: Ja (Kraftigt virke)</span>
+                        </div>
+                        <button class="btn-gray-secondary" onclick="addSpecificBox('EUR-2')">+ Lägg till i lasten</button>
+                    </div>
+
+                    <div class="box-catalog-card">
+                        <div class="box-icon-preview">🛢️</div>
+                        <h3 class="box-title">Kemikalie-fatpall (ADR)</h3>
+                        <div class="box-specs-list">
+                            <span>Mått: 1200 × 1200 × 900 mm</span>
+                            <span>Maxvikt: 1,200 kg (4 × 200L)</span>
+                            <span>Staplingsbar: Endast enskild</span>
+                        </div>
+                        <button class="btn-gray-secondary" onclick="addSpecificBox('ADR-FAT')">+ Lägg till i lasten</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. VIEW: FLEET TRUCKS -->
+            <div class="view-section" id="sec-fleet-trucks">
+                <div style="margin-bottom: 20px;">
+                    <h2 style="font-size: 22px; font-weight: 800;">🚛 Tillgängliga Fordon & Dragbilsmodeller</h2>
+                    <p style="font-size: 14px; color: var(--text-gray);">Välj fordonsprofil för att uppdatera 3D-kalkylatorns dimensioner.</p>
+                </div>
+
+                <div class="fleet-trucks-grid">
+                    <div class="fleet-card">
+                        <h3 style="font-size: 18px; font-weight: 800;">Mercedes-Benz Actros 2545</h3>
+                        <p style="font-size: 13.5px; color: var(--text-gray);">Standardgardintrailer (Curtainsider) med 88.4 m³ lastvolym.</p>
+                        <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">Kapacitet: 33 EUR-pallar • Max 24.5 ton</div>
+                        <button class="btn-orange-primary" onclick="setTruckModel('Mercedes Actros 2545')">✓ Aktiv Modell</button>
+                    </div>
+
+                    <div class="fleet-card">
+                        <h3 style="font-size: 18px; font-weight: 800;">Volvo FH16 Electric Aero</h3>
+                        <p style="font-size: 13.5px; color: var(--text-gray);">Nollutsläpps helelektrisk dragbil för tunga fjärrtransporter.</p>
+                        <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">Kapacitet: 33 EUR-pallar • Max 23.8 ton</div>
+                        <button class="btn-gray-secondary" onclick="setTruckModel('Volvo FH16 Electric')">Välj denna modell</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. VIEW: CUSTOMS & e-CMR -->
+            <div class="view-section" id="sec-customs-cmr">
+                <div class="customs-table-card">
+                    <h2 style="font-size: 20px; font-weight: 800;">📑 Internationell e-CMR & Tullklassificering</h2>
+                    <table class="data-table-xpo">
+                        <thead>
+                            <tr>
+                                <th>Låd-ID</th>
+                                <th>HS Tullkod</th>
+                                <th>Varubeskrivning</th>
+                                <th>Nettovikt</th>
+                                <th>Ursprung</th>
+                                <th>Tullstatus</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>XPO-BX1</strong></td>
+                                <td>8471.30.00</td>
+                                <td>Elektroniska Styrsystem</td>
+                                <td>420 kg</td>
+                                <td>Sverige (SE)</td>
+                                <td><span style="color: var(--badge-green); font-weight: 700;">Grön Kanal (Klarerad)</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>XPO-BX5</strong></td>
+                                <td>2905.11.00</td>
+                                <td>Industriella Alkoholer (ADR 3)</td>
+                                <td>620 kg</td>
+                                <td>Tyskland (DE)</td>
+                                <td><span style="color: var(--badge-amber); font-weight: 700;">Dokumentinspektion</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 5. VIEW: IOT TELEMETRY -->
+            <div class="view-section" id="sec-iot-telemetry">
+                <div class="customs-table-card">
+                    <h2 style="font-size: 20px; font-weight: 800;">📡 IoT Lastsensorer & G-Kraftstelemetri</h2>
+                    <p style="font-size: 14px; color: var(--text-gray);">Live sensorström från godsets inbyggda stötsensorer.</p>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 12px;">
+                        <div style="background: #F9FAFB; padding: 18px; border-radius: 12px; border: 1px solid var(--border-color);">
+                            <div style="font-size: 12px; font-weight: 700; color: var(--text-gray);">G-KRAFT STÖT (MAX):</div>
+                            <div style="font-size: 24px; font-weight: 900; color: var(--badge-green); font-family: 'JetBrains Mono', monospace;">0.28 G (Normal)</div>
+                        </div>
+                        <div style="background: #F9FAFB; padding: 18px; border-radius: 12px; border: 1px solid var(--border-color);">
+                            <div style="font-size: 12px; font-weight: 700; color: var(--text-gray);">TEMPERATUR HULL:</div>
+                            <div style="font-size: 24px; font-weight: 900; color: #0284C7; font-family: 'JetBrains Mono', monospace;">+4.2 °C</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Toast Banner -->
+    <div class="toast-banner" id="toastBanner">
+        <span id="toastMsg">Välkommen till XPO Logistics 3D!</span>
+    </div>
+
+    <script>
+        function switchXPOView(secId, dockBtn, tabBtn) {
+            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+            const target = document.getElementById('sec-' + secId);
+            if (target) target.classList.add('active');
+
+            // Dock sync
+            document.querySelectorAll('.dock-icon-btn').forEach(b => b.classList.remove('active'));
+            if (dockBtn) dockBtn.classList.add('active');
+
+            // Tabs sync
+            document.querySelectorAll('.app-tab-btn').forEach(b => b.classList.remove('active'));
+            if (tabBtn) tabBtn.classList.add('active');
+
+            showToast(`Växlade till vy: ${secId.replace('-', ' ').toUpperCase()}`);
+        }
+
+        function inspectBox(code, desc, wt) {
+            showToast(`Inspekterar 3D Box: ${code} — ${desc} (${wt})`);
+        }
+
+        function addCustomBox() {
+            showToast('Ny låda tillagd i 3D-lastutrymmet! Volym uppdaterad.');
+        }
+
+        function addSpecificBox(type) {
+            showToast(`Lade till standardformat: ${type} i lastkön!`);
+        }
+
+        function setTruckModel(name) {
+            showToast(`Bytte fordonsprofil till: ${name}`);
+        }
+
+        function setLayer(layer, btn) {
+            document.querySelectorAll('.layer-pill').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            showToast(`Visar lager: ${layer}`);
+        }
+
+        function simulateTilt() {
+            const hull = document.getElementById('cargoHull');
+            hull.style.transform = 'rotateX(30deg) rotateY(-25deg) rotateZ(15deg)';
+            showToast('Simulerar 15° snabb kurvtagning... Tyngdpunkten håller godset stabilt! ✅');
+            setTimeout(() => {
+                hull.style.transform = 'rotateX(25deg) rotateY(-15deg) rotateZ(2deg)';
+            }, 2500);
+        }
+
+        function autoPack3D() {
+            showToast('AI Auto-Pack beräknat: 94.2% packningsgrad uppnådd! 🤖📦');
+        }
+
+        function exportCAD() {
+            showToast('Exporterar 3D CAD (.GLTF / STEP) modell...');
+        }
+
+        function printLabels() {
+            showToast('Skickar 24 st QR-fraktetiketter till Zebra-skrivaren... 🏷️');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toastBanner');
+            const msgEl = document.getElementById('toastMsg');
+            msgEl.textContent = msg;
+            toast.classList.add('visible');
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => {
+                toast.classList.remove('visible');
+            }, 2600);
+        }
+    </script>
+</body>
+</html>

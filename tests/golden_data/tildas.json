@@ -1,0 +1,20 @@
+{
+  "restaurant_id": "tildas",
+  "restaurant_name": "Tildas Restaurang",
+  "url": "https://www.tildasrestaurang.com/",
+  "expected_days": ["Måndag", "Tisdag", "Onsdag", "Torsdag", "Fredag"],
+  "min_dishes_per_day": 1,
+  "golden_sample": {
+    "restaurant": "Tildas Restaurang",
+    "items": [
+      {
+        "name": "Biff Rydberg med stekt ägg och senapskräm",
+        "price": 125
+      },
+      {
+        "name": "Dagens pasta",
+        "price": 125
+      }
+    ]
+  }
+}

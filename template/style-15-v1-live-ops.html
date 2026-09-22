@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StatusKoll v1 • Live Operations & Pulse Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Syne:wght@600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-page: #F4F7FB;
+            --fg-page: #0F172A;
+            --card-bg: #FFFFFF;
+            --card-border: #E2E8F0;
+            --card-border-active: #FF5A36;
+            
+            --primary: #FF5A36;
+            --primary-light: #FFF0EB;
+            --primary-glow: rgba(255, 90, 54, 0.3);
+            
+            --secondary: #0EA5E9;
+            --secondary-light: #E0F2FE;
+            
+            --success: #10B981;
+            --success-light: #ECFDF5;
+            
+            --warning: #F59E0B;
+            --warning-light: #FFFBEB;
+            
+            --muted-bg: #F8FAFC;
+            --muted-fg: #64748B;
+            
+            --radius-pill: 999px;
+            --radius-card: 16px;
+            --radius-sm: 10px;
+            
+            --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.05);
+            --shadow-md: 0 10px 25px -4px rgba(15, 23, 42, 0.08);
+            --shadow-glow: 0 0 20px rgba(255, 90, 54, 0.25);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body {
+            background-color: var(--bg-page);
+            color: var(--fg-page);
+            font-family: 'JetBrains Mono', monospace;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(255, 90, 54, 0.08) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(14, 165, 233, 0.06) 0px, transparent 50%);
+        }
+
+        .font-display { font-family: 'Syne', sans-serif; }
+
+        /* Navigation & Version Switcher Bar */
+        .version-nav-bar {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--card-border);
+            padding: 10px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+        .version-links {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            overflow-x: auto;
+            padding-bottom: 2px;
+        }
+        .v-pill {
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: var(--radius-pill);
+            font-size: 12px;
+            font-weight: 700;
+            font-family: 'Syne', sans-serif;
+            color: var(--muted-fg);
+            border: 1px solid transparent;
+            transition: all .2s;
+            white-space: nowrap;
+        }
+        .v-pill:hover { background: var(--muted-bg); color: var(--fg-page); }
+        .v-pill.active {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 2px 10px var(--primary-glow);
+        }
+
+        /* Pulse Radar Header */
+        .hero-radar {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 32px 24px 20px;
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 24px;
+            align-items: center;
+        }
+        .radar-title-wrap h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 38px;
+            font-weight: 900;
+            letter-spacing: -1px;
+            line-height: 1.15;
+            color: var(--fg-page);
+            margin-bottom: 10px;
+        }
+        .live-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--primary-light);
+            color: var(--primary);
+            border: 1px solid rgba(255, 90, 54, 0.3);
+            padding: 5px 14px;
+            border-radius: var(--radius-pill);
+            font-size: 11.5px;
+            font-weight: 800;
+            margin-bottom: 14px;
+        }
+        .pulse-circle {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary);
+            box-shadow: 0 0 0 0 rgba(255, 90, 54, 0.7);
+            animation: pulse-ring 1.8s infinite cubic-bezier(0.66, 0, 0, 1);
+        }
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(255, 90, 54, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 90, 54, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 90, 54, 0); }
+        }
+
+        /* Live Telemetry Ticker */
+        .telemetry-board {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-card);
+            padding: 16px 20px;
+            box-shadow: var(--shadow-sm);
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        .telem-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            border-right: 1px solid var(--card-border);
+            padding-right: 12px;
+        }
+        .telem-cell:last-child { border-right: none; padding-right: 0; }
+        .telem-lbl { font-size: 10.5px; color: var(--muted-fg); text-transform: uppercase; font-weight: 700; }
+        .telem-val { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: var(--fg-page); }
+        .telem-stat { font-size: 10px; color: var(--success); font-weight: 700; display: flex; align-items: center; gap: 4px; }
+
+        /* Filter Controls Bar */
+        .controls-layer {
+            max-width: 1280px;
+            margin: 0 auto 24px;
+            padding: 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .search-radar {
+            position: relative;
+            min-width: 280px;
+        }
+        .search-radar input {
+            width: 100%;
+            background: #FFFFFF;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-pill);
+            padding: 9px 18px 9px 38px;
+            font-family: inherit;
+            font-size: 12.5px;
+            color: var(--fg-page);
+            outline: none;
+            transition: all .2s;
+        }
+        .search-radar input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+        .search-radar span {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+            opacity: 0.6;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .f-btn {
+            background: #FFFFFF;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-pill);
+            padding: 7px 16px;
+            font-size: 12px;
+            font-weight: 700;
+            font-family: 'Syne', sans-serif;
+            color: var(--muted-fg);
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .f-btn:hover { color: var(--primary); border-color: var(--primary); }
+        .f-btn.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+            box-shadow: 0 2px 8px var(--primary-glow);
+        }
+
+        .view-switch {
+            background: #E2E8F0;
+            border-radius: var(--radius-pill);
+            padding: 3px;
+            display: inline-flex;
+            gap: 2px;
+        }
+        .v-switch-btn {
+            background: transparent;
+            border: none;
+            padding: 6px 14px;
+            border-radius: var(--radius-pill);
+            font-size: 11.5px;
+            font-weight: 700;
+            font-family: 'Syne', sans-serif;
+            color: var(--muted-fg);
+            cursor: pointer;
+        }
+        .v-switch-btn.active {
+            background: #FFFFFF;
+            color: var(--fg-page);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+        }
+
+        /* Operations Cards Grid */
+        .ops-grid {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 24px 60px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 22px;
+        }
+
+        /* Live Ops Card */
+        .ops-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-card);
+            padding: 22px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 18px;
+            position: relative;
+            transition: all .25s ease;
+        }
+        .ops-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary);
+            box-shadow: var(--shadow-md);
+        }
+        .ops-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .ops-name {
+            font-family: 'Syne', sans-serif;
+            font-size: 21px;
+            font-weight: 800;
+            color: var(--fg-page);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .price-chip {
+            background: var(--primary-light);
+            color: var(--primary);
+            font-weight: 800;
+            font-size: 13px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 90, 54, 0.2);
+        }
+
+        /* Capacity & Status Gauge */
+        .ops-status-meter {
+            background: var(--muted-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+        }
+        .status-top-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            margin-bottom: 6px;
+        }
+        .capacity-bar-track {
+            height: 5px;
+            background: #E2E8F0;
+            border-radius: 999px;
+            overflow: hidden;
+            display: flex;
+        }
+        .capacity-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10B981, #FF5A36);
+            border-radius: 999px;
+        }
+
+        /* Live Menu Rows */
+        .dish-row {
+            background: #FFFFFF;
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .dish-row:hover {
+            border-color: var(--secondary);
+            background: var(--secondary-light);
+        }
+        .dish-name {
+            font-family: 'Syne', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--fg-page);
+        }
+        .dish-desc {
+            font-size: 11px;
+            color: var(--muted-fg);
+            margin-top: 2px;
+        }
+        .dish-tag {
+            font-size: 9.5px;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: var(--radius-pill);
+            background: #E2E8F0;
+            color: var(--fg-page);
+            font-family: 'Syne', sans-serif;
+            text-transform: uppercase;
+        }
+
+        .ops-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 14px;
+            border-top: 1px solid var(--card-border);
+        }
+        .btn-reserve {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            padding: 8px 18px;
+            border-radius: var(--radius-pill);
+            font-size: 12px;
+            font-weight: 800;
+            font-family: 'Syne', sans-serif;
+            cursor: pointer;
+            box-shadow: 0 4px 12px var(--primary-glow);
+            transition: all .15s;
+        }
+        .btn-reserve:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+        }
+
+        /* Modal & Toast */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            display: none;
+            place-items: center;
+            padding: 20px;
+        }
+        .modal-overlay.active { display: grid; }
+        .modal-box {
+            background: #FFFFFF;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 480px;
+            padding: 28px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            position: relative;
+        }
+        .close-btn {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            background: #F1F5F9;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .toast-strip {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #0F172A;
+            color: #fff;
+            padding: 10px 22px;
+            border-radius: var(--radius-pill);
+            font-size: 12.5px;
+            font-weight: 700;
+            font-family: 'Syne', sans-serif;
+            box-shadow: var(--shadow-md);
+            opacity: 0;
+            transition: all .25s ease;
+            z-index: 3000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .toast-strip.visible {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        @media (max-width: 860px) {
+            .hero-radar { grid-template-columns: 1fr; }
+            .telemetry-board { grid-template-columns: 1fr; }
+            .telem-cell { border-right: none; border-bottom: 1px solid var(--card-border); padding-bottom: 8px; }
+            .telem-cell:last-child { border-bottom: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Version Switcher Top Navigation -->
+    <nav class="version-nav-bar">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <a href="index.html" style="font-size:12px; font-weight:700; text-decoration:none; color:var(--muted-fg);">← Huvudmeny</a>
+            <span style="font-family:'Syne',sans-serif; font-weight:900; font-size:13px; color:var(--primary);">STATUSKOLL SUITE</span>
+        </div>
+        <div class="version-links">
+            <a href="style-15-v1-live-ops.html" class="v-pill active">v1 Live Ops</a>
+            <a href="style-15-v2-swiss-grid.html" class="v-pill">v2 Swiss Precision</a>
+            <a href="style-15-v3-dark-cockpit.html" class="v-pill">v3 Dark Cockpit</a>
+            <a href="style-15-v4-modular-bento.html" class="v-pill">v4 Modular Bento</a>
+            <a href="style-15-v5-transit-dispatch.html" class="v-pill">v5 Transit Dispatch</a>
+            <a href="style-15-v6-appnest.html" class="v-pill">v6 Appnest ✦</a>
+            <a href="style-15-statuskoll.html" class="v-pill">Baseline</a>
+        </div>
+    </nav>
+
+    <!-- Header & Telemetry -->
+    <header class="hero-radar">
+        <div class="radar-title-wrap">
+            <div class="live-tag">
+                <div class="pulse-circle"></div>
+                LIVE OPERATIONS • GÖTEBORG LUNCH NET
+            </div>
+            <h1>Live Lunch Radar & Status Monitor</h1>
+            <p style="font-size: 13.5px; color: var(--muted-fg); line-height: 1.6;">
+                Realtidsövervakning av dagens menyer, sittplatser, tillagningstid och lunchpriser runt Lindholmen & Science Park.
+            </p>
+        </div>
+
+        <div class="telemetry-board">
+            <div class="telem-cell">
+                <span class="telem-lbl">Aktiva Kök</span>
+                <span class="telem-val">14 / 14</span>
+                <span class="telem-stat">● 100% driftsättning</span>
+            </div>
+            <div class="telem-cell">
+                <span class="telem-lbl">Snittpris</span>
+                <span class="telem-val">132 kr</span>
+                <span class="telem-stat" style="color:var(--secondary);">★ Inkl. buffé</span>
+            </div>
+            <div class="telem-cell">
+                <span class="telem-lbl">Sittplatser</span>
+                <span class="telem-val">68%</span>
+                <span class="telem-stat">▲ God tillgång</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Filter & Controls -->
+    <section class="controls-layer">
+        <div class="search-radar">
+            <span>🔍</span>
+            <input type="text" placeholder="Sök restaurang eller rätt..." oninput="onSearch(this.value)">
+        </div>
+
+        <div class="filter-buttons">
+            <button class="f-btn active" onclick="setCategory('Alla', this)">Alla menyer</button>
+            <button class="f-btn" onclick="setCategory('Husman', this)">🥩 Husman</button>
+            <button class="f-btn" onclick="setCategory('Fisk', this)">🐟 Fisk</button>
+            <button class="f-btn" onclick="setCategory('Veg', this)">🌱 Vegetariskt</button>
+            <button class="f-btn" onclick="setCategory('Asiatiskt', this)">🍜 Asiatiskt</button>
+        </div>
+
+        <div class="view-switch">
+            <button class="v-switch-btn active" id="btnToday" onclick="setViewMode('today')">Idag • Live</button>
+            <button class="v-switch-btn" id="btnWeek" onclick="setViewMode('week')">Veckoschema</button>
+        </div>
+    </section>
+
+    <!-- Main Grid -->
+    <main class="ops-grid" id="opsContainer"></main>
+
+    <!-- Modal Dialog -->
+    <div class="modal-overlay" id="orderModal" onclick="if(event.target===this) closeModal()">
+        <div class="modal-box">
+            <button class="close-btn" onclick="closeModal()">✕</button>
+            <div style="font-size: 11px; font-weight: 800; color: var(--primary); text-transform: uppercase;" class="font-display">
+                ● STATUSKOLL LIVE RESERVATION
+            </div>
+            <h2 id="modalRestName" style="font-size: 22px; font-weight: 800; margin: 4px 0;" class="font-display">Kooperativet</h2>
+            <div id="modalDishTitle" style="font-size: 14px; font-weight: 700; color: var(--primary); margin-bottom: 12px;">Ryggbiff & Rödvinssky</div>
+            <p id="modalDishDesc" style="font-size: 12.5px; color: var(--muted-fg); line-height: 1.6; margin-bottom: 18px;">
+                Serveras nylagad med tillbehör, färskt bröd och kaffe.
+            </p>
+            <div style="background: var(--muted-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-size: 10.5px; color: var(--muted-fg);">SERVERINGSTID</div>
+                    <div style="font-size: 12px; font-weight: 700; color: var(--success);">⚡ Ca 4-6 min väntetid</div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 10.5px; color: var(--muted-fg);">TOTALPRIS</div>
+                    <div id="modalPrice" style="font-size: 16px; font-weight: 800; color: var(--primary);" class="font-display">135 SEK</div>
+                </div>
+            </div>
+            <button class="btn-reserve" style="width: 100%; padding: 12px;" onclick="confirmBooking()">Bekräfta & Skicka Kökssignal ✅</button>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-strip" id="toastStrip">
+        <span id="toastMsg">Status uppdaterad</span>
+    </div>
+
+    <script>
+        const restaurants = [
+            {
+                id: 'kooperativet',
+                name: 'Kooperativet',
+                area: 'Lindholmen',
+                distance: '250 m',
+                price: '135 SEK',
+                rating: '4.8',
+                status: 'Kort kö • 12 lediga bord',
+                capacity: 65,
+                category: 'Husman',
+                today: [
+                    { title: 'Helstekt Ryggbiff & Rödvinssky', desc: 'Rostad potatis, örtsmör, primörer', tag: 'Kött' },
+                    { title: 'Ugnsbakad Laxfilé & Sandefjordsås', desc: 'Dillpotatis, fänkålscrudité', tag: 'Fisk' },
+                    { title: 'Rostad Blomkålsbiff med Linser', desc: 'Örtaioli, picklad rödlök', tag: 'Veg' }
+                ],
+                week: [
+                    { day: 'Mån', dish: 'Wallenbergare med skirat smör & potatismos' },
+                    { day: 'Tis', dish: 'Stekt fläsk med raggmunk & lingon' },
+                    { day: 'Ons', dish: 'Fiskgryta med saffran & aioli' },
+                    { day: 'Tor', dish: 'Ärtsoppa & pannkakor med sylt och grädde' },
+                    { day: 'Fre', dish: 'Helstekt Ryggbiff & rödvinssås' }
+                ]
+            },
+            {
+                id: 'porten',
+                name: 'Restaurang Porten',
+                area: 'Science Park',
+                distance: '400 m',
+                price: '129 SEK',
+                rating: '4.6',
+                status: 'Normal belastning • Snabb kassa',
+                capacity: 45,
+                category: 'Husman',
+                today: [
+                    { title: 'Klassiska Köttbullar & Gräddsås', desc: 'Potatismos, rårörda lingon, pressgurka', tag: 'Husman' },
+                    { title: 'Smörstekt Torskrygg & Äggsås', desc: 'Kokt potatis, citron & dill', tag: 'Fisk' }
+                ],
+                week: [
+                    { day: 'Mån', dish: 'Kycklingfilé med dragonsås & ris' },
+                    { day: 'Tis', dish: 'Köttbullar med gräddsås & lingon' },
+                    { day: 'Ons', dish: 'Pannbiff med stekt lök & skysås' },
+                    { day: 'Tor', dish: 'Gulaschsoppa med hembakt bröd' },
+                    { day: 'Fre', dish: 'Smörstekt Torskrygg & citron' }
+                ]
+            },
+            {
+                id: 'ls_resto',
+                name: 'L\'s Resto',
+                area: 'Lindholmen',
+                distance: '300 m',
+                price: '125 SEK',
+                rating: '4.5',
+                status: 'Direktbord • Kök redo',
+                capacity: 30,
+                category: 'Asiatiskt',
+                today: [
+                    { title: 'Vietnamesisk Pho Bo Biffsoppa', desc: 'Risnudlar, färska örter, lime & chili', tag: 'Asiatiskt' },
+                    { title: 'Wokad Tofu & Grönsaker', desc: 'Jasminris, sweet chili, cashewnötter', tag: 'Veg' }
+                ],
+                week: [
+                    { day: 'Mån', dish: 'Pad Thai med kyckling & jordnötter' },
+                    { day: 'Tis', dish: 'Biff i röd curry & bambuskott' },
+                    { day: 'Ons', dish: 'Pho Bo & färsk koriander' },
+                    { day: 'Tor', dish: 'Crispy Duck med plommonsås' },
+                    { day: 'Fre', dish: 'Vietnamesisk Nudelwok' }
+                ]
+            },
+            {
+                id: 'cuckoos',
+                name: 'Cuckoo\'s Nest',
+                area: 'Radisson Riverside',
+                distance: '550 m',
+                price: '155 SEK',
+                rating: '4.9',
+                status: '85% Belagt • Boka snabbt',
+                capacity: 85,
+                category: 'Husman',
+                today: [
+                    { title: 'Majskycklingbröst & Tryffelrisotto', desc: 'Parmesan, rostade hasselnötter', tag: 'Gourmet' },
+                    { title: 'Grillad Spetskål & Vit bönkräm', desc: 'Rostad mandel, brynt smör', tag: 'Veg' }
+                ],
+                week: [
+                    { day: 'Mån', dish: 'Rimmad lax med dillstuvad potatis' },
+                    { day: 'Tis', dish: 'Biff Rydberg med dijonsenap' },
+                    { day: 'Ons', dish: 'Hjortgryta med enbär & svamp' },
+                    { day: 'Tor', dish: 'Fisk & skaldjursgryta' },
+                    { day: 'Fre', dish: 'Majskycklingbröst & Tryffelrisotto' }
+                ]
+            }
+        ];
+
+        let currentView = 'today';
+        let currentCat = 'Alla';
+        let searchQuery = '';
+        let favorites = ['kooperativet'];
+
+        function setViewMode(view) {
+            currentView = view;
+            document.getElementById('btnToday').classList.toggle('active', view === 'today');
+            document.getElementById('btnWeek').classList.toggle('active', view === 'week');
+            render();
+            showToast(`Visningsläge: ${view === 'today' ? 'Dagens rätter' : 'Veckoöversikt'}`);
+        }
+
+        function setCategory(cat, btn) {
+            currentCat = cat;
+            document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            render();
+            showToast(`Filtrerat: ${cat}`);
+        }
+
+        function onSearch(val) {
+            searchQuery = val.toLowerCase();
+            render();
+        }
+
+        function toggleFav(id, e) {
+            e.stopPropagation();
+            if (favorites.includes(id)) {
+                favorites = favorites.filter(f => f !== id);
+                showToast('Borttagen från bevakningslistan');
+            } else {
+                favorites.push(id);
+                showToast('Tillagd i din aktiva radar ❤️');
+            }
+            render();
+        }
+
+        function openModal(rName, dish, desc, price) {
+            document.getElementById('modalRestName').textContent = rName;
+            document.getElementById('modalDishTitle').textContent = dish;
+            document.getElementById('modalDishDesc').textContent = desc;
+            document.getElementById('modalPrice').textContent = price;
+            document.getElementById('orderModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('orderModal').classList.remove('active');
+        }
+
+        function confirmBooking() {
+            closeModal();
+            showToast('✅ Val bekräftat! Bordsstatus låst i 15 minuter.');
+        }
+
+        function render() {
+            const container = document.getElementById('opsContainer');
+            const filtered = restaurants.filter(r => {
+                const matchCat = currentCat === 'Alla' || r.category === currentCat || (currentCat === 'Fisk' && r.today.some(d => d.tag === 'Fisk')) || (currentCat === 'Veg' && r.today.some(d => d.tag === 'Veg'));
+                const matchSearch = r.name.toLowerCase().includes(searchQuery) || r.today.some(d => d.title.toLowerCase().includes(searchQuery));
+                return matchCat && matchSearch;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--muted-fg);">Inga träffar på radarn.</div>';
+                return;
+            }
+
+            container.innerHTML = filtered.map(r => {
+                const isFav = favorites.includes(r.id);
+                return `
+                    <div class="ops-card">
+                        <div>
+                            <div class="ops-card-header">
+                                <div>
+                                    <h3 class="ops-name">
+                                        ${r.name}
+                                        <button onclick="toggleFav('${r.id}', event)" style="background:none; border:none; cursor:pointer; font-size:16px;">
+                                            ${isFav ? '❤️' : '🤍'}
+                                        </button>
+                                    </h3>
+                                    <div style="font-size: 11.5px; color: var(--muted-fg); margin-top: 3px;">
+                                        📍 ${r.area} (${r.distance}) • ⭐ ${r.rating}
+                                    </div>
+                                </div>
+                                <span class="price-chip">${r.price}</span>
+                            </div>
+
+                            <div class="ops-status-meter" style="margin: 14px 0 16px;">
+                                <div class="status-top-row">
+                                    <span style="font-weight:700; color:var(--fg-page);">Bordsbeläggning: ${r.capacity}%</span>
+                                    <span style="color:var(--muted-fg);">${r.status}</span>
+                                </div>
+                                <div class="capacity-bar-track">
+                                    <div class="capacity-bar-fill" style="width: ${r.capacity}%;"></div>
+                                </div>
+                            </div>
+
+                            ${currentView === 'today' ? `
+                                <div>
+                                    ${r.today.map(d => `
+                                        <div class="dish-row" onclick="openModal('${r.name}', '${d.title}', '${d.desc}', '${r.price}')">
+                                            <div>
+                                                <div class="dish-name">${d.title}</div>
+                                                <div class="dish-desc">${d.desc}</div>
+                                            </div>
+                                            <span class="dish-tag">${d.tag}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : `
+                                <div style="display:flex; flex-direction:column; gap:6px;">
+                                    ${r.week.map(w => `
+                                        <div style="background:var(--muted-bg); padding:7px 10px; border-radius:6px; font-size:11px; display:flex; gap:8px;">
+                                            <strong style="color:var(--primary); min-width:28px;">${w.day}:</strong>
+                                            <span>${w.dish}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `}
+                        </div>
+
+                        <div class="ops-footer">
+                            <span style="font-size:11px; color:var(--muted-fg);">Inkl. kaffe & sallad</span>
+                            <button class="btn-reserve" onclick="openModal('${r.name}', 'Lunchbokning', 'Reservera bord och lunchmeny', '${r.price}')">
+                                Välj & Reservera
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toastStrip');
+            document.getElementById('toastMsg').textContent = msg;
+            toast.classList.add('visible');
+            clearTimeout(window._t);
+            window._t = setTimeout(() => toast.classList.remove('visible'), 2400);
+        }
+
+        window.addEventListener('DOMContentLoaded', render);
+    </script>
+</body>
+</html>

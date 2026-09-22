@@ -30,13 +30,21 @@ try:
 except ImportError:
     FIREBASE_AVAILABLE = False
 
+# Import modular engine
+try:
+    from engine.pipeline import scrape_restaurant
+    ENGINE_AVAILABLE = True
+except ImportError:
+    ENGINE_AVAILABLE = False
+
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '0126')
 
-VERSION = '3.50'
+VERSION = '3.52'
 URLS_FILE = 'urls.json'
+RESTAURANTS_CONFIG_FILE = os.path.join('config', 'restaurants.json')
 COLLECTION_NAME = 'restaurants'
 STAGING_FILE = 'staging.json'
 VERSIONS_FILE = 'versions.json'
@@ -1267,6 +1275,21 @@ def scrape_nordic_taste_lab(url, name, session):
 def scrape_url(url, name):
     """Scrapa en URL och returnera menyinformation."""
     try:
+        # 1. Kolla om restaurangen har en specifik konfiguration i config/restaurants.json
+        if ENGINE_AVAILABLE and os.path.exists(RESTAURANTS_CONFIG_FILE):
+            try:
+                with open(RESTAURANTS_CONFIG_FILE, 'r', encoding='utf-8') as f:
+                    configs = json.load(f)
+                    for cfg in configs:
+                        if cfg.get('url') == url or (cfg.get('name') and cfg.get('name').lower() == name.lower()):
+                            # Om restaurangen har en specifik CSS-selektor eller konfiguration
+                            if cfg.get('extractor', {}).get('type') == 'css':
+                                res = scrape_restaurant(cfg)
+                                if res and res.success and res.formatted_menu:
+                                    return res.to_dict()
+            except Exception as e:
+                print(f"Engine config lookup warning: {e}")
+
         # Använd session för att hantera cookies automatiskt
         session = requests.Session()
         headers = {

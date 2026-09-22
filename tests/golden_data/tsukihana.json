@@ -1,0 +1,20 @@
+{
+  "restaurant_id": "tsukihana",
+  "restaurant_name": "Tsukihana",
+  "url": "https://tsukihana.net/lunch",
+  "expected_days": ["Måndag", "Tisdag", "Onsdag", "Torsdag", "Fredag"],
+  "min_dishes_per_day": 1,
+  "golden_sample": {
+    "restaurant": "Tsukihana",
+    "items": [
+      {
+        "name": "Karaage - Japansk friterad kyckling",
+        "price": 125
+      },
+      {
+        "name": "Dagens sushi 10 bitar",
+        "price": 135
+      }
+    ]
+  }
+}

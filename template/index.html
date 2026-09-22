@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lunch2 Style Showcase • 10 Nya Designsystem</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #090a0f;
+            --surface: #12141c;
+            --surface-hover: #191c28;
+            --border: #232738;
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.35);
+            --emerald: #10b981;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --radius: 16px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            padding-bottom: 60px;
+        }
+        .hero {
+            background: radial-gradient(circle at 50% -20%, rgba(99, 102, 241, 0.25), transparent 60%),
+                        linear-gradient(180deg, #101322 0%, var(--bg) 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 60px 24px 40px;
+            text-align: center;
+        }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(99,102,241,0.12);
+            border: 1px solid rgba(99,102,241,0.3);
+            color: #c7d2fe;
+            font-size: 12.5px;
+            font-weight: 600;
+            padding: 5px 16px;
+            border-radius: 999px;
+            margin-bottom: 16px;
+        }
+        .hero-title {
+            font-size: 42px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #818cf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+        .hero-desc {
+            max-width: 680px;
+            margin: 0 auto 28px;
+            font-size: 16px;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1360px;
+            margin: 0 auto;
+            padding: 36px 24px;
+        }
+        .filter-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 36px;
+        }
+        .tab-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 600;
+            padding: 8px 18px;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: all .2s;
+        }
+        .tab-btn:hover, .tab-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            box-shadow: 0 0 16px var(--primary-glow);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 24px;
+        }
+        .style-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: all .25s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+        }
+        .style-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary);
+            box-shadow: 0 16px 36px rgba(0,0,0,0.6), 0 0 20px var(--primary-glow);
+        }
+        .preview-frame-container {
+            height: 220px;
+            background: #000;
+            position: relative;
+            overflow: hidden;
+            border-bottom: 1px solid var(--border);
+        }
+        .preview-iframe {
+            width: 1200px;
+            height: 750px;
+            transform: scale(0.33);
+            transform-origin: top left;
+            pointer-events: none;
+            border: none;
+        }
+        .preview-overlay-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 999px;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            transition: all .2s;
+        }
+        .preview-overlay-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        .card-body {
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            justify-content: space-between;
+            gap: 16px;
+        }
+        .card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .style-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11.5px;
+            color: var(--emerald);
+            background: rgba(16,185,129,0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(16,185,129,0.25);
+        }
+        .style-cat { font-size: 12px; color: var(--muted); }
+        .card-title { font-size: 19px; font-weight: 700; color: #fff; margin-top: 4px; }
+        .card-sub { font-size: 13.5px; color: var(--muted); line-height: 1.5; margin-top: 4px; }
+        .palette-dots {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .color-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .card-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .btn-launch {
+            flex: 1;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            text-align: center;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            transition: opacity .15s;
+        }
+        .btn-launch:hover { opacity: 0.9; }
+        .btn-code {
+            background: #1e2230;
+            color: #cbd5e1;
+            text-decoration: none;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            border: 1px solid var(--border);
+            transition: background .15s;
+        }
+        .btn-code:hover { background: #282e42; color: #fff; }
+        
+        @media (max-width: 860px) {
+            .grid { grid-template-columns: 1fr; }
+            .hero-title { font-size: 32px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="hero">
+        <div class="hero-badge">✨ 15 Produktionsklara Designteman • Lunch2, Fleet & StatusKoll</div>
+        <h1 class="hero-title">Template Showcase Gallery</h1>
+        <p class="hero-desc">
+            Utforska 15 unika, fullt fungerande och responsiva designsystem för Lunch2, StatusKoll och moderna verksamhetsdashboards.
+            Klicka på valfri stil för att öppna, testa idag/vecka-vyer, statusspårning, bordsbokning och interaktivitet.
+        </p>
+
+        <div class="filter-tabs">
+            <button class="tab-btn active" onclick="filterGallery('Alla')">Alla 15 Stilar</button>
+            <button class="tab-btn" onclick="filterGallery('StatusKoll & Property Tracker')">🔥 StatusKoll Editorial</button>
+            <button class="tab-btn" onclick="filterGallery('Logistics & Fleet Dispatch')">🚛 Trucks & Freight Logistics</button>
+            <button class="tab-btn" onclick="filterGallery('Clean Automotive & Cargo 3D')">📦 XPO Cargo 3D Planner</button>
+            <button class="tab-btn" onclick="filterGallery('EV Fleet & Radiant Energy Grid')">⚡ GreenCharge EV Grid</button>
+            <button class="tab-btn" onclick="filterGallery('Pastel & Soft Neumorphism')">🌸 Soft Pastel Clay</button>
+            <button class="tab-btn" onclick="filterGallery('Developer & High-Tech Dark')">💻 High-Tech & Dark</button>
+            <button class="tab-btn" onclick="filterGallery('SaaS & Fintech Clean')">🚀 Clean SaaS</button>
+            <button class="tab-btn" onclick="filterGallery('Warm Editorial & Workspace')">📖 Warm Editorial</button>
+            <button class="tab-btn" onclick="filterGallery('Luxe & Glassmorphic')">💎 Glassmorphism</button>
+            <button class="tab-btn" onclick="filterGallery('Marketplace & Warm Consumer')">🛍️ Food Marketplace</button>
+            <button class="tab-btn" onclick="filterGallery('Nordic & Organic Calm')">🌿 Nordic Fika</button>
+            <button class="tab-btn" onclick="filterGallery('Playful & High Energy')">⚡ Tokyo Neon</button>
+            <button class="tab-btn" onclick="filterGallery('Luxe & Classic Culinary')">🍷 Classic Grand Bistro</button>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="grid" id="galleryGrid">
+
+            <!-- Style 15: StatusKoll Edition -->
+            <div class="style-card" data-category="StatusKoll & Property Tracker" style="border: 2px solid rgba(255, 107, 74, 0.45);">
+                <div class="preview-frame-container">
+                    <iframe class="preview-iframe" src="style-15-statuskoll.html" loading="lazy"></iframe>
+                    <a href="style-15-statuskoll.html" target="_blank" class="preview-overlay-btn" style="background: hsl(10, 100%, 64%);">Öppna Ny Flik ↗</a>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <div class="card-meta">
+                            <span class="style-num" style="color: hsl(10, 100%, 64%); background: rgba(255,107,74,0.1); border-color: rgba(255,107,74,0.3);">15 • STATUSKOLL ⚡</span>
+                            <span class="style-cat">StatusKoll & Property Tracker</span>
+                        </div>
+                        <h2 class="card-title">StatusKoll • Dagens Lunch & Bordsstatus</h2>
+                        <p class="card-sub">Autentisk StatusKoll-design med 'Syne' + 'Space Mono', korall- & turkos gradient, statusräls (Serveras nu/Kök/Lediga bord) och snabbordsbokning</p>
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                            <span style="font-size:11.5px; color:var(--muted);">Färgpalett:</span>
+                            <div class="palette-dots"><div class="color-dot" style="background:hsl(228,17%,98%)" title="Background"></div><div class="color-dot" style="background:hsl(10,100%,64%)" title="Primary Coral"></div><div class="color-dot" style="background:hsl(174,58%,55%)" title="Secondary Teal"></div><div class="color-dot" style="background:hsl(134,38%,65%)" title="Success Mint"></div><div class="color-dot" style="background:hsl(47,100%,62%)" title="Warning Gold"></div></div>
+                        </div>
+                        <div class="card-actions">
+                            <a href="style-15-statuskoll.html" class="btn-launch" style="background: linear-gradient(135deg, hsl(10,100%,64%), hsl(18,100%,71%));">Live Demo 🚀</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Style 12: Trucks Management -->
+            <div class="style-card" data-category="Logistics & Fleet Dispatch" style="border: 2px solid rgba(110, 0, 255, 0.4);">
+                <div class="preview-frame-container">
+                    <iframe class="preview-iframe" src="style-12-truck-dispatch.html" loading="lazy"></iframe>
+                    <a href="style-12-truck-dispatch.html" target="_blank" class="preview-overlay-btn" style="background: rgba(110, 0, 255, 0.9);">Öppna Ny Flik ↗</a>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <div class="card-meta">
+                            <span class="style-num" style="color: #6E00FF; background: rgba(110,0,255,0.1); border-color: rgba(110,0,255,0.3);">12 • NY DESIGN 🚛</span>
+                            <span class="style-cat">Logistics & Fleet Dispatch</span>
+                        </div>
+                        <h2 class="card-title">Trucks Management & Load Planning</h2>
+                        <p class="card-sub">Elektrisk lila & vit layout, semi-trailer 2D-lastmatris, vikt/pallmätare och Gantt-schema med ruttspårning</p>
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                            <span style="font-size:11.5px; color:var(--muted);">Färgpalett:</span>
+                            <div class="palette-dots"><div class="color-dot" style="background:#EEF2F6" title="#EEF2F6"></div><div class="color-dot" style="background:#6E00FF" title="#6E00FF"></div><div class="color-dot" style="background:#10B981" title="#10B981"></div><div class="color-dot" style="background:#0F172A" title="#0F172A"></div></div>
+                        </div>
+                        <div class="card-actions">
+                            <a href="style-12-truck-dispatch.html" class="btn-launch" style="background: #6E00FF;">Live Demo 🚀</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Style 13: XPO Logistics 3D Cargo Planner -->
+            <div class="style-card" data-category="Clean Automotive & Cargo 3D" style="border: 2px solid rgba(255, 85, 0, 0.4);">
+                <div class="preview-frame-container">
+                    <iframe class="preview-iframe" src="style-13-xpo-logistics.html" loading="lazy"></iframe>
+                    <a href="style-13-xpo-logistics.html" target="_blank" class="preview-overlay-btn" style="background: rgba(255, 85, 0, 0.9);">Öppna Ny Flik ↗</a>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <div class="card-meta">
+                            <span class="style-num" style="color: #FF5500; background: rgba(255,85,0,0.1); border-color: rgba(255,85,0,0.3);">13 • NY DESIGN 📦</span>
+                            <span class="style-cat">Clean Automotive & Cargo 3D</span>
+                        </div>
+                        <h2 class="card-title">XPO Logistics 3D Cargo Space</h2>
+                        <p class="card-sub">Avskalad vit & säkerhetsorange palett, flerval av lastbilar (Actros/Scania/Volvo), 3D-containermoduler och bränsle-telemetri</p>
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                            <span style="font-size:11.5px; color:var(--muted);">Färgpalett:</span>
+                            <div class="palette-dots"><div class="color-dot" style="background:#F3F4F6" title="#F3F4F6"></div><div class="color-dot" style="background:#FF5500" title="#FF5500"></div><div class="color-dot" style="background:#10B981" title="#10B981"></div><div class="color-dot" style="background:#111827" title="#111827"></div></div>
+                        </div>
+                        <div class="card-actions">
+                            <a href="style-13-xpo-logistics.html" class="btn-launch" style="background: #FF5500;">Live Demo 🚀</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Style 14: GreenCharge EV Fleet & Energy Grid -->
+            <div class="style-card" data-category="EV Fleet & Radiant Energy Grid" style="border: 2px solid rgba(255, 81, 47, 0.4);">
+                <div class="preview-frame-container">
+                    <iframe class="preview-iframe" src="style-14-ev-energy.html" loading="lazy"></iframe>
+                    <a href="style-14-ev-energy.html" target="_blank" class="preview-overlay-btn" style="background: rgba(255, 81, 47, 0.9);">Öppna Ny Flik ↗</a>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <div class="card-meta">
+                            <span class="style-num" style="color: #FF512F; background: rgba(255,81,47,0.1); border-color: rgba(255,81,47,0.3);">14 • NY DESIGN ⚡</span>
+                            <span class="style-cat">EV Fleet & Radiant Energy Grid</span>
+                        </div>
+                        <h2 class="card-title">GreenCharge EV Fleet & Radiant Energy Grid</h2>
+                        <p class="card-sub">Solnedgångsgradient i varm korall & orange, live GPS-karta, laddstationsbelastning (66 portar) och 983 kW realtidsmätare</p>
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                            <span style="font-size:11.5px; color:var(--muted);">Färgpalett:</span>
+                            <div class="palette-dots"><div class="color-dot" style="background:#FFFFFF" title="#FFFFFF"></div><div class="color-dot" style="background:#FF512F" title="#FF512F"></div><div class="color-dot" style="background:#DD2476" title="#DD2476"></div><div class="color-dot" style="background:#10B981" title="#10B981"></div></div>
+                        </div>
+                        <div class="card-actions">
+                            <a href="style-14-ev-energy.html" class="btn-launch" style="background: linear-gradient(135deg, #FF512F, #DD2476);">Live Demo 🚀</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="style-card" data-category="Pastel & Soft Neumorphism" style="border: 2px solid rgba(255, 114, 94, 0.4);">
+                <div class="preview-frame-container">
+                    <iframe class="preview-iframe" src="style-11-pastel.html" loading="lazy"></iframe>
+                    <a href="style-11-pastel.html" target="_blank" class="preview-overlay-btn" style="background: rgba(255, 114, 94, 0.9);">Öppna Ny Flik ↗</a>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <div class="card-meta">
+                            <span class="style-num" style="color: #FF725E; background: rgba(255,114,94,0.1); border-color: rgba(255,114,94,0.3);">11 • NY DESIGN 🌸</span>
+                            <span class="style-cat">Pastel & Soft Neumorphism</span>
+                        </div>
+                        <h2 class="card-title">Soft Pastel Clay & Donut Stats</h2>
+                        <p class="card-sub">Mjukt korall- & minttema, runda kortskuggor, donut-diagram, 2x2 kategorier och dubbel mobilmockup</p>
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                            <span style="font-size:11.5px; color:var(--muted);">Färgpalett:</span>
+                            <div class="palette-dots"><div class="color-dot" style="background:#F4F7FB" title="#F4F7FB"></div><div class="color-dot" style="background:#FF725E" title="#FF725E"></div><div class="color-dot" style="background:#54C2D6" title="#54C2D6"></div><div class="color-dot" style="background:#FFAB38" title="#FFAB38"></div><div class="color-dot" style="background:#00B074" title="#00B074"></div></div>
+                        </div>
+                        <div class="card-actions">
+                            <a href="style-11-pastel.html" class="btn-launch" style="background: #FF725E;">Live Demo 🚀</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="style-card" data-category="Developer & High-Tech Dark">
+                <div class="preview-frame-container">
+                    <iframe class="preview-iframe" src="style-01-linear.html" loading="lazy"></iframe>
+                    <a href="style-01-linear.html" target="_blank" class="preview-overlay-btn">Öppna Ny Flik ↗</a>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <div class="card-meta">
+                            <span class="style-num">01 • Linear Inspired</span>
+                            <span class="style-cat">Developer & High-Tech Dark</span>
+                        </div>
+                        <h2 class="card-title">Linear Dark Engineering</h2>
+                        <p class="card-sub">Ultra-minimalist dark mode, high density, crisp 1px borders & purple glow accents</p>
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                            <span style="font-size:11.5px; color:var(--muted);">Färgpalett:</span>
+                            <div class="palette-dots"><div class="color-dot" style="background:#08090a" title="#08090a"></div><div class="color-dot" style="background:#121316" title="#121316"></div><div class="color-dot" style="background:#5e6ad2" title="#5e6ad2"></div><div class="color-dot" style="background:#2e3038" title="#2e3038"></div><div class="color-dot" style="background:#f4f4f5" title="#f4f4f5"></div></div>
+                        </div>
+                        <div class="card-actions">
+                            <a href="style-01-linear.html" class="btn-launch">Live Demo 🚀</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="style-card" data-category="SaaS & Fintech Clean">
+                <div class="preview-frame-container">
+                    <iframe class="preview-iframe" src="style-02-stripe.html" loading="lazy"></iframe>
+                    <a href="style-02-stripe.html" target="_blank" class="preview-overlay-btn">Öppna Ny Flik ↗</a>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <div class="card-meta">
+                            <span class="style-num">02 • Stripe Inspired</span>
+                            <span class="style-cat">SaaS & Fintech Clean</span>
+                        </div>
+                        <h2 class="card-title">Stripe Modern SaaS</h2>
+                        <p class="card-sub">Polished clean light canvas, vibrant indigo/violet gradients, smooth elevated cards</p>
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                            <span style="font-size:11.5px; color:var(--muted);">Färgpalett:</span>
+                            <div class="palette-dots"><div class="color-dot" style="background:#f8fafc" title="#f8fafc"></div><div class="color-dot" style="background:#ffffff" title="#ffffff"></div><div class="color-dot" style="background:#6366f1" title="#6366f1"></div><div class="color-dot" style="background:#4f46e5" title="#4f46e5"></div><div class="color-dot" style="background:#0f172a" title="#0f172a"></div></div>
+                        </div>
+                        <div class="card-actions">
+                            <a href="style-02-stripe.html" class="btn-launch">Live Demo 🚀</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="style-card" data-category="Warm Editorial & Workspace">
+                <div class="preview-frame-container">
+                    <iframe class="preview-iframe" src="style-03-notion.html" loading="lazy"></iframe>
+                    <a href="style-03-notion.html" target="_blank" class="preview-overlay-btn">Öppna Ny Flik ↗</a>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <div class="card-meta">
+                            <span class="style-num">03 • Notion Inspired</span>
+                            <span class="style-cat">Warm Editorial & Workspace</span>
+                        </div>
+                        <h2 class="card-title">Notion Warm Editorial</h2>
+                        <p class="card-sub">Warm cream canvas, serif headlines, subtle borders & cozy notebook aesthetic</p>
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                            <span style="font-size:11.5px; color:var(--muted);">Färgpalett:</span>
+                            <div class="palette-dots"><div class="color-dot" style="background:#fbf9f5" title="#fbf9f5"></div><div class="color-dot" style="background:#ffffff" title="#ffffff"></div><div class="color-dot" style="background:#37352f" title="#37352f"></div><div class="color-dot" style="background:#d97706" title="#d97706"></div><div class="color-dot" style="background:#787774" title="#787774"></div></div>
+                        </div>
+                        <div class="card-actions">
+                            <a href="style-03-notion.html" class="btn-launch">Live Demo 🚀</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="style-card" data-category="Developer & High-Tech Dark">
+                <div class="preview-frame-container">
+                    <iframe class="preview-iframe" src="style-04-supabase.html" loading="lazy"></iframe>
+                    <a href="style-04-supabase.html" target="_blank" class="preview-overlay-btn">Öppna Ny Flik ↗</a>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <div class="card-meta">
+                            <span class="style-num">04 • Supabase Inspired</span>
+                            <span class="style-cat">Developer & High-Tech Dark</span>
+                        </div>
+                        <h2 class="card-title">Supabase Emerald Cyber</h2>
+                        <p class="card-sub">Deep dark void, neon emerald green highlights, monospace telemetry & terminal vibe</p>
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                            <span style="font-size:11.5px; color:var(--muted);">Färgpalett:</span>
+                            <div class="palette-dots"><div class="color-dot" style="background:#121212" title="#121212"></div><div class="color-dot" style="background:#1c1c1c" title="#1c1c1c"></div><div class="color-dot" style="background:#10b981" title="#10b981"></div><div class="color-dot" style="background:#34d399" title="#34d399"></div><div class="color-dot" style="background:#24b47e" title="#24b47e"></div></div>
+                        </div>
+                        <div class="card-actions">
+                            <a href="style-04-supabase.html" class="btn-launch">Live Demo 🚀</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="style-card" data-category="Luxe & Glassmorphic">
+                <div class="preview-frame-container">
+                    <iframe class="preview-iframe" src="style-05-apple.html" loading="lazy"></iframe>
+                    <a href="style-05-apple.html" target="_blank" class="preview-overlay-btn">Öppna Ny Flik ↗</a>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <div class="card-meta">
+                            <span class="style-num">05 • Apple Cupertino</span>
+                            <span class="style-cat">Luxe & Glassmorphic</span>
+                        </div>
+                        <h2 class="card-title">Apple Bento Glassmorphism</h2>
+                        <p class="card-sub">Frosted glassmorphism, ultra-clean typography, smooth rounded bento cards & iOS feel</p>
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                            <span style="font-size:11.5px; color:var(--muted);">Färgpalett:</span>
+                            <div class="palette-dots"><div class="color-dot" style="background:#f5f5f7" title="#f5f5f7"></div><div class="color-dot" style="background:#ffffffcc" title="#ffffffcc"></div><div class="color-dot" style="background:#0071e3" title="#0071e3"></div><div class="color-dot" style="background:#1d1d1f" title="#1d1d1f"></div><div class="color-dot" style="background:#86868b" title="#86868b"></div></div>
+                        </div>
+                        <div class="card-actions">
+                            <a href="style-05-apple.html" class="btn-launch">Live Demo 🚀</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="style-card" data-category="Developer & High-Tech Dark">
+                <div class="preview-frame-container">
+                    <iframe class="preview-iframe" src="style-06-raycast.html" loading="lazy"></iframe>
+                    <a href="style-06-raycast.html" target="_blank" class="preview-overlay-btn">Öppna Ny Flik ↗</a>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <div class="card-meta">
+                            <span class="style-num">06 • Raycast Inspired</span>
+                            <span class="style-cat">Developer & High-Tech Dark</span>
+                        </div>
+                        <h2 class="card-title">Raycast Cyber Command</h2>
+                        <p class="card-sub">Jet black canvas, keyboard-first palette ⌘K, neon crimson & amber telemetry</p>
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                            <span style="font-size:11.5px; color:var(--muted);">Färgpalett:</span>
+                            <div class="palette-dots"><div class="color-dot" style="background:#030712" title="#030712"></div><div class="color-dot" style="background:#0f172a" title="#0f172a"></div><div class="color-dot" style="background:#ff453a" title="#ff453a"></div><div class="color-dot" style="background:#ff9f0a" title="#ff9f0a"></div><div class="color-dot" style="background:#f8fafc" title="#f8fafc"></div></div>
+                        </div>
+                        <div class="card-actions">
+                            <a href="style-06-raycast.html" class="btn-launch">Live Demo 🚀</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="style-card" data-category="Marketplace & Warm Consumer">
+                <div class="preview-frame-container">
+                    <iframe class="preview-iframe" src="style-07-airbnb.html" loading="lazy"></iframe>
+                    <a href="style-07-airbnb.html" target="_blank" class="preview-overlay-btn">Öppna Ny Flik ↗</a>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <div class="card-meta">
+                            <span class="style-num">07 • Airbnb Inspired</span>
+                            <span class="style-cat">Marketplace & Warm Consumer</span>
+                        </div>
+                        <h2 class="card-title">Airbnb Foodie Marketplace</h2>
+                        <p class="card-sub">Warm sunset coral, appetizing cards, review stars & inviting foodie atmosphere</p>
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                            <span style="font-size:11.5px; color:var(--muted);">Färgpalett:</span>
+                            <div class="palette-dots"><div class="color-dot" style="background:#ffffff" title="#ffffff"></div><div class="color-dot" style="background:#ff385c" title="#ff385c"></div><div class="color-dot" style="background:#e00b41" title="#e00b41"></div><div class="color-dot" style="background:#222222" title="#222222"></div><div class="color-dot" style="background:#717171" title="#717171"></div></div>
+                        </div>
+                        <div class="card-actions">
+                            <a href="style-07-airbnb.html" class="btn-launch">Live Demo 🚀</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="style-card" data-category="Nordic & Organic Calm">
+                <div class="preview-frame-container">
+                    <iframe class="preview-iframe" src="style-08-nordic.html" loading="lazy"></iframe>
+                    <a href="style-08-nordic.html" target="_blank" class="preview-overlay-btn">Öppna Ny Flik ↗</a>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <div class="card-meta">
+                            <span class="style-num">08 • Nordic Fika</span>
+                            <span class="style-cat">Nordic & Organic Calm</span>
+                        </div>
+                        <h2 class="card-title">Nordic Fika & Hygge</h2>
+                        <p class="card-sub">Scandinavian forest sage green, warm oat canvas, minimalist organic chalkboard feel</p>
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                            <span style="font-size:11.5px; color:var(--muted);">Färgpalett:</span>
+                            <div class="palette-dots"><div class="color-dot" style="background:#f4ede4" title="#f4ede4"></div><div class="color-dot" style="background:#2d4739" title="#2d4739"></div><div class="color-dot" style="background:#3b5c4b" title="#3b5c4b"></div><div class="color-dot" style="background:#e9f0eb" title="#e9f0eb"></div><div class="color-dot" style="background:#ffffff" title="#ffffff"></div></div>
+                        </div>
+                        <div class="card-actions">
+                            <a href="style-08-nordic.html" class="btn-launch">Live Demo 🚀</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="style-card" data-category="Playful & High Energy">
+                <div class="preview-frame-container">
+                    <iframe class="preview-iframe" src="style-09-neon.html" loading="lazy"></iframe>
+                    <a href="style-09-neon.html" target="_blank" class="preview-overlay-btn">Öppna Ny Flik ↗</a>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <div class="card-meta">
+                            <span class="style-num">09 • Tokyo Neon</span>
+                            <span class="style-cat">Playful & High Energy</span>
+                        </div>
+                        <h2 class="card-title">Tokyo Neon Cyberpunk</h2>
+                        <p class="card-sub">Synthwave dark navy, electric cyan & magenta neon glowing borders and retro-arcade vibe</p>
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                            <span style="font-size:11.5px; color:var(--muted);">Färgpalett:</span>
+                            <div class="palette-dots"><div class="color-dot" style="background:#08091a" title="#08091a"></div><div class="color-dot" style="background:#0f112e" title="#0f112e"></div><div class="color-dot" style="background:#00f0ff" title="#00f0ff"></div><div class="color-dot" style="background:#ff007a" title="#ff007a"></div><div class="color-dot" style="background:#ffe600" title="#ffe600"></div></div>
+                        </div>
+                        <div class="card-actions">
+                            <a href="style-09-neon.html" class="btn-launch">Live Demo 🚀</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="style-card" data-category="Luxe & Classic Culinary">
+                <div class="preview-frame-container">
+                    <iframe class="preview-iframe" src="style-10-bistro.html" loading="lazy"></iframe>
+                    <a href="style-10-bistro.html" target="_blank" class="preview-overlay-btn">Öppna Ny Flik ↗</a>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <div class="card-meta">
+                            <span class="style-num">10 • Grand Bistro</span>
+                            <span class="style-cat">Luxe & Classic Culinary</span>
+                        </div>
+                        <h2 class="card-title">European Grand Bistro</h2>
+                        <p class="card-sub">Classic French/Italian chalkboard slate, burnished gold brass, elegant serif typography</p>
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                            <span style="font-size:11.5px; color:var(--muted);">Färgpalett:</span>
+                            <div class="palette-dots"><div class="color-dot" style="background:#18181b" title="#18181b"></div><div class="color-dot" style="background:#27272a" title="#27272a"></div><div class="color-dot" style="background:#d4af37" title="#d4af37"></div><div class="color-dot" style="background:#fef08a" title="#fef08a"></div><div class="color-dot" style="background:#f4f4f5" title="#f4f4f5"></div></div>
+                        </div>
+                        <div class="card-actions">
+                            <a href="style-10-bistro.html" class="btn-launch">Live Demo 🚀</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+    function filterGallery(cat) {
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.toggle('active', b.textContent.includes(cat) || (cat === 'Alla' && b.textContent.includes('Alla')));
+        });
+        document.querySelectorAll('.style-card').forEach(card => {
+            const match = cat === 'Alla' || card.dataset.category === cat;
+            card.style.display = match ? 'flex' : 'none';
+        });
+    }
+    </script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "restaurant_id": "the_grill",
+  "restaurant_name": "The Grill",
+  "url": "https://www.thegrill.se/",
+  "expected_days": ["Måndag", "Tisdag", "Onsdag", "Torsdag", "Fredag"],
+  "min_dishes_per_day": 1,
+  "golden_sample": {
+    "restaurant": "The Grill",
+    "items": [
+      {
+        "name": "Grillad biff med bearnaisesås och pommes",
+        "price": 130
+      }
+    ]
+  }
+}

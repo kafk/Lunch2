@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreenCharge • EV Fleet, Radiant Energy Grid & 66-Port Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-canvas: #E5E7EB;
+            --surface-white: #FFFFFF;
+            --surface-subtle: #F9FAFB;
+            --border-color: #E5E7EB;
+            
+            /* Signature Sunset Radiant Palette */
+            --sunset-gradient: linear-gradient(145deg, #FF6B4A 0%, #FF512F 45%, #DD2476 100%);
+            --sunset-glow: rgba(255, 81, 47, 0.4);
+            --sunset-coral: #FF5E3A;
+            --sunset-dark: #1E1B4B;
+            
+            --ev-green: #10B981;
+            --ev-green-light: #D1FAE5;
+            --ev-blue: #0284C7;
+            --ev-blue-light: #E0F2FE;
+            --ev-amber: #F59E0B;
+            --ev-amber-light: #FEF3C7;
+            --ev-red: #EF4444;
+            
+            --text-dark: #111827;
+            --text-gray: #4B5563;
+            --text-muted: #9CA3AF;
+            
+            --radius-xl: 24px;
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --radius-pill: 999px;
+            
+            --shadow-card: 0 10px 30px -4px rgba(17, 24, 39, 0.08);
+            --shadow-sunset: 0 15px 35px -5px rgba(255, 81, 47, 0.45);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: var(--bg-canvas);
+            color: var(--text-dark);
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at 100% 0%, rgba(255, 107, 74, 0.15), transparent 55%);
+        }
+
+        /* Top Hub Bar */
+        .style-hub-floater {
+            position: fixed;
+            top: 14px;
+            right: 18px;
+            z-index: 10000;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .hub-btn {
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(12px);
+            color: var(--text-dark);
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: var(--radius-pill);
+            font-size: 13px;
+            font-weight: 700;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all .2s;
+            cursor: pointer;
+        }
+        .hub-btn:hover {
+            transform: translateY(-2px);
+            color: var(--sunset-coral);
+            border-color: var(--sunset-coral);
+        }
+
+        /* App Shell Header */
+        .app-navbar {
+            background: #FFFFFF;
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .nav-brand-group {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+        .brand-logo-sun {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: var(--sunset-gradient);
+            display: grid;
+            place-items: center;
+            font-size: 18px;
+            color: #FFFFFF;
+            box-shadow: 0 4px 14px rgba(255, 81, 47, 0.4);
+            cursor: pointer;
+        }
+
+        /* Reimagined Nav Pills */
+        .nav-links-pills {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .nav-pill {
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: var(--radius-pill);
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-gray);
+            transition: all .15s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+        }
+        .nav-pill:hover { background: #F3F4F6; color: var(--text-dark); }
+        .nav-pill.active {
+            background: #111827;
+            color: #FFFFFF;
+        }
+
+        .nav-right-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .action-icon-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: 1px solid var(--border-color);
+            background: #F9FAFB;
+            display: grid;
+            place-items: center;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .action-icon-btn:hover { background: #E5E7EB; }
+
+        /* Main Workspace Content */
+        .ev-main-wrap {
+            padding: 24px 32px 60px;
+            max-width: 1720px;
+            margin: 0 auto;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* View Container */
+        .ev-view-sec {
+            display: none;
+            animation: fadeInView .25s ease-out;
+        }
+        .ev-view-sec.active {
+            display: block;
+        }
+        @keyframes fadeInView {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 1. VIEW: DASHBOARD OVERVIEW */
+        .grid-dashboard-layout {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 24px;
+        }
+
+        /* Radiant Sunset Energy Card */
+        .radiant-energy-card {
+            background: var(--sunset-gradient);
+            border-radius: var(--radius-xl);
+            padding: 36px;
+            color: #FFFFFF;
+            box-shadow: var(--shadow-sunset);
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+            position: relative;
+            overflow: hidden;
+        }
+        .radiant-energy-card::after {
+            content: '';
+            position: absolute;
+            top: -50px;
+            right: -50px;
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .energy-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .energy-tag {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 6px 14px;
+            border-radius: var(--radius-pill);
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .energy-dial-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .energy-stat-num {
+            font-size: 48px;
+            font-weight: 900;
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1;
+        }
+        .energy-stat-sub {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 6px;
+        }
+
+        /* Mini Telemetry Row inside Sunset Card */
+        .energy-tri-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            background: rgba(0, 0, 0, 0.15);
+            padding: 18px 24px;
+            border-radius: var(--radius-lg);
+            backdrop-filter: blur(8px);
+        }
+        .tri-metric-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .tri-label {
+            font-size: 11px;
+            opacity: 0.8;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .tri-val {
+            font-size: 18px;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* White Dashboard Panels */
+        .dashboard-panel {
+            background: #FFFFFF;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-card);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .panel-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--text-dark);
+        }
+
+        /* 66-Port Matrix Visualizer */
+        .supercharger-port-grid {
+            display: grid;
+            grid-template-columns: repeat(11, 1fr);
+            gap: 8px;
+            background: #F9FAFB;
+            padding: 16px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+        }
+        .port-tile {
+            height: 48px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all .15s;
+            user-select: none;
+        }
+        .port-tile:hover {
+            transform: scale(1.08);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .port-tile.charging {
+            background: #10B981;
+            color: #FFFFFF;
+        }
+        .port-tile.available {
+            background: #FFFFFF;
+            border: 1.5px solid #10B981;
+            color: #10B981;
+        }
+        .port-tile.queued {
+            background: #F59E0B;
+            color: #FFFFFF;
+        }
+        .port-tile.offline {
+            background: #E5E7EB;
+            color: #9CA3AF;
+        }
+
+        /* Fleet Vehicle Cards */
+        .fleet-live-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .fleet-vehicle-row {
+            background: #F9FAFB;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .fleet-vehicle-row:hover {
+            background: #FFFFFF;
+            border-color: var(--sunset-coral);
+            transform: translateX(4px);
+        }
+
+        /* 2. VIEW: 66-PORT SUPERCHARGER MATRIX */
+        .port-filters-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #FFFFFF;
+            padding: 14px 20px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        /* Toast */
+        .toast-banner {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #111827;
+            color: #FFFFFF;
+            padding: 12px 24px;
+            border-radius: var(--radius-pill);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+            font-size: 14px;
+            font-weight: 700;
+            z-index: 30000;
+            transition: transform .3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .toast-banner.visible {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        @media (max-width: 1200px) {
+            .grid-dashboard-layout { grid-template-columns: 1fr; }
+            .supercharger-port-grid { grid-template-columns: repeat(6, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Floating Top Style Switcher -->
+    <div class="style-hub-floater">
+        <a href="index.html" class="hub-btn">
+            <span>⚡ Alla Mallar (15)</span>
+        </a>
+        <a href="style-15-statuskoll.html" class="hub-btn">
+            <span>Nästa: StatusKoll Edition ➔</span>
+        </a>
+    </div>
+
+    <!-- App Top Navigation Bar -->
+    <nav class="app-navbar">
+        <div class="nav-brand-group">
+            <div class="brand-logo-sun" onclick="switchEVView('overview')">☀️</div>
+            <div class="nav-links-pills">
+                <button class="nav-pill active" id="evTab1" onclick="switchEVView('overview', this)">⚡ Översikt</button>
+                <button class="nav-pill" id="evTab2" onclick="switchEVView('ports-matrix', this)">🔌 66-Port Superchargers</button>
+                <button class="nav-pill" id="evTab3" onclick="switchEVView('fleet-gps', this)">🗺️ Live Flotta (GPS)</button>
+                <button class="nav-pill" id="evTab4" onclick="switchEVView('bess-solar', this)">☀️ Batterilagring (BESS)</button>
+                <button class="nav-pill" id="evTab5" onclick="switchEVView('rfid-billing', this)">💳 RFID Förarkonton</button>
+            </div>
+        </div>
+
+        <div class="nav-right-actions">
+            <button class="hub-btn" style="background: var(--sunset-coral); color: #FFFFFF; border: none;" onclick="smartChargeAI()">
+                <span>🤖 Smart Charge AI</span>
+            </button>
+            <button class="action-icon-btn" onclick="showToast('Notifikationer: Samtliga 66 laddstationer fullt operativa')">🔔</button>
+        </div>
+    </nav>
+
+    <!-- Main Views Body -->
+    <main class="ev-main-wrap">
+
+        <!-- 1. VIEW: DASHBOARD OVERVIEW -->
+        <div class="ev-view-sec active" id="sec-overview">
+            <div class="grid-dashboard-layout">
+                
+                <div style="display: flex; flex-direction: column; gap: 24px;">
+                    <!-- Radiant Sunset Energy Card -->
+                    <div class="radiant-energy-card">
+                        <div class="energy-card-header">
+                            <div>
+                                <span class="energy-tag">⚡ Live Energiflöde • Lindholmen Hub</span>
+                                <h1 style="font-size: 26px; font-weight: 900; margin-top: 8px;">GreenCharge Radiant Grid</h1>
+                            </div>
+                            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 800; background: rgba(0,0,0,0.2); padding: 6px 12px; border-radius: 999px;">
+                                🟢 NÄTBELASTNING: 64%
+                            </span>
+                        </div>
+
+                        <div class="energy-dial-row">
+                            <div>
+                                <div class="energy-stat-num" id="totalKw">983 kW</div>
+                                <div class="energy-stat-sub">Momentan Laddeffekt (Samtliga Portar)</div>
+                            </div>
+
+                            <button class="hub-btn" style="background: #FFFFFF; color: #111827;" onclick="showToast('Kör automatisk effektbalansering mot solcellsparken...')">
+                                ⚙️ Balansera mot Solenergi
+                            </button>
+                        </div>
+
+                        <div class="energy-tri-metrics">
+                            <div class="tri-metric-item">
+                                <span class="tri-label">Solcellsproduktion</span>
+                                <span class="tri-val" style="color: #FEF08A;">412 kW</span>
+                            </div>
+                            <div class="tri-metric-item">
+                                <span class="tri-label">BESS Batterilager</span>
+                                <span class="tri-val" style="color: #A7F3D0;">1.4 MWh (88%)</span>
+                            </div>
+                            <div class="tri-metric-item">
+                                <span class="tri-label">Spotpris El</span>
+                                <span class="tri-val">0.34 SEK/kWh</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 66-Port Matrix Visualizer Card -->
+                    <div class="dashboard-panel">
+                        <div class="panel-header-row">
+                            <h2 class="panel-title">🔌 66-Port Megawatt & CCS2 Laddmatris</h2>
+                            <span style="font-size: 13px; color: var(--text-gray); font-weight: 700;">48 Aktiva • 14 Lediga • 4 Underhåll</span>
+                        </div>
+
+                        <div class="supercharger-port-grid" id="mainPortGrid">
+                            <!-- 66 interactive port slots -->
+                            <div class="port-tile charging" onclick="inspectPort('P-01', '350 kW', 'Volvo FM')">P01<br>350kW</div>
+                            <div class="port-tile charging" onclick="inspectPort('P-02', '350 kW', 'Scania 25P')">P02<br>320kW</div>
+                            <div class="port-tile available" onclick="reservePort('P-03')">P03<br>Ledig</div>
+                            <div class="port-tile charging" onclick="inspectPort('P-04', '750 kW MCS', 'Actros Electric')">P04<br>720kW</div>
+                            <div class="port-tile charging" onclick="inspectPort('P-05', '350 kW', 'MAN eTGX')">P05<br>340kW</div>
+                            <div class="port-tile available" onclick="reservePort('P-06')">P06<br>Ledig</div>
+                            <div class="port-tile charging" onclick="inspectPort('P-07', '150 kW', 'DAF Electric')">P07<br>145kW</div>
+                            <div class="port-tile charging" onclick="inspectPort('P-08', '350 kW', 'Volvo FH')">P08<br>350kW</div>
+                            <div class="port-tile queued" onclick="inspectPort('P-09', 'I kö', 'Scania')">P09<br>Kö</div>
+                            <div class="port-tile available" onclick="reservePort('P-10')">P10<br>Ledig</div>
+                            <div class="port-tile charging" onclick="inspectPort('P-11', '350 kW', 'Mercedes')">P11<br>310kW</div>
+
+                            <div class="port-tile charging" onclick="inspectPort('P-12', '350 kW', 'Volvo FM')">P12<br>350kW</div>
+                            <div class="port-tile available" onclick="reservePort('P-13')">P13<br>Ledig</div>
+                            <div class="port-tile charging" onclick="inspectPort('P-14', '350 kW', 'Scania')">P14<br>330kW</div>
+                            <div class="port-tile charging" onclick="inspectPort('P-15', '750 kW MCS', 'Tesla Semi')">P15<br>680kW</div>
+                            <div class="port-tile available" onclick="reservePort('P-16')">P16<br>Ledig</div>
+                            <div class="port-tile charging" onclick="inspectPort('P-17', '350 kW', 'Volvo')">P17<br>290kW</div>
+                            <div class="port-tile charging" onclick="inspectPort('P-18', '350 kW', 'MAN')">P18<br>340kW</div>
+                            <div class="port-tile offline" onclick="showToast('Port 19 är under schemalagt underhåll')">P19<br>Service</div>
+                            <div class="port-tile available" onclick="reservePort('P-20')">P20<br>Ledig</div>
+                            <div class="port-tile charging" onclick="inspectPort('P-21', '350 kW', 'Renault')">P21<br>210kW</div>
+                            <div class="port-tile charging" onclick="inspectPort('P-22', '350 kW', 'Volvo')">P22<br>350kW</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Sidebar: Live Active Fleet -->
+                <aside style="display: flex; flex-direction: column; gap: 20px;">
+                    <div class="dashboard-panel">
+                        <h2 class="panel-title">🚚 Fordon i Laddzonen</h2>
+                        
+                        <div class="fleet-live-list">
+                            <div class="fleet-vehicle-row" onclick="inspectVehicle('Volvo FM Electric #44', '82% SoC')">
+                                <div>
+                                    <strong style="font-size: 14px;">Volvo FM Electric #44</strong>
+                                    <div style="font-size: 12px; color: var(--text-gray);">Port 01 • 350 kW CCS2</div>
+                                </div>
+                                <span style="font-family: 'JetBrains Mono', monospace; font-weight: 800; color: var(--ev-green);">82%</span>
+                            </div>
+
+                            <div class="fleet-vehicle-row" onclick="inspectVehicle('Scania 25P #12', '64% SoC')">
+                                <div>
+                                    <strong style="font-size: 14px;">Scania 25P Regional #12</strong>
+                                    <div style="font-size: 12px; color: var(--text-gray);">Port 02 • 320 kW CCS2</div>
+                                </div>
+                                <span style="font-family: 'JetBrains Mono', monospace; font-weight: 800; color: var(--ev-green);">64%</span>
+                            </div>
+
+                            <div class="fleet-vehicle-row" onclick="inspectVehicle('Mercedes eActros 600', '91% SoC')">
+                                <div>
+                                    <strong style="font-size: 14px;">Mercedes eActros 600</strong>
+                                    <div style="font-size: 12px; color: var(--text-gray);">Port 04 • Megawatt MCS</div>
+                                </div>
+                                <span style="font-family: 'JetBrains Mono', monospace; font-weight: 800; color: var(--ev-green);">91%</span>
+                            </div>
+                        </div>
+
+                        <button class="hub-btn" style="background: #111827; color: #FFFFFF; justify-content: center; width: 100%; border: none;" onclick="switchEVView('fleet-gps')">
+                            Visa Hela Flottan på GPS-Kartan ➔
+                        </button>
+                    </div>
+
+                    <div class="dashboard-panel">
+                        <h2 class="panel-title">🌿 Klimat- & CO2 Besparing</h2>
+                        <div style="font-size: 32px; font-weight: 900; color: var(--ev-green); font-family: 'JetBrains Mono', monospace;">-14.8 Ton</div>
+                        <p style="font-size: 13px; color: var(--text-gray);">Koldioxid sparad idag jämfört med dieseldrift över 6 400 körda kilometer.</p>
+                    </div>
+                </aside>
+
+            </div>
+        </div>
+
+        <!-- 2. VIEW: 66-PORT MATRIX FULL -->
+        <div class="ev-view-sec" id="sec-ports-matrix">
+            <div class="dashboard-panel">
+                <div class="port-filters-bar">
+                    <h2 class="panel-title">🔌 Samtliga 66 Laddplatser (Lindholmen & Torslanda)</h2>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="hub-btn" onclick="showToast('Filtrerar: Endast Megawatt MCS 750kW')">⚡ Endast MCS (750kW)</button>
+                        <button class="hub-btn" onclick="showToast('Filtrerar: Endast Lediga Portar')">🟢 Endast Lediga (14)</button>
+                    </div>
+                </div>
+                <div class="supercharger-port-grid" style="grid-template-columns: repeat(11, 1fr); margin-top: 16px;">
+                    <!-- Expanded grid demo -->
+                    <div class="port-tile charging">P01</div>
+                    <div class="port-tile charging">P02</div>
+                    <div class="port-tile available">P03</div>
+                    <div class="port-tile charging">P04</div>
+                    <div class="port-tile charging">P05</div>
+                    <div class="port-tile available">P06</div>
+                    <div class="port-tile charging">P07</div>
+                    <div class="port-tile charging">P08</div>
+                    <div class="port-tile queued">P09</div>
+                    <div class="port-tile available">P10</div>
+                    <div class="port-tile charging">P11</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. VIEW: LIVE FLEET GPS -->
+        <div class="ev-view-sec" id="sec-fleet-gps">
+            <div class="dashboard-panel">
+                <h2 class="panel-title">🗺️ Live Flott-Telemetri & GPS Spårning</h2>
+                <div style="height: 380px; background: #1E293B; border-radius: 16px; display: grid; place-items: center; color: #FFFFFF; font-weight: 800; font-size: 18px;">
+                    📍 [GPS Karta: 18 Aktiva Ellastbilar på Rutt mellan Göteborg och Jönköping]
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. VIEW: BESS SOLAR -->
+        <div class="ev-view-sec" id="sec-bess-solar">
+            <div class="dashboard-panel">
+                <h2 class="panel-title">☀️ Solcellspark & BESS 1.4 MWh Batterilagring</h2>
+                <p style="color: var(--text-gray); font-size: 14px;">Smart peak-shaving minimerar toppeffektsavgifter genom att avlasta elnätet under höglasttimmar.</p>
+            </div>
+        </div>
+
+        <!-- 5. VIEW: RFID BILLING -->
+        <div class="ev-view-sec" id="sec-rfid-billing">
+            <div class="dashboard-panel">
+                <h2 class="panel-title">💳 Förarkonton & RFID-Laddtaggar</h2>
+                <p style="color: var(--text-gray); font-size: 14px;">Månadsvisa samlingsfakturor och kWh-förbrukning per förare och fordon.</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Toast Banner -->
+    <div class="toast-banner" id="toastBanner">
+        <span id="toastMsg">Välkommen till GreenCharge EV Fleet!</span>
+    </div>
+
+    <script>
+        function switchEVView(viewId, btn) {
+            document.querySelectorAll('.ev-view-sec').forEach(s => s.classList.remove('active'));
+            const target = document.getElementById('sec-' + viewId);
+            if (target) target.classList.add('active');
+
+            document.querySelectorAll('.nav-pill').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+
+            showToast(`Växlade till: ${viewId.toUpperCase()}`);
+        }
+
+        function inspectPort(portId, power, vehicle) {
+            showToast(`Laddport ${portId}: ${power} ➔ Ansluten: ${vehicle}`);
+        }
+
+        function reservePort(portId) {
+            showToast(`Reserverade ledig laddport ${portId} för ankommande fordon! 🔌`);
+        }
+
+        function inspectVehicle(name, soc) {
+            showToast(`Fordon: ${name} • Batterinivå: ${soc}`);
+        }
+
+        function smartChargeAI() {
+            showToast('Smart Charge AI: Optimerar laddeffekt för att spara 18.4% elkostnad mot soltoppen! 🤖⚡');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toastBanner');
+            const msgEl = document.getElementById('toastMsg');
+            msgEl.textContent = msg;
+            toast.classList.add('visible');
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => {
+                toast.classList.remove('visible');
+            }, 2600);
+        }
+    </script>
+</body>
+</html>

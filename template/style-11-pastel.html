@@ -1,0 +1,1506 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lunch2 • Soft Pastel Clay & Analytics</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-canvas: #F4F7FB;
+            --bg-right-split: #E8F4F8;
+            --card-bg: #FFFFFF;
+            --card-subtle: #F8FAFC;
+            --card-border: #EDF2F7;
+            
+            /* Signature Soft Palette */
+            --coral-primary: #FF725E;
+            --coral-light: #FFEBE8;
+            --coral-glow: rgba(255, 114, 94, 0.35);
+            
+            --sky-blue: #54C2D6;
+            --sky-light: #E6F8FB;
+            
+            --amber-warm: #FFAB38;
+            --amber-light: #FFF4E5;
+            
+            --emerald-fresh: #00B074;
+            --emerald-light: #E6F7F0;
+            
+            --lilac-accent: #9381FF;
+            --lilac-light: #F0EDFF;
+            
+            --text-title: #1E293B;
+            --text-body: #475569;
+            --text-muted: #8F9CA9;
+            --text-light: #A0ABC0;
+            
+            --radius-phone: 44px;
+            --radius-card: 26px;
+            --radius-pill: 999px;
+            --radius-sm: 14px;
+            
+            --shadow-phone: 0 35px 70px -15px rgba(30, 41, 59, 0.18), 0 10px 25px -5px rgba(30, 41, 59, 0.08);
+            --shadow-card: 0 12px 28px -6px rgba(100, 116, 139, 0.10), 0 4px 10px -2px rgba(100, 116, 139, 0.04);
+            --shadow-hover: 0 20px 36px -8px rgba(100, 116, 139, 0.16), 0 6px 16px -3px rgba(100, 116, 139, 0.08);
+            --shadow-button: 0 8px 20px -4px rgba(255, 114, 94, 0.45);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-canvas);
+            color: var(--text-body);
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Ambient Geometric Shapes from Screenshot */
+        .ambient-shape {
+            position: fixed;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .shape-ring-coral {
+            top: 40px;
+            left: 80px;
+            width: 120px;
+            height: 120px;
+            border: 14px solid #FF725E;
+            border-radius: 50%;
+            opacity: 0.85;
+        }
+        .shape-dot-amber {
+            top: 280px;
+            left: 110px;
+            width: 22px;
+            height: 22px;
+            background: var(--amber-warm);
+            border-radius: 50%;
+        }
+        .shape-dot-emerald {
+            top: 460px;
+            left: 20px;
+            width: 28px;
+            height: 28px;
+            background: var(--emerald-fresh);
+            border-radius: 50%;
+        }
+        .shape-pill-white {
+            top: 640px;
+            left: 60px;
+            width: 80px;
+            height: 80px;
+            background: #FFFFFF;
+            border-radius: 50%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+        }
+        .bg-right-backdrop {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 32%;
+            background-color: var(--bg-right-split);
+            z-index: 0;
+            border-left: 1px solid rgba(84, 194, 214, 0.12);
+        }
+
+        /* Top Hub Bar */
+        .style-hub-floater {
+            position: fixed;
+            top: 14px;
+            right: 18px;
+            z-index: 10000;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .hub-btn {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            color: var(--text-title);
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: var(--radius-pill);
+            font-size: 13px;
+            font-weight: 700;
+            border: 1px solid #E2E8F0;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all .2s cubic-bezier(0.16, 1, 0.3, 1);
+            cursor: pointer;
+        }
+        .hub-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            color: var(--coral-primary);
+        }
+
+        /* Page Layout Container */
+        .workspace-wrapper {
+            position: relative;
+            z-index: 1;
+            max-width: 1420px;
+            margin: 0 auto;
+            padding: 30px 24px 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Header Intro */
+        .header-bar {
+            text-align: center;
+            margin-bottom: 28px;
+            max-width: 650px;
+        }
+        .badge-style-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--coral-light);
+            color: var(--coral-primary);
+            padding: 6px 18px;
+            border-radius: var(--radius-pill);
+            font-size: 12.5px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(255, 114, 94, 0.15);
+        }
+        .page-title {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--text-title);
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+        .page-subtitle {
+            font-size: 15px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* View Mode Controls */
+        .mode-toggle-pill {
+            display: inline-flex;
+            background: #FFFFFF;
+            padding: 5px;
+            border-radius: var(--radius-pill);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+            border: 1px solid var(--card-border);
+            margin-bottom: 30px;
+        }
+        .mode-btn {
+            border: none;
+            background: transparent;
+            padding: 8px 20px;
+            border-radius: var(--radius-pill);
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all .2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .mode-btn.active {
+            background: var(--coral-primary);
+            color: #FFFFFF;
+            box-shadow: 0 4px 12px rgba(255, 114, 94, 0.35);
+        }
+
+        /* ============================================================
+           PHONE SHOWCASE VIEW (Exact replica of mockup layout)
+           ============================================================ */
+        .phones-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 46px;
+            width: 100%;
+            transition: all .3s ease;
+        }
+
+        /* Realistic Phone Chassis */
+        .phone-frame {
+            width: 380px;
+            min-width: 380px;
+            height: 780px;
+            background: #FFFFFF;
+            border-radius: var(--radius-phone);
+            box-shadow: var(--shadow-phone);
+            border: 12px solid #FFFFFF;
+            outline: 1px solid #E2E8F0;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* Phone Top Hardware Bar */
+        .phone-notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px;
+            height: 24px;
+            background: #FFFFFF;
+            border-bottom-left-radius: 16px;
+            border-bottom-right-radius: 16px;
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .phone-speaker {
+            width: 44px;
+            height: 4px;
+            background: #E2E8F0;
+            border-radius: 999px;
+        }
+        .phone-camera {
+            width: 8px;
+            height: 8px;
+            background: #CBD5E1;
+            border-radius: 50%;
+            margin-left: 8px;
+        }
+
+        /* Phone Screen Canvas */
+        .phone-screen {
+            background: #F8FAFD;
+            flex: 1;
+            padding: 24px 20px 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            scrollbar-width: none;
+        }
+        .phone-screen::-webkit-scrollbar { display: none; }
+
+        /* Mobile Status Bar */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-title);
+            margin-top: 4px;
+            margin-bottom: 18px;
+            padding: 0 4px;
+        }
+        .status-icons {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+        }
+
+        /* Phone Top Nav */
+        .phone-nav-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+        .nav-circle-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #FFFFFF;
+            border: 1px solid var(--card-border);
+            display: grid;
+            place-items: center;
+            color: var(--text-title);
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+            transition: all .15s;
+        }
+        .nav-circle-btn:hover {
+            background: var(--card-subtle);
+            color: var(--coral-primary);
+        }
+
+        /* Phone Screen Titles */
+        .app-header-block {
+            margin-bottom: 16px;
+        }
+        .app-main-title {
+            font-size: 23px;
+            font-weight: 800;
+            color: var(--text-title);
+            letter-spacing: -0.4px;
+        }
+        .app-sub-title {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 2px;
+            font-weight: 500;
+        }
+
+        /* Date / Summary Pill Card */
+        .date-summary-card {
+            background: #FFFFFF;
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: var(--shadow-card);
+            border: 1px solid var(--card-border);
+            margin-bottom: 22px;
+        }
+        .date-icon-box {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            background: #F0F4F8;
+            display: grid;
+            place-items: center;
+            font-size: 17px;
+            color: var(--text-muted);
+        }
+        .date-title {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--text-title);
+        }
+        .date-sub {
+            font-size: 11.5px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* Section Header with View Toggles */
+        .section-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .section-label-badge {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        .section-label-count {
+            color: var(--text-light);
+            font-weight: 600;
+        }
+        .toggle-icon-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .view-icon-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: none;
+            background: #E2E8F0;
+            color: #64748B;
+            display: grid;
+            place-items: center;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all .2s;
+        }
+        .view-icon-btn.active {
+            background: var(--coral-primary);
+            color: #FFFFFF;
+            box-shadow: 0 2px 8px rgba(255, 114, 94, 0.4);
+        }
+
+        /* 2x2 Categories Pill Grid */
+        .categories-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .category-pill-card {
+            background: #FFFFFF;
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            border: 1px solid var(--card-border);
+            cursor: pointer;
+            transition: all .2s;
+        }
+        .category-pill-card:hover, .category-pill-card.active {
+            transform: translateY(-2px);
+            border-color: var(--coral-primary);
+            box-shadow: 0 6px 16px rgba(255, 114, 94, 0.12);
+        }
+        .cat-icon-badge {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+            font-size: 14px;
+        }
+        .cat-icon-education { background: var(--amber-light); color: var(--amber-warm); }
+        .cat-icon-nutrition { background: var(--sky-light); color: var(--sky-blue); }
+        .cat-icon-child { background: var(--emerald-light); color: var(--emerald-fresh); }
+        .cat-icon-beauty { background: var(--coral-light); color: var(--coral-primary); }
+        
+        .cat-name {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: var(--text-title);
+        }
+        .cat-more-btn {
+            width: 100%;
+            text-align: center;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 10.5px;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            cursor: pointer;
+            padding: 6px 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+        .cat-more-btn:hover { color: var(--coral-primary); }
+
+        /* Featured Meal / Incoming Expense Big Card */
+        .featured-hero-card {
+            background: #FFFFFF;
+            border-radius: var(--radius-card);
+            padding: 20px;
+            box-shadow: var(--shadow-card);
+            border: 1px solid var(--card-border);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .card-tag-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: var(--coral-primary);
+        }
+        .card-meal-title {
+            font-size: 17px;
+            font-weight: 800;
+            color: var(--text-title);
+            letter-spacing: -0.3px;
+        }
+        .card-meal-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+        .card-location-row {
+            margin-top: 4px;
+        }
+        .card-location-label {
+            font-size: 9.5px;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            color: var(--text-light);
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        .card-location-text {
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--text-body);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn-coral-cta {
+            width: 100%;
+            background: var(--coral-primary);
+            color: #FFFFFF;
+            border: none;
+            padding: 14px 20px;
+            border-radius: var(--radius-sm);
+            font-size: 12.5px;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            cursor: pointer;
+            box-shadow: var(--shadow-button);
+            transition: all .2s;
+            margin-top: 8px;
+            text-align: center;
+            text-decoration: none;
+            display: block;
+        }
+        .btn-coral-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px -4px rgba(255, 114, 94, 0.6);
+            opacity: 0.95;
+        }
+        .btn-coral-cta:active {
+            transform: translateY(1px);
+        }
+
+        /* Bottom Phone Home Indicator */
+        .phone-home-indicator {
+            width: 120px;
+            height: 4px;
+            background: #CBD5E1;
+            border-radius: 999px;
+            margin: 6px auto 2px;
+        }
+
+        /* ============================================================
+           PHONE 2: DONUT CHART & BREAKDOWN ANALYTICS VIEW
+           ============================================================ */
+        .chart-visual-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px 0 20px;
+            position: relative;
+        }
+        .donut-chart-svg {
+            width: 220px;
+            height: 220px;
+            filter: drop-shadow(0 10px 18px rgba(0,0,0,0.06));
+            transform: rotate(-90deg);
+        }
+        .donut-slice {
+            fill: transparent;
+            stroke-width: 48;
+            stroke-linecap: butt;
+            transition: all .3s cubic-bezier(0.16, 1, 0.3, 1);
+            cursor: pointer;
+        }
+        .donut-slice:hover {
+            stroke-width: 54;
+            opacity: 0.9;
+        }
+        .donut-slice.slice-sky { stroke: var(--sky-blue); }
+        .donut-slice.slice-coral { stroke: var(--coral-primary); }
+        .donut-slice.slice-amber { stroke: var(--amber-warm); }
+        .donut-slice.slice-emerald { stroke: var(--emerald-fresh); }
+
+        /* Donut Center Cutout Badge */
+        .donut-center-badge {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -58%);
+            width: 90px;
+            height: 90px;
+            background: #FFFFFF;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+            pointer-events: none;
+        }
+        .donut-center-num {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text-title);
+            line-height: 1;
+        }
+        .donut-center-label {
+            font-size: 10.5px;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-top: 3px;
+        }
+
+        /* Donut Percentage Badges Floating */
+        .chart-labels-layer {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+        .chart-pct-badge {
+            position: absolute;
+            font-size: 11.5px;
+            font-weight: 800;
+            color: #FFFFFF;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        .pct-sky { top: 48%; right: 28px; }
+        .pct-coral { top: 22px; left: 66px; }
+        .pct-amber { bottom: 50px; left: 50px; }
+        .pct-emerald { top: 105px; left: 40px; }
+
+        /* Breakdown Stat Rows */
+        .breakdown-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 4px;
+        }
+        .breakdown-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            background: #FFFFFF;
+            border: 1px solid var(--card-border);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-title);
+            cursor: pointer;
+            transition: all .2s;
+        }
+        .breakdown-row:hover {
+            transform: translateX(3px);
+            border-color: #CBD5E1;
+        }
+        .breakdown-row.highlighted {
+            background: linear-gradient(135deg, var(--amber-warm), #FF9800);
+            color: #FFFFFF;
+            border-color: transparent;
+            box-shadow: 0 6px 18px rgba(255, 171, 56, 0.4);
+        }
+        .breakdown-row.highlighted .stat-sub-text {
+            color: rgba(255,255,255,0.9);
+        }
+        .stat-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .stat-color-sq {
+            width: 12px;
+            height: 12px;
+            border-radius: 4px;
+        }
+        .stat-sub-text {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+
+        /* ============================================================
+           DESKTOP / WIDE DASHBOARD VIEW (Full interactive suite)
+           ============================================================ */
+        .desktop-dashboard {
+            width: 100%;
+            max-width: 1280px;
+            background: #FFFFFF;
+            border-radius: 32px;
+            box-shadow: var(--shadow-phone);
+            border: 1px solid #E2E8F0;
+            padding: 36px;
+            display: none;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        .dash-top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid #EDF2F7;
+        }
+        .dash-search-input {
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            padding: 12px 20px;
+            border-radius: var(--radius-pill);
+            font-size: 14px;
+            width: 320px;
+            font-family: inherit;
+            color: var(--text-title);
+            outline: none;
+            transition: all .2s;
+        }
+        .dash-search-input:focus {
+            background: #FFFFFF;
+            border-color: var(--coral-primary);
+            box-shadow: 0 0 0 4px var(--coral-light);
+        }
+
+        .dash-filter-chips {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .dash-chip {
+            background: #F1F5F9;
+            border: none;
+            padding: 8px 18px;
+            border-radius: var(--radius-pill);
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .dash-chip:hover, .dash-chip.active {
+            background: var(--coral-primary);
+            color: #FFFFFF;
+            box-shadow: var(--shadow-button);
+        }
+
+        .dash-content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+        }
+
+        /* Restaurant & Dish Cards in Desktop */
+        .restaurant-list-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .desk-rest-card {
+            background: #F8FAFD;
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 22px;
+            transition: all .2s ease;
+        }
+        .desk-rest-card:hover {
+            background: #FFFFFF;
+            border-color: #CBD5E1;
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+        }
+        .desk-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 14px;
+        }
+        .desk-rest-name {
+            font-size: 19px;
+            font-weight: 800;
+            color: var(--text-title);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .desk-price-badge {
+            background: var(--coral-light);
+            color: var(--coral-primary);
+            font-size: 14px;
+            font-weight: 800;
+            padding: 6px 14px;
+            border-radius: var(--radius-pill);
+        }
+        .desk-dish-row {
+            background: #FFFFFF;
+            border: 1px solid #EDF2F7;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-top: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .desk-dish-row:hover {
+            border-color: var(--coral-primary);
+            background: #FFF9F8;
+        }
+
+        /* Toast Notifications */
+        .toast-banner {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--text-title);
+            color: #FFFFFF;
+            padding: 12px 24px;
+            border-radius: var(--radius-pill);
+            font-size: 13.5px;
+            font-weight: 700;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            opacity: 0;
+            transition: all .25s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 10001;
+            pointer-events: none;
+        }
+        .toast-banner.visible {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* Interactive Detail Modal */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(6px);
+            z-index: 10002;
+            display: none;
+            place-items: center;
+            padding: 20px;
+        }
+        .modal-backdrop.active {
+            display: grid;
+        }
+        .modal-card {
+            background: #FFFFFF;
+            width: 100%;
+            max-width: 440px;
+            border-radius: 28px;
+            padding: 28px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.2);
+            position: relative;
+            animation: modalPop .25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes modalPop {
+            from { transform: scale(0.92); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .modal-close-btn {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid #E2E8F0;
+            background: #F8FAFC;
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 920px) {
+            .phones-container {
+                flex-direction: column;
+                align-items: center;
+                gap: 40px;
+            }
+            .bg-right-backdrop {
+                display: none;
+            }
+            .dash-content-grid {
+                grid-template-columns: 1fr;
+            }
+            .desktop-dashboard {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Ambient Geometric Elements from Screenshot Design -->
+    <div class="ambient-shape shape-ring-coral"></div>
+    <div class="ambient-shape shape-dot-amber"></div>
+    <div class="ambient-shape shape-dot-emerald"></div>
+    <div class="ambient-shape shape-pill-white"></div>
+    <div class="bg-right-backdrop"></div>
+
+    <!-- Style Switcher Floating Bar -->
+    <div class="style-hub-floater">
+        <a href="index.html" class="hub-btn">← Galleri</a>
+        <button class="hub-btn" onclick="toggleFavoriteCurrent()">❤️ <span id="favCountBadge">3 sparade</span></button>
+    </div>
+
+    <div class="workspace-wrapper">
+
+        <!-- Intro Header -->
+        <header class="header-bar">
+            <div class="badge-style-pill">✨ Style 11 • Soft Pastel Neumorphism</div>
+            <h1 class="page-title">Lunch2 • Soft Pastel Edition</h1>
+            <p class="page-subtitle">
+                Ett mjukt, färgstarkt och taktilt UI inspirerat av modern pastelldesign, mjuka kortskuggor, donut-statistik och avskalade matsedlar.
+            </p>
+        </header>
+
+        <!-- View Switcher -->
+        <div class="mode-toggle-pill">
+            <button class="mode-btn active" id="btnModeMobile" onclick="switchViewMode('mobile')">📱 Dubbel Mobilvy (Mockup)</button>
+            <button class="mode-btn" id="btnModeDesktop" onclick="switchViewMode('desktop')">💻 Expanderad Desktopvy</button>
+        </div>
+
+        <!-- ============================================================
+             MOBILE DUAL PHONE SHOWCASE (Exact Match to User's Uploaded Style)
+             ============================================================ -->
+        <div class="phones-container" id="phoneShowcaseArea">
+
+            <!-- LEFT PHONE: Category Explorer & Featured Lunch Card -->
+            <div class="phone-frame">
+                <div class="phone-notch">
+                    <div class="phone-speaker"></div>
+                    <div class="phone-camera"></div>
+                </div>
+
+                <div class="phone-screen">
+                    <!-- Status Bar -->
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <div class="status-icons">
+                            <span>📶</span>
+                            <span>📡</span>
+                            <span>🔋</span>
+                        </div>
+                    </div>
+
+                    <!-- Navigation -->
+                    <div class="phone-nav-row">
+                        <button class="nav-circle-btn" onclick="showToast('Navigerar tillbaka...')">←</button>
+                        <button class="nav-circle-btn" onclick="showToast('Alternativ & filter')">•••</button>
+                    </div>
+
+                    <!-- Title Header -->
+                    <div class="app-header-block">
+                        <h2 class="app-main-title">Dagens Lunch</h2>
+                        <div class="app-sub-title">Göteborg & Lindholmen (14 öppna)</div>
+                    </div>
+
+                    <!-- Date Pill Card -->
+                    <div class="date-summary-card">
+                        <div class="date-icon-box">📅</div>
+                        <div>
+                            <div class="date-title">19 Sep, 2026</div>
+                            <div class="date-sub">18% fler rätter än förra veckan</div>
+                        </div>
+                    </div>
+
+                    <!-- Categories Section -->
+                    <div class="section-header-row">
+                        <span class="section-label-badge">Kategorier <span class="section-label-count">• 7 totalt</span></span>
+                        <div class="toggle-icon-group">
+                            <button class="view-icon-btn" title="Statistikvy" onclick="switchViewMode('stats')">📊</button>
+                            <button class="view-icon-btn active" title="Kortvy">📑</button>
+                        </div>
+                    </div>
+
+                    <!-- 2x2 Category Grid -->
+                    <div class="categories-grid">
+                        <div class="category-pill-card active" onclick="filterByCat('Husman')">
+                            <div class="cat-icon-badge cat-icon-education">🎓</div>
+                            <span class="cat-name">Husman</span>
+                        </div>
+                        <div class="category-pill-card" onclick="filterByCat('Sallad & Hälsa')">
+                            <div class="cat-icon-badge cat-icon-nutrition">🥣</div>
+                            <span class="cat-name">Hälsa & Grönt</span>
+                        </div>
+                        <div class="category-pill-card" onclick="filterByCat('Barn & Street')">
+                            <div class="cat-icon-badge cat-icon-child">👶</div>
+                            <span class="cat-name">Streetfood</span>
+                        </div>
+                        <div class="category-pill-card" onclick="filterByCat('Gourmet')">
+                            <div class="cat-icon-badge cat-icon-beauty">🪷</div>
+                            <span class="cat-name">Gourmet & Grill</span>
+                        </div>
+                    </div>
+
+                    <button class="cat-more-btn" onclick="showToast('Visar alla 7 underkategorier')">
+                        FLER KATEGORIER ∨
+                    </button>
+
+                    <!-- Section: Incoming Expenses / Featured Lunch -->
+                    <div class="section-header-row" style="margin-top: 4px;">
+                        <span class="section-label-badge">Utvalda Dagens Rätter <span class="section-label-count">• 12 rätter</span></span>
+                    </div>
+
+                    <!-- Big Featured Meal Card (Exact match to Dermal Softening card in image) -->
+                    <div class="featured-hero-card" id="featuredMealCard">
+                        <div class="card-tag-pill">
+                            <span>🪷</span> GOURMET & GRILL • KOOPERATIVET
+                        </div>
+                        <h3 class="card-meal-title" id="featuredMealTitle">Helstekt Ryggbiff & Tryffelsmör</h3>
+                        <p class="card-meal-desc" id="featuredMealDesc">
+                            Serveras med krispig rostad potatis, rödvinssky, sauterade primörer och färska örter. Inkluderar stor salladsbuffé, nybakat surdegsbröd och kaffe.
+                        </p>
+                        <div class="card-location-row">
+                            <div class="card-location-label">Plats & Adress</div>
+                            <div class="card-location-text">
+                                <span>📍</span> Anders Carlssons gata 2, Lindholmen
+                            </div>
+                        </div>
+                        <button class="btn-coral-cta" onclick="openOrderModal('Kooperativet', 'Helstekt Ryggbiff & Tryffelsmör', '135 SEK')">
+                            BESTÄLL / BOKA 135.00 SEK
+                        </button>
+                    </div>
+
+                    <div class="phone-home-indicator"></div>
+                </div>
+            </div>
+
+            <!-- RIGHT PHONE: Donut Chart Analytics & Breakdown View (Exact match to image right side) -->
+            <div class="phone-frame">
+                <div class="phone-notch">
+                    <div class="phone-speaker"></div>
+                    <div class="phone-camera"></div>
+                </div>
+
+                <div class="phone-screen">
+                    <!-- Status Bar -->
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <div class="status-icons">
+                            <span>📶</span>
+                            <span>📡</span>
+                            <span>🔋</span>
+                        </div>
+                    </div>
+
+                    <!-- Navigation -->
+                    <div class="phone-nav-row">
+                        <button class="nav-circle-btn" onclick="showToast('Tillbaka')">←</button>
+                        <button class="nav-circle-btn" onclick="showToast('Analysinställningar')">•••</button>
+                    </div>
+
+                    <!-- Title Header -->
+                    <div class="app-header-block">
+                        <h2 class="app-main-title">Lunchstatistik</h2>
+                        <div class="app-sub-title">Prisfördelning & Rätter (Göteborg)</div>
+                    </div>
+
+                    <!-- Date Pill Card -->
+                    <div class="date-summary-card">
+                        <div class="date-icon-box">📅</div>
+                        <div>
+                            <div class="date-title">19 Sep, 2026</div>
+                            <div class="date-sub">Genomsnittspris: 132 SEK per lunch</div>
+                        </div>
+                    </div>
+
+                    <!-- Section Header -->
+                    <div class="section-header-row">
+                        <span class="section-label-badge">Kategorier <span class="section-label-count">• 7 totalt</span></span>
+                        <div class="toggle-icon-group">
+                            <button class="view-icon-btn active" title="Statistik">📊</button>
+                            <button class="view-icon-btn" title="Kortvy">📑</button>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Donut Chart -->
+                    <div class="chart-visual-wrapper">
+                        <svg class="donut-chart-svg" viewBox="0 0 200 200">
+                            <!-- Slices with DashArray math for percentages: circumference = 2 * PI * 65 ≈ 408.4 -->
+                            <!-- Slice 1: Sky Blue 53% -> 216.4px -->
+                            <circle class="donut-slice slice-sky" cx="100" cy="100" r="65" stroke-dasharray="216.4 408.4" stroke-dashoffset="0" onclick="highlightCategory('education', 'Klassisk Husman (53%)')"></circle>
+                            <!-- Slice 2: Coral 18% -> 73.5px -->
+                            <circle class="donut-slice slice-coral" cx="100" cy="100" r="65" stroke-dasharray="73.5 408.4" stroke-dashoffset="-216.4" onclick="highlightCategory('beauty', 'Gourmet & Kött (18%)')"></circle>
+                            <!-- Slice 3: Amber 17% -> 69.4px -->
+                            <circle class="donut-slice slice-amber" cx="100" cy="100" r="65" stroke-dasharray="69.4 408.4" stroke-dashoffset="-289.9" onclick="highlightCategory('child', 'Streetfood & Asiatiskt (17%)')"></circle>
+                            <!-- Slice 4: Emerald 12% -> 49.0px -->
+                            <circle class="donut-slice slice-emerald" cx="100" cy="100" r="65" stroke-dasharray="49.0 408.4" stroke-dashoffset="-359.3" onclick="highlightCategory('nutrition', 'Hälsa & Grönt (12%)')"></circle>
+                        </svg>
+
+                        <!-- Center Count Cutout -->
+                        <div class="donut-center-badge">
+                            <span class="donut-center-num" id="donutTotalCount">14</span>
+                            <span class="donut-center-label">Restauranger</span>
+                        </div>
+
+                        <!-- Floating Percentage Tags in SVG Overlay -->
+                        <div class="chart-labels-layer">
+                            <span class="chart-pct-badge pct-sky">53%</span>
+                            <span class="chart-pct-badge pct-coral">18%</span>
+                            <span class="chart-pct-badge pct-emerald">12%</span>
+                            <span class="chart-pct-badge pct-amber">17%</span>
+                        </div>
+                    </div>
+
+                    <!-- Breakdown Legend List (Exact match with Highlighted Amber/Orange Bar) -->
+                    <div class="breakdown-list">
+                        <div class="breakdown-row" id="row-education" onclick="selectBreakdownRow('education')">
+                            <div class="stat-left">
+                                <div class="stat-color-sq" style="background: var(--sky-blue);"></div>
+                                <span>Klassisk Husman</span>
+                            </div>
+                            <span class="stat-sub-text">135.00 SEK • 53%</span>
+                        </div>
+
+                        <div class="breakdown-row highlighted" id="row-beauty" onclick="selectBreakdownRow('beauty')">
+                            <div class="stat-left">
+                                <div class="stat-color-sq" style="background: #FFFFFF;"></div>
+                                <span>Gourmet & Kött</span>
+                            </div>
+                            <span class="stat-sub-text">145.00 SEK • 18%</span>
+                        </div>
+
+                        <div class="breakdown-row" id="row-child" onclick="selectBreakdownRow('child')">
+                            <div class="stat-left">
+                                <div class="stat-color-sq" style="background: var(--coral-primary);"></div>
+                                <span>Streetfood & Asiatiskt</span>
+                            </div>
+                            <span class="stat-sub-text">125.00 SEK • 17%</span>
+                        </div>
+
+                        <div class="breakdown-row" id="row-nutrition" onclick="selectBreakdownRow('nutrition')">
+                            <div class="stat-left">
+                                <div class="stat-color-sq" style="background: var(--emerald-fresh);"></div>
+                                <span>Hälsa & Grönt</span>
+                            </div>
+                            <span class="stat-sub-text">119.00 SEK • 12%</span>
+                        </div>
+                    </div>
+
+                    <div class="phone-home-indicator" style="margin-top: 14px;"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ============================================================
+             DESKTOP EXPANDED DASHBOARD VIEW
+             ============================================================ -->
+        <div class="desktop-dashboard" id="desktopDashboardArea">
+            <div class="dash-top-bar">
+                <div>
+                    <h2 style="font-size: 24px; font-weight: 800; color: var(--text-title);">Lunchöversikt • Göteborg</h2>
+                    <p style="font-size: 14px; color: var(--text-muted); margin-top: 2px;">Dagens luncher samlade på ett ställe med full meny och näringsinnehåll.</p>
+                </div>
+                <div style="display: flex; gap: 14px; align-items: center;">
+                    <input type="text" class="dash-search-input" id="desktopSearchInput" placeholder="🔍 Sök restaurang eller maträtt..." oninput="onFilterChange()">
+                </div>
+            </div>
+
+            <div class="dash-filter-chips">
+                <button class="dash-chip active" onclick="setDesktopCategory('all', this)">Alla (14)</button>
+                <button class="dash-chip" onclick="setDesktopCategory('Husman', this)">🎓 Husman</button>
+                <button class="dash-chip" onclick="setDesktopCategory('Gourmet', this)">🥩 Kött & Grill</button>
+                <button class="dash-chip" onclick="setDesktopCategory('Fisk', this)">🐟 Fisk & Skaldjur</button>
+                <button class="dash-chip" onclick="setDesktopCategory('Veg', this)">🌱 Grönt & Hälsa</button>
+                <button class="dash-chip" onclick="setDesktopCategory('Street', this)">🍜 Asiatiskt / Street</button>
+            </div>
+
+            <div class="dash-content-grid">
+                <!-- Restaurant cards stack -->
+                <div class="restaurant-list-stack" id="desktopRestaurantList">
+                    <!-- Populated by JS -->
+                </div>
+
+                <!-- Right Quick Stats Sidebar in Desktop -->
+                <div style="display: flex; flex-direction: column; gap: 20px;">
+                    <div style="background: #F8FAFD; border: 1px solid var(--card-border); border-radius: 20px; padding: 22px;">
+                        <h3 style="font-size: 16px; font-weight: 800; color: var(--text-title); margin-bottom: 14px;">📊 Dagens Fördelning</h3>
+                        <div class="breakdown-list">
+                            <div class="breakdown-row" style="background: #FFFFFF;">
+                                <div class="stat-left"><div class="stat-color-sq" style="background: var(--sky-blue);"></div>Husman</div>
+                                <span class="stat-sub-text">53%</span>
+                            </div>
+                            <div class="breakdown-row" style="background: #FFFFFF;">
+                                <div class="stat-left"><div class="stat-color-sq" style="background: var(--amber-warm);"></div>Kött & Grill</div>
+                                <span class="stat-sub-text">18%</span>
+                            </div>
+                            <div class="breakdown-row" style="background: #FFFFFF;">
+                                <div class="stat-left"><div class="stat-color-sq" style="background: var(--coral-primary);"></div>Streetfood</div>
+                                <span class="stat-sub-text">17%</span>
+                            </div>
+                            <div class="breakdown-row" style="background: #FFFFFF;">
+                                <div class="stat-left"><div class="stat-color-sq" style="background: var(--emerald-fresh);"></div>Veg & Grönt</div>
+                                <span class="stat-sub-text">12%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="background: var(--coral-light); border-radius: 20px; padding: 22px; border: 1px solid rgba(255,114,94,0.2);">
+                        <span style="font-size: 11px; font-weight: 800; color: var(--coral-primary); text-transform: uppercase;">🌟 Dagens Rekommendation</span>
+                        <h4 style="font-size: 16px; font-weight: 800; color: var(--text-title); margin: 6px 0;">Kooperativet Lindholmen</h4>
+                        <p style="font-size: 13px; color: var(--text-body); line-height: 1.5; margin-bottom: 12px;">Högst betyg idag (4.8/5) för deras långkokta högrevsgryta och salladsbord.</p>
+                        <button class="btn-coral-cta" style="padding: 10px;" onclick="openOrderModal('Kooperativet', 'Dagens Lunchbuffé', '135 SEK')">Boka Bord Nu</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Interactive Detail / Order Modal -->
+    <div class="modal-backdrop" id="orderModal" onclick="if(event.target===this) closeModal()">
+        <div class="modal-card">
+            <button class="modal-close-btn" onclick="closeModal()">✕</button>
+            <div class="card-tag-pill" style="margin-bottom: 8px;">
+                <span>✨</span> SNABBOKNING / MATSEDEL
+            </div>
+            <h3 style="font-size: 20px; font-weight: 800; color: var(--text-title); margin-bottom: 6px;" id="modalRestName">Kooperativet</h3>
+            <div style="font-size: 14.5px; font-weight: 700; color: var(--coral-primary); margin-bottom: 14px;" id="modalMealName">Helstekt Ryggbiff & Tryffelsmör</div>
+            <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 18px;" id="modalMealDesc">
+                Serveras nylagad med tillbehör, salladsbuffé, hembakat bröd, kaffe och kaka.
+            </p>
+            <div style="background: #F8FAFD; border-radius: 14px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <span style="font-size: 13px; font-weight: 700; color: var(--text-title);">Pris inkl. kaffe & buffé</span>
+                <span style="font-size: 16px; font-weight: 800; color: var(--coral-primary);" id="modalMealPrice">135 SEK</span>
+            </div>
+            <button class="btn-coral-cta" onclick="confirmModalAction()">Bekräfta Lunchval ✅</button>
+        </div>
+    </div>
+
+    <!-- Toast Notification Banner -->
+    <div class="toast-banner" id="toastBanner">
+        <span id="toastIcon">✨</span>
+        <span id="toastMsg">Välkommen till Lunch2 Soft Pastel!</span>
+    </div>
+
+    <script>
+        // Gothenburg lunch mock data
+        const restaurantsData = [
+            {
+                id: 'kooperativet',
+                name: 'Kooperativet',
+                area: 'Lindholmen',
+                address: 'Anders Carlssons gata 2',
+                distance: '250 m',
+                rating: 4.8,
+                price: '135 SEK',
+                category: 'Gourmet',
+                today: [
+                    { title: 'Helstekt Ryggbiff & Tryffelsmör', desc: 'Rostad potatis, rödvinssky, sauterade primörer', tag: 'Kött' },
+                    { title: 'Ugnsbakad Laxfilé med Sandefjordsås', desc: 'Dillslungad potatis, fänkålssallad', tag: 'Fisk' },
+                    { title: 'Rostad Blomkålsbiff med Linser', desc: 'Örtaioli, krispig grönkål & picklad lök', tag: 'Veg' }
+                ]
+            },
+            {
+                id: 'porten',
+                name: 'Restaurang Porten',
+                area: 'Lindholmen Science Park',
+                address: 'Lindholmspiren 5',
+                distance: '400 m',
+                rating: 4.6,
+                price: '129 SEK',
+                category: 'Husman',
+                today: [
+                    { title: 'Klassiska Köttbullar med Gräddsås', desc: 'Potatismos, rårörda lingon, pressgurka', tag: 'Husman' },
+                    { title: 'Frasig Koljafilé & Remouladsås', desc: 'Kokt potatis och citronklyfta', tag: 'Fisk' }
+                ]
+            },
+            {
+                id: 'cuckoo',
+                name: 'Cuckoo\'s Nest',
+                area: 'Radisson Blu Riverside',
+                address: 'Lindholmsallén 101',
+                distance: '550 m',
+                rating: 4.9,
+                price: '155 SEK',
+                category: 'Gourmet',
+                today: [
+                    { title: 'Grillad Majskyckling & Polenta', desc: 'Salviasky, grillade kronärtskockor', tag: 'Gourmet' },
+                    { title: 'Krämig Risotto med Svamp & Tryffel', desc: 'Parmigiano Reggiano, pinjenötter', tag: 'Veg' }
+                ]
+            },
+            {
+                id: 'l sustain',
+                name: 'L\'s Resto',
+                area: 'Lindholmen',
+                address: 'Götaverksgatan 10',
+                distance: '300 m',
+                rating: 4.5,
+                price: '125 SEK',
+                category: 'Street',
+                today: [
+                    { title: 'Vietnamesisk Pho Bo Nudlar', desc: 'Biff, färsk koriander, lime & chili', tag: 'Street' },
+                    { title: 'Tofu & Grönsakswok med Cashewnötter', desc: 'Jasminris och söt sojasås', tag: 'Veg' }
+                ]
+            }
+        ];
+
+        let currentDesktopCat = 'all';
+        let savedFavorites = ['kooperativet', 'cuckoo'];
+
+        function switchViewMode(mode) {
+            const mobileBtn = document.getElementById('btnModeMobile');
+            const desktopBtn = document.getElementById('btnModeDesktop');
+            const phonesArea = document.getElementById('phoneShowcaseArea');
+            const deskArea = document.getElementById('desktopDashboardArea');
+
+            if (mode === 'desktop') {
+                mobileBtn.classList.remove('active');
+                desktopBtn.classList.add('active');
+                phonesArea.style.display = 'none';
+                deskArea.style.display = 'flex';
+                renderDesktopList();
+                showToast('Bytte till desktopvy 💻');
+            } else {
+                desktopBtn.classList.remove('active');
+                mobileBtn.classList.add('active');
+                phonesArea.style.display = 'flex';
+                deskArea.style.display = 'none';
+                showToast('Bytte till mobil mockupvy 📱');
+            }
+        }
+
+        function filterByCat(catName) {
+            showToast(`Visar rätter för: ${catName}`);
+            const titleEl = document.getElementById('featuredMealTitle');
+            const descEl = document.getElementById('featuredMealDesc');
+
+            if (catName === 'Husman') {
+                titleEl.textContent = 'Klassiska Köttbullar & Rårörda Lingon';
+                descEl.textContent = 'Hemlagat potatismos, gräddsås, pressgurka och färska örter. Restaurang Porten.';
+            } else if (catName === 'Sallad & Hälsa') {
+                titleEl.textContent = 'Superfood Bowl & Avokado';
+                descEl.textContent = 'Quinoa, edamamebönor, granatäpple, tahinidressing och rostade frön.';
+            } else if (catName === 'Barn & Street') {
+                titleEl.textContent = 'Smashburger & Sötpotatispommes';
+                descEl.textContent = 'Cheddarost, karamelliserad lök, tryffelmajonnäs och saltgurka.';
+            } else {
+                titleEl.textContent = 'Helstekt Ryggbiff & Tryffelsmör';
+                descEl.textContent = 'Rostad potatis, rödvinssky, sauterade primörer och färska örter.';
+            }
+
+            document.querySelectorAll('.category-pill-card').forEach(c => {
+                c.classList.toggle('active', c.textContent.includes(catName));
+            });
+        }
+
+        function highlightCategory(key, label) {
+            showToast(`Vald kategori: ${label}`);
+            selectBreakdownRow(key);
+        }
+
+        function selectBreakdownRow(key) {
+            document.querySelectorAll('.breakdown-row').forEach(row => {
+                row.classList.remove('highlighted');
+                const sq = row.querySelector('.stat-color-sq');
+                if (sq) {
+                    if (row.id === 'row-education') sq.style.background = 'var(--sky-blue)';
+                    if (row.id === 'row-beauty') sq.style.background = 'var(--amber-warm)';
+                    if (row.id === 'row-child') sq.style.background = 'var(--coral-primary)';
+                    if (row.id === 'row-nutrition') sq.style.background = 'var(--emerald-fresh)';
+                }
+            });
+
+            const activeRow = document.getElementById(`row-${key}`);
+            if (activeRow) {
+                activeRow.classList.add('highlighted');
+                const sq = activeRow.querySelector('.stat-color-sq');
+                if (sq) sq.style.background = '#FFFFFF';
+            }
+        }
+
+        function renderDesktopList() {
+            const listEl = document.getElementById('desktopRestaurantList');
+            const searchVal = (document.getElementById('desktopSearchInput')?.value || '').toLowerCase();
+
+            const filtered = restaurantsData.filter(r => {
+                const matchesCat = currentDesktopCat === 'all' || r.category === currentDesktopCat || (currentDesktopCat === 'Fisk' && r.today.some(d => d.tag === 'Fisk')) || (currentDesktopCat === 'Veg' && r.today.some(d => d.tag === 'Veg'));
+                const matchesSearch = r.name.toLowerCase().includes(searchVal) || r.today.some(d => d.title.toLowerCase().includes(searchVal));
+                return matchesCat && matchesSearch;
+            });
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-muted);">Inga rätter matchade din sökning.</div>';
+                return;
+            }
+
+            listEl.innerHTML = filtered.map(r => `
+                <div class="desk-rest-card">
+                    <div class="desk-card-header">
+                        <div>
+                            <div class="desk-rest-name">
+                                ${r.name}
+                                <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">• ⭐ ${r.rating}</span>
+                            </div>
+                            <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">📍 ${r.address} (${r.distance})</div>
+                        </div>
+                        <span class="desk-price-badge">${r.price}</span>
+                    </div>
+                    <div>
+                        ${r.today.map(d => `
+                            <div class="desk-dish-row" onclick="openOrderModal('${r.name}', '${d.title}', '${r.price}')">
+                                <div>
+                                    <div style="font-size: 14px; font-weight: 700; color: var(--text-title);">${d.title}</div>
+                                    <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 2px;">${d.desc}</div>
+                                </div>
+                                <span style="font-size: 11.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: #EDF2F7; color: var(--text-body);">${d.tag}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function setDesktopCategory(cat, btn) {
+            currentDesktopCat = cat;
+            document.querySelectorAll('.dash-chip').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderDesktopList();
+        }
+
+        function onFilterChange() {
+            renderDesktopList();
+        }
+
+        function openOrderModal(rName, dishTitle, price) {
+            document.getElementById('modalRestName').textContent = rName;
+            document.getElementById('modalMealName').textContent = dishTitle;
+            document.getElementById('modalMealPrice').textContent = price;
+            document.getElementById('orderModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('orderModal').classList.remove('active');
+        }
+
+        function confirmModalAction() {
+            closeModal();
+            showToast('Lunch sparad & bordsnotis aktiverad! 🎉');
+        }
+
+        function toggleFavoriteCurrent() {
+            showToast('Sparat till dina favoriter ❤️');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toastBanner');
+            const msgEl = document.getElementById('toastMsg');
+            msgEl.textContent = msg;
+            toast.classList.add('visible');
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => {
+                toast.classList.remove('visible');
+            }, 2400);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderDesktopList();
+        });
+    </script>
+</body>
+</html>

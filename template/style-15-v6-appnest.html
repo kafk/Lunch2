@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lunch2 • Appnest.se Edition ✦ Playful & Interactive Lunch</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Appnest.se Inspired Palette */
+            --purple: #7C3AED;
+            --purple-dark: #5B21B6;
+            --purple-light: #A78BFA;
+            --pink: #EC4899;
+            --pink-dark: #BE185D;
+            --pink-light: #F472B6;
+            --orange: #F97316;
+            --orange-dark: #C2410C;
+            --orange-light: #FB923C;
+            --yellow: #FACC15;
+            --green: #22C55E;
+            --green-light: #86EFAC;
+            --blue: #3B82F6;
+            --cyan: #06B6D4;
+            --cream: #FFFBEB;
+            --cream-dark: #FEF3C7;
+            --white: #FFFFFF;
+            --dark: #1E1B4B;
+            --gray: #64748B;
+            --gray-light: #F1F5F9;
+            --border-card: rgba(124, 58, 237, 0.12);
+            
+            --radius-bubbly: 28px;
+            --radius-inner: 18px;
+            --radius-pill: 999px;
+            
+            --shadow-3d-purple: 0 6px 0 var(--purple-dark);
+            --shadow-3d-pink: 0 6px 0 var(--pink-dark);
+            --shadow-3d-orange: 0 6px 0 var(--orange-dark);
+            --shadow-3d-dark: 0 6px 0 var(--dark);
+            --shadow-card: 0 10px 25px rgba(124, 58, 237, 0.08);
+            --shadow-card-hover: 0 16px 35px rgba(124, 58, 237, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--cream);
+            color: var(--dark);
+            font-family: 'Nunito', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Floating background shapes from Appnest.se */
+        .shapes-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            animation: floatShape 8s ease-in-out infinite;
+        }
+        .shape-1 {
+            width: 320px;
+            height: 320px;
+            background: var(--yellow);
+            top: 5%;
+            left: -120px;
+            opacity: 0.25;
+        }
+        .shape-2 {
+            width: 240px;
+            height: 240px;
+            background: var(--pink-light);
+            top: 50%;
+            right: -80px;
+            opacity: 0.25;
+            animation-delay: -3s;
+        }
+        .shape-3 {
+            width: 180px;
+            height: 180px;
+            background: var(--cyan);
+            bottom: 10%;
+            left: 15%;
+            opacity: 0.2;
+            animation-delay: -5s;
+        }
+        @keyframes floatShape {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(25px, -25px) rotate(8deg); }
+        }
+
+        .font-fredoka { font-family: 'Fredoka', sans-serif; }
+
+        /* Top Navigation Bar */
+        .appnest-top-nav {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(14px);
+            padding: 10px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(124, 58, 237, 0.1);
+        }
+        .nav-brand-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: var(--dark);
+        }
+        .brand-logo-sparkle {
+            background: linear-gradient(135deg, var(--purple), var(--pink));
+            color: #FFF;
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            display: grid;
+            place-items: center;
+            font-size: 16px;
+            box-shadow: 0 3px 0 var(--purple-dark);
+        }
+        .v-pills-scroll {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            overflow-x: auto;
+            padding: 2px;
+        }
+        .appnest-v-pill {
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: var(--radius-pill);
+            font-size: 12px;
+            font-weight: 800;
+            font-family: 'Fredoka', sans-serif;
+            color: var(--dark);
+            background: var(--cream);
+            border: 2px solid transparent;
+            transition: all .2s;
+            white-space: nowrap;
+        }
+        .appnest-v-pill:hover {
+            transform: scale(1.05);
+            background: var(--purple-light);
+            color: #FFF;
+        }
+        .appnest-v-pill.active {
+            background: var(--purple);
+            color: #FFF;
+            box-shadow: 0 4px 0 var(--purple-dark);
+        }
+
+        /* Hero Header */
+        .hero-appnest {
+            position: relative;
+            z-index: 1;
+            padding: 48px 24px 32px;
+            text-align: center;
+            max-width: 880px;
+            margin: 0 auto;
+        }
+        .hero-badge-fun {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--white);
+            color: var(--purple);
+            border: 2px solid var(--purple-light);
+            padding: 6px 18px;
+            border-radius: var(--radius-pill);
+            font-size: 13px;
+            font-weight: 800;
+            font-family: 'Fredoka', sans-serif;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.12);
+            animation: bounceBadge 2.5s infinite ease-in-out;
+        }
+        @keyframes bounceBadge {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+        .hero-main-title {
+            font-family: 'Fredoka', sans-serif;
+            font-size: clamp(2.4rem, 6vw, 4.2rem);
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 12px;
+            color: var(--dark);
+        }
+        .hero-main-title .c-purple { color: var(--purple); }
+        .hero-main-title .c-pink { color: var(--pink); }
+        .hero-main-title .c-orange { color: var(--orange); }
+
+        .hero-subtitle {
+            font-size: 16px;
+            color: var(--gray);
+            line-height: 1.6;
+            max-width: 620px;
+            margin: 0 auto 28px;
+            font-weight: 600;
+        }
+
+        /* Appnest Style 3D Action Strip & Metrics */
+        .appnest-kpi-deck {
+            position: relative;
+            z-index: 1;
+            max-width: 1260px;
+            margin: 0 auto 36px;
+            padding: 0 24px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+        .kpi-bubble-card {
+            background: var(--white);
+            border-radius: 24px;
+            padding: 20px;
+            border: 3px solid var(--purple-light);
+            box-shadow: 0 8px 0 rgba(124, 58, 237, 0.15);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 10px;
+            transition: all .25s ease;
+        }
+        .kpi-bubble-card:hover {
+            transform: translateY(-5px) rotate(-1deg);
+            box-shadow: 0 14px 0 rgba(124, 58, 237, 0.15);
+        }
+        .kpi-icon-round {
+            width: 44px;
+            height: 44px;
+            border-radius: 16px;
+            display: grid;
+            place-items: center;
+            font-size: 22px;
+        }
+        .kpi-b-val {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        /* Controls: Search, View Switcher & Appnest Filter Pills */
+        .appnest-controls {
+            position: relative;
+            z-index: 1;
+            max-width: 1260px;
+            margin: 0 auto 28px;
+            padding: 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .search-bubble {
+            background: var(--white);
+            border: 3px solid var(--purple-light);
+            border-radius: var(--radius-pill);
+            padding: 10px 22px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 310px;
+            box-shadow: 0 4px 0 rgba(124, 58, 237, 0.1);
+            transition: all .2s;
+        }
+        .search-bubble:focus-within {
+            border-color: var(--purple);
+            box-shadow: 0 6px 0 var(--purple-dark);
+            transform: translateY(-2px);
+        }
+        .search-bubble input {
+            border: none;
+            outline: none;
+            background: transparent;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--dark);
+            width: 100%;
+        }
+
+        .filter-appnest-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .btn-appnest-filter {
+            background: var(--white);
+            border: 3px solid var(--dark);
+            color: var(--dark);
+            font-family: 'Fredoka', sans-serif;
+            font-size: 13.5px;
+            font-weight: 600;
+            padding: 8px 18px;
+            border-radius: var(--radius-pill);
+            cursor: pointer;
+            box-shadow: 0 4px 0 var(--dark);
+            transition: all .15s ease;
+        }
+        .btn-appnest-filter:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 var(--dark);
+            background: var(--cream);
+        }
+        .btn-appnest-filter.active {
+            background: var(--purple);
+            color: var(--white);
+            border-color: var(--purple-dark);
+            box-shadow: 0 4px 0 var(--purple-dark);
+        }
+
+        .view-pill-appnest {
+            background: var(--white);
+            border: 3px solid var(--dark);
+            border-radius: var(--radius-pill);
+            padding: 3px;
+            display: inline-flex;
+            gap: 4px;
+            box-shadow: 0 4px 0 var(--dark);
+        }
+        .vp-an-btn {
+            border: none;
+            background: transparent;
+            padding: 6px 16px;
+            border-radius: var(--radius-pill);
+            font-family: 'Fredoka', sans-serif;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--gray);
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .vp-an-btn.active {
+            background: var(--orange);
+            color: var(--white);
+            box-shadow: 0 2px 0 var(--orange-dark);
+        }
+
+        /* Restaurant Cards Grid */
+        .appnest-cards-grid {
+            position: relative;
+            z-index: 1;
+            max-width: 1260px;
+            margin: 0 auto 60px;
+            padding: 0 24px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 26px;
+        }
+
+        /* Signature Appnest Restaurant Card */
+        .appnest-card {
+            background: var(--white);
+            border: 4px solid var(--purple);
+            border-radius: var(--radius-bubbly);
+            padding: 24px;
+            box-shadow: 0 10px 0 rgba(124, 58, 237, 0.15);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 20px;
+            transition: all .3s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+        }
+        .appnest-card:hover {
+            transform: translateY(-6px) rotate(-0.5deg);
+            box-shadow: 0 18px 0 rgba(124, 58, 237, 0.2);
+            border-color: var(--pink);
+        }
+
+        .an-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .an-rest-name {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .an-price-badge {
+            background: var(--yellow);
+            color: var(--dark);
+            font-family: 'Fredoka', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: var(--radius-pill);
+            border: 2px solid var(--dark);
+            box-shadow: 0 3px 0 var(--dark);
+        }
+
+        .an-status-strip {
+            background: var(--cream);
+            border: 2px dashed var(--purple-light);
+            border-radius: 14px;
+            padding: 10px 14px;
+            font-size: 12.5px;
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Dishes List (Appnest Option Item Style) */
+        .an-dishes-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .an-dish-item {
+            background: var(--white);
+            border: 2px solid var(--border-card);
+            border-radius: var(--radius-inner);
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all .2s;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.03);
+        }
+        .an-dish-item:hover {
+            border-color: var(--purple);
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.05), rgba(236, 72, 153, 0.05));
+            box-shadow: 0 6px 16px rgba(124, 58, 237, 0.12);
+        }
+        .an-dish-title {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 14.5px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        .an-dish-desc {
+            font-size: 11.5px;
+            color: var(--gray);
+            font-weight: 600;
+            margin-top: 2px;
+        }
+        .an-tag-pill {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 10.5px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: var(--radius-pill);
+            background: var(--purple-light);
+            color: #FFF;
+        }
+
+        .an-card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 16px;
+            border-top: 2px dashed var(--border-card);
+        }
+        .btn-an-order {
+            background: var(--purple);
+            color: var(--white);
+            border: none;
+            padding: 10px 22px;
+            border-radius: var(--radius-pill);
+            font-family: 'Fredoka', sans-serif;
+            font-size: 13.5px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: var(--shadow-3d-purple);
+            transition: all .15s;
+        }
+        .btn-an-order:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 9px 0 var(--purple-dark);
+            background: var(--purple-light);
+        }
+
+        /* Modal Dialog */
+        .modal-an-layer {
+            position: fixed;
+            inset: 0;
+            background: rgba(30, 27, 75, 0.6);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            display: none;
+            place-items: center;
+            padding: 20px;
+        }
+        .modal-an-layer.active { display: grid; }
+        .modal-an-box {
+            background: var(--white);
+            border: 4px solid var(--purple);
+            border-radius: 32px;
+            max-width: 480px;
+            width: 100%;
+            padding: 32px;
+            box-shadow: 0 20px 0 rgba(0, 0, 0, 0.15);
+            position: relative;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn {
+            from { transform: scale(0.85); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .modal-an-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 3px solid var(--dark);
+            background: var(--yellow);
+            cursor: pointer;
+            font-weight: 900;
+            font-family: 'Fredoka', sans-serif;
+            box-shadow: 0 3px 0 var(--dark);
+        }
+
+        /* Toast Banner */
+        .appnest-toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--dark);
+            color: #FFF;
+            padding: 12px 26px;
+            border-radius: var(--radius-pill);
+            font-family: 'Fredoka', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            border: 3px solid var(--yellow);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            opacity: 0;
+            transition: all .25s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 3000;
+        }
+        .appnest-toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        @media (max-width: 900px) {
+            .appnest-kpi-deck { grid-template-columns: 1fr 1fr; }
+            .appnest-controls { flex-direction: column; align-items: stretch; }
+            .search-bubble { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Floating Shapes -->
+    <div class="shapes-bg">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="appnest-top-nav">
+        <a href="index.html" class="nav-brand-badge">
+            <div class="brand-logo-sparkle">✦</div>
+            <span class="font-fredoka" style="font-weight:700; font-size:16px;">Appnest Lunch ✦</span>
+        </a>
+
+        <div class="v-pills-scroll">
+            <a href="style-15-v1-live-ops.html" class="appnest-v-pill">v1 Live Ops</a>
+            <a href="style-15-v2-swiss-grid.html" class="appnest-v-pill">v2 Swiss Grid</a>
+            <a href="style-15-v3-dark-cockpit.html" class="appnest-v-pill">v3 Dark Cockpit</a>
+            <a href="style-15-v4-modular-bento.html" class="appnest-v-pill">v4 Modular Bento</a>
+            <a href="style-15-v5-transit-dispatch.html" class="appnest-v-pill">v5 Transit Dispatch</a>
+            <a href="style-15-v6-appnest.html" class="appnest-v-pill active">v6 Appnest Edition ✦</a>
+            <a href="style-15-statuskoll.html" class="appnest-v-pill">Baseline</a>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <header class="hero-appnest">
+        <div class="hero-badge-fun">
+            <span>✨</span> Built with Care • We Make Lunch Fun! ✦
+        </div>
+        <h1 class="hero-main-title">
+            <span class="c-purple">Snabb</span>, <span class="c-pink">God</span> & <span class="c-orange">Rolig</span> Lunchkoll!
+        </h1>
+        <p class="hero-subtitle">
+            Håll full koll på dagens menyer, bordsplatser och priser med Appnest lekfulla och interaktiva gränssnitt!
+        </p>
+
+        <div class="view-pill-appnest">
+            <button class="vp-an-btn active" id="btnAppnestToday" onclick="setViewMode('today')">Idag • Dagens Rätter ☀️</button>
+            <button class="vp-an-btn" id="btnAppnestWeek" onclick="setViewMode('week')">Hela Veckan 📅</button>
+        </div>
+    </header>
+
+    <!-- Appnest Interactive KPI Metrics -->
+    <section class="appnest-kpi-deck">
+        <div class="kpi-bubble-card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:700; font-size:12px; color:var(--gray); text-transform:uppercase;">Öppna Kök</span>
+                <div class="kpi-icon-round" style="background:var(--cream-dark); color:var(--orange);">🍽️</div>
+            </div>
+            <div class="kpi-b-val">14 st</div>
+            <div style="font-size:12px; font-weight:700; color:var(--green);">● Alla menyer uppdaterade</div>
+        </div>
+
+        <div class="kpi-bubble-card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:700; font-size:12px; color:var(--gray); text-transform:uppercase;">Snittpris</span>
+                <div class="kpi-icon-round" style="background:#EEF2FF; color:var(--purple);">💳</div>
+            </div>
+            <div class="kpi-b-val">132 kr</div>
+            <div style="font-size:12px; font-weight:700; color:var(--purple);">Inkl. salladsbuffé & kaffe</div>
+        </div>
+
+        <div class="kpi-bubble-card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:700; font-size:12px; color:var(--gray); text-transform:uppercase;">Servering</span>
+                <div class="kpi-icon-round" style="background:#F0FDF4; color:var(--green);">⚡</div>
+            </div>
+            <div class="kpi-b-val">Live Nu</div>
+            <div style="font-size:12px; font-weight:700; color:var(--green);">11:00 – 14:00</div>
+        </div>
+
+        <div class="kpi-bubble-card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:700; font-size:12px; color:var(--gray); text-transform:uppercase;">Favoriter</span>
+                <div class="kpi-icon-round" style="background:#FDF2F8; color:var(--pink);">❤️</div>
+            </div>
+            <div class="kpi-b-val" id="anFavBadge">2 st</div>
+            <div style="font-size:12px; font-weight:700; color:var(--pink);">Sparade snabbval</div>
+        </div>
+    </section>
+
+    <!-- Controls -->
+    <section class="appnest-controls">
+        <div class="search-bubble">
+            <span>🔍</span>
+            <input type="text" placeholder="Sök restaurang eller rätt..." oninput="onSearch(this.value)">
+        </div>
+
+        <div class="filter-appnest-group">
+            <button class="btn-appnest-filter active" onclick="setCategory('Alla', this)">Alla Restauranger ✦</button>
+            <button class="btn-appnest-filter" onclick="setCategory('Husman', this)">🥩 Husman</button>
+            <button class="btn-appnest-filter" onclick="setCategory('Fisk', this)">🐟 Fisk</button>
+            <button class="btn-appnest-filter" onclick="setCategory('Veg', this)">🌱 Veg</button>
+            <button class="btn-appnest-filter" onclick="setCategory('Asiatiskt', this)">🍜 Asiatiskt</button>
+        </div>
+    </section>
+
+    <!-- Cards Grid -->
+    <main class="appnest-cards-grid" id="appnestGrid"></main>
+
+    <!-- Interactive Modal (Appnest Calculator Card Style) -->
+    <div class="modal-an-layer" id="anModal" onclick="if(event.target===this) closeModal()">
+        <div class="modal-an-box">
+            <button class="modal-an-close" onclick="closeModal()">✕</button>
+            <div style="font-size:12px; font-weight:800; color:var(--purple); text-transform:uppercase;" class="font-fredoka">
+                ✦ APPNEST LUNCHVAL & BOKNING
+            </div>
+            <h2 id="anModalRest" style="font-size:26px; font-weight:700; margin:6px 0;" class="font-fredoka">Kooperativet</h2>
+            <div id="anModalDish" style="font-size:16px; font-weight:700; color:var(--pink); margin-bottom:12px;" class="font-fredoka">Helstekt Ryggbiff</div>
+            
+            <p id="anModalDesc" style="font-size:13.5px; color:var(--gray); line-height:1.6; font-weight:600; margin-bottom:18px;">
+                Serveras nylagad med rostad potatis, primörer och örtsmör. Inkluderar stor salladsbuffé och kaffe.
+            </p>
+
+            <div style="background:var(--cream); border:2px dashed var(--purple-light); border-radius:20px; padding:16px; margin-bottom:22px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px; font-weight:700;">
+                    <span style="color:var(--gray);">Köksstatus:</span>
+                    <span style="color:var(--green);">● Redo för servering</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:700; color:var(--dark);">Totalt Lunchpris:</span>
+                    <span id="anModalPrice" style="font-size:24px; font-weight:700; color:var(--purple);" class="font-fredoka">135 kr</span>
+                </div>
+            </div>
+
+            <button class="btn-an-order" style="width:100%; padding:14px; font-size:16px;" onclick="confirmOrder()">
+                Boka Detta Lunchval Nu! 🚀
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="appnest-toast" id="anToast">✦ Välkommen till Appnest Lunch!</div>
+
+    <script>
+        const restaurants = [
+            {
+                id: 'kooperativet',
+                name: 'Kooperativet',
+                area: 'Lindholmen',
+                distance: '250 m',
+                price: '135 SEK',
+                rating: '4.8',
+                status: 'Kort kö • 12 lediga bord 🪑',
+                category: 'Husman',
+                today: [
+                    { title: 'Helstekt Ryggbiff & Rödvinssky', desc: 'Rostad potatis, örtsmör, primörer', tag: 'Kött' },
+                    { title: 'Ugnsbakad Laxfilé & Sandefjordsås', desc: 'Dillpotatis, fänkålscrudité', tag: 'Fisk' },
+                    { title: 'Rostad Blomkålsbiff med Linser', desc: 'Örtaioli, picklad rödlök', tag: 'Veg' }
+                ],
+                week: [
+                    { day: 'Mån', dish: 'Wallenbergare med skirat smör & potatismos' },
+                    { day: 'Tis', dish: 'Stekt fläsk med raggmunk & lingon' },
+                    { day: 'Ons', dish: 'Fiskgryta med saffran & aioli' },
+                    { day: 'Tor', dish: 'Ärtsoppa & pannkakor med sylt och grädde' },
+                    { day: 'Fre', dish: 'Helstekt Ryggbiff & rödvinssås' }
+                ]
+            },
+            {
+                id: 'porten',
+                name: 'Restaurang Porten',
+                area: 'Science Park',
+                distance: '400 m',
+                price: '129 SEK',
+                rating: '4.6',
+                status: 'Snabb kassa • God plats ⚡',
+                category: 'Husman',
+                today: [
+                    { title: 'Klassiska Köttbullar & Gräddsås', desc: 'Potatismos, rårörda lingon, pressgurka', tag: 'Husman' },
+                    { title: 'Smörstekt Torskrygg & Äggsås', desc: 'Kokt potatis, citron & dill', tag: 'Fisk' }
+                ],
+                week: [
+                    { day: 'Mån', dish: 'Kycklingfilé med dragonsås & ris' },
+                    { day: 'Tis', dish: 'Köttbullar med gräddsås & lingon' },
+                    { day: 'Ons', dish: 'Pannbiff med stekt lök & skysås' },
+                    { day: 'Tor', dish: 'Gulaschsoppa med hembakt bröd' },
+                    { day: 'Fre', dish: 'Smörstekt Torskrygg & citron' }
+                ]
+            },
+            {
+                id: 'ls_resto',
+                name: 'L\'s Resto',
+                area: 'Lindholmen',
+                distance: '300 m',
+                price: '125 SEK',
+                rating: '4.5',
+                status: 'Direktbord • Kök redo 🍜',
+                category: 'Asiatiskt',
+                today: [
+                    { title: 'Vietnamesisk Pho Bo Biffsoppa', desc: 'Risnudlar, färska örter, lime & chili', tag: 'Asiatiskt' },
+                    { title: 'Wokad Tofu & Grönsaker', desc: 'Jasminris, sweet chili, cashewnötter', tag: 'Veg' }
+                ],
+                week: [
+                    { day: 'Mån', dish: 'Pad Thai med kyckling & jordnötter' },
+                    { day: 'Tis', dish: 'Biff i röd curry & bambuskott' },
+                    { day: 'Ons', dish: 'Pho Bo & färsk koriander' },
+                    { day: 'Tor', dish: 'Crispy Duck med plommonsås' },
+                    { day: 'Fre', dish: 'Vietnamesisk Nudelwok' }
+                ]
+            },
+            {
+                id: 'cuckoos',
+                name: 'Cuckoo\'s Nest',
+                area: 'Radisson Riverside',
+                distance: '550 m',
+                price: '155 SEK',
+                rating: '4.9',
+                status: 'Populärt • Boka i förväg ⭐',
+                category: 'Husman',
+                today: [
+                    { title: 'Majskycklingbröst & Tryffelrisotto', desc: 'Parmesan, rostade hasselnötter', tag: 'Gourmet' },
+                    { title: 'Grillad Spetskål & Vit bönkräm', desc: 'Rostad mandel, brynt smör', tag: 'Veg' }
+                ],
+                week: [
+                    { day: 'Mån', dish: 'Rimmad lax med dillstuvad potatis' },
+                    { day: 'Tis', dish: 'Biff Rydberg med dijonsenap' },
+                    { day: 'Ons', dish: 'Hjortgryta med enbär & svamp' },
+                    { day: 'Tor', dish: 'Fisk & skaldjursgryta' },
+                    { day: 'Fre', dish: 'Majskycklingbröst & Tryffelrisotto' }
+                ]
+            }
+        ];
+
+        let curView = 'today';
+        let curCat = 'Alla';
+        let searchQuery = '';
+        let favorites = ['kooperativet', 'cuckoos'];
+
+        function setViewMode(v) {
+            curView = v;
+            document.getElementById('btnAppnestToday').classList.toggle('active', v === 'today');
+            document.getElementById('btnAppnestWeek').classList.toggle('active', v === 'week');
+            render();
+            triggerToast(`✦ Visar nu: ${v === 'today' ? 'Dagens menyer' : 'Hela veckans schema'}`);
+        }
+
+        function setCategory(cat, btn) {
+            curCat = cat;
+            document.querySelectorAll('.btn-appnest-filter').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            render();
+            triggerToast(`✦ Filtrerat: ${cat}`);
+        }
+
+        function onSearch(val) {
+            searchQuery = val.toLowerCase();
+            render();
+        }
+
+        function toggleFav(id, e) {
+            e.stopPropagation();
+            favorites = favorites.includes(id) ? favorites.filter(x => x !== id) : [...favorites, id];
+            document.getElementById('anFavBadge').textContent = favorites.length + ' st';
+            triggerToast('✦ Favoritlista uppdaterad!');
+            render();
+        }
+
+        function openModal(name, dish, desc, price) {
+            document.getElementById('anModalRest').textContent = name;
+            document.getElementById('anModalDish').textContent = dish;
+            document.getElementById('anModalDesc').textContent = desc;
+            document.getElementById('anModalPrice').textContent = price;
+            document.getElementById('anModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('anModal').classList.remove('active');
+        }
+
+        function confirmOrder() {
+            closeModal();
+            triggerToast('🎉 Hurra! Ditt lunchval är bekräftat!');
+        }
+
+        function triggerToast(msg) {
+            const t = document.getElementById('anToast');
+            t.textContent = msg;
+            t.classList.add('show');
+            clearTimeout(window._at);
+            window._at = setTimeout(() => t.classList.remove('show'), 2400);
+        }
+
+        function render() {
+            const grid = document.getElementById('appnestGrid');
+            const items = restaurants.filter(r => {
+                const mc = curCat === 'Alla' || r.category === curCat || (curCat === 'Fisk' && r.today.some(x => x.tag === 'Fisk')) || (curCat === 'Veg' && r.today.some(x => x.tag === 'Veg'));
+                const ms = r.name.toLowerCase().includes(searchQuery) || r.today.some(t => t.title.toLowerCase().includes(searchQuery));
+                return mc && ms;
+            });
+
+            if (items.length === 0) {
+                grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:50px; font-weight:700; color:var(--gray);">Inga menyer matchade din sökning! 🔍</div>';
+                return;
+            }
+
+            grid.innerHTML = items.map(r => {
+                const isFav = favorites.includes(r.id);
+                return `
+                    <div class="appnest-card">
+                        <div>
+                            <div class="an-card-top">
+                                <div>
+                                    <h3 class="an-rest-name">
+                                        ${r.name}
+                                        <button onclick="toggleFav('${r.id}', event)" style="background:none; border:none; cursor:pointer; font-size:18px;">
+                                            ${isFav ? '❤️' : '🤍'}
+                                        </button>
+                                    </h3>
+                                    <div style="font-size:12.5px; font-weight:700; color:var(--gray); margin-top:2px;">
+                                        📍 ${r.area} (${r.distance}) • ⭐ ${r.rating}
+                                    </div>
+                                </div>
+                                <span class="an-price-badge">${r.price}</span>
+                            </div>
+
+                            <div class="an-status-strip" style="margin: 14px 0 16px;">
+                                <span style="color:var(--purple);">✦ Status:</span>
+                                <span style="color:var(--dark);">${r.status}</span>
+                            </div>
+
+                            ${curView === 'today' ? `
+                                <div class="an-dishes-stack">
+                                    ${r.today.map(d => `
+                                        <div class="an-dish-item" onclick="openModal('${r.name}', '${d.title}', '${d.desc}', '${r.price}')">
+                                            <div>
+                                                <div class="an-dish-title">${d.title}</div>
+                                                <div class="an-dish-desc">${d.desc}</div>
+                                            </div>
+                                            <span class="an-tag-pill">${d.tag}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : `
+                                <div style="display:flex; flex-direction:column; gap:8px;">
+                                    ${r.week.map(w => `
+                                        <div style="background:var(--cream); border:1px solid var(--border-card); padding:8px 12px; border-radius:12px; font-size:12px; font-weight:600; display:flex; gap:8px;">
+                                            <strong style="color:var(--purple); min-width:32px;" class="font-fredoka">${w.day}:</strong>
+                                            <span>${w.dish}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `}
+                        </div>
+
+                        <div class="an-card-footer">
+                            <span style="font-size:12px; font-weight:700; color:var(--gray);">☕ Buffé & kaffe ingår</span>
+                            <button class="btn-an-order" onclick="openModal('${r.name}', 'Dagens Lunch', 'Inkluderar salladsbuffé, nybakat bröd och kaffe.', '${r.price}')">
+                                Välj Meny ✨
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.addEventListener('DOMContentLoaded', render);
+    </script>
+</body>
+</html>

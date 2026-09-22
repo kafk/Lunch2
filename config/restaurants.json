@@ -1,0 +1,101 @@
+[
+  {
+    "id": "tildas",
+    "name": "Tildas Restaurang",
+    "url": "https://www.tildasrestaurang.com/",
+    "enabled": true,
+    "fetcher": {
+      "type": "http"
+    },
+    "extractor": {
+      "type": "auto"
+    }
+  },
+  {
+    "id": "the_grill",
+    "name": "The Grill",
+    "url": "https://www.thegrill.se/",
+    "enabled": true,
+    "fetcher": {
+      "type": "http"
+    },
+    "extractor": {
+      "type": "auto"
+    }
+  },
+  {
+    "id": "mr_tomato",
+    "name": "Mr Tomato",
+    "url": "https://mistertomato.se/",
+    "enabled": true,
+    "fetcher": {
+      "type": "http"
+    },
+    "extractor": {
+      "type": "auto"
+    }
+  },
+  {
+    "id": "ceviche",
+    "name": "Ceviche",
+    "url": "https://www.cevichetasteofperu.se/",
+    "enabled": true,
+    "fetcher": {
+      "type": "http"
+    },
+    "extractor": {
+      "type": "auto"
+    }
+  },
+  {
+    "id": "divan",
+    "name": "Divan",
+    "url": "https://www.restaurangdivan.se/",
+    "enabled": true,
+    "fetcher": {
+      "type": "http"
+    },
+    "extractor": {
+      "type": "auto"
+    }
+  },
+  {
+    "id": "tsukihana",
+    "name": "Tsukihana",
+    "url": "https://tsukihana.net/lunch",
+    "enabled": true,
+    "fetcher": {
+      "type": "http"
+    },
+    "extractor": {
+      "type": "custom",
+      "handler": "tsukihana"
+    }
+  },
+  {
+    "id": "roots",
+    "name": "Roots Food Market",
+    "url": "https://www.rootsfoodmarket.se/lunch",
+    "enabled": true,
+    "fetcher": {
+      "type": "http"
+    },
+    "extractor": {
+      "type": "custom",
+      "handler": "roots"
+    }
+  },
+  {
+    "id": "nordic_taste_lab",
+    "name": "AE - Nordic Taste Lab",
+    "url": "https://ce576758e5e44ad59e25f885b130d4ca.compass-group.se/",
+    "enabled": true,
+    "fetcher": {
+      "type": "gemini_ocr"
+    },
+    "extractor": {
+      "type": "custom",
+      "handler": "nordic_taste_lab"
+    }
+  }
+]

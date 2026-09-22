@@ -1355,8 +1355,8 @@
 
     <!-- Main Content -->
     <main class="main-content">
-        <!-- Weekly Highlight / News Banner -->
-        <div id="newsBanner" class="news-banner" style="display: none;">
+        <!-- Weekly Highlight / News Banner (visas under angiven vecka/datum om ej kryssad) -->
+        <div id="newsBanner" class="news-banner" data-week="38" data-year="2026" data-expiry="2026-09-20T23:59:59" style="display: none;">
             <div class="news-banner-content">
                 <span class="news-banner-badge">✨ Nyhet</span>
                 <span class="news-banner-text">
@@ -1372,14 +1372,63 @@
     {% block scripts %}{% endblock %}
 
     <script>
-        // News banner dismiss check
+        // News banner dismiss & expiry check
         const NEWS_BANNER_KEY = 'dismissed_news_nordic_taste_lab_v38';
 
-        function checkNewsBanner() {
-            if (!localStorage.getItem(NEWS_BANNER_KEY)) {
-                const el = document.getElementById('newsBanner');
-                if (el) el.style.display = 'flex';
+        function getISOWeekInfo(d) {
+            const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            const dayNum = date.getUTCDay() || 7;
+            date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+            const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+            return { year: date.getUTCFullYear(), week: weekNo };
+        }
+
+        function isNewsBannerExpired(el) {
+            const now = new Date();
+
+            // 1. Kontrollera absolut datum/tid (data-expiry="YYYY-MM-DD" eller "YYYY-MM-DDTHH:mm:ss")
+            const expiryStr = el.getAttribute('data-expiry');
+            if (expiryStr) {
+                let expiryDate = new Date(expiryStr);
+                if (expiryStr.length <= 10 && !expiryStr.includes('T')) {
+                    expiryDate.setHours(23, 59, 59, 999);
+                }
+                if (!isNaN(expiryDate.getTime()) && now > expiryDate) {
+                    return true;
+                }
             }
+
+            // 2. Kontrollera vecka/år (data-week="38" data-year="2026")
+            const targetWeek = parseInt(el.getAttribute('data-week'), 10);
+            const targetYear = parseInt(el.getAttribute('data-year'), 10) || now.getFullYear();
+            if (!isNaN(targetWeek)) {
+                const current = getISOWeekInfo(now);
+                if (current.year > targetYear || (current.year === targetYear && current.week > targetWeek)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        function checkNewsBanner() {
+            const el = document.getElementById('newsBanner');
+            if (!el) return;
+
+            // Om veckan/tiden har passerat ska bannern inte visas
+            if (isNewsBannerExpired(el)) {
+                el.style.display = 'none';
+                return;
+            }
+
+            // Om användaren själv tryckt bort bannern med krysset
+            if (localStorage.getItem(NEWS_BANNER_KEY)) {
+                el.style.display = 'none';
+                return;
+            }
+
+            el.style.display = 'flex';
         }
 
         function dismissNewsBanner() {

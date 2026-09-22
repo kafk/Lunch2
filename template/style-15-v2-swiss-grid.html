@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StatusKoll v2 • Swiss Precision B2B Grid</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-canvas: #FAFAFA;
+            --text-main: #111111;
+            --text-subtle: #71717A;
+            --border-grid: #E4E4E7;
+            --border-dark: #18181B;
+            
+            --accent-orange: #FF4F00; /* Swiss international orange */
+            --accent-green: #00875A;
+            --accent-blue: #0052CC;
+            
+            --panel-bg: #FFFFFF;
+            --mono-font: 'Space Mono', monospace;
+            --sans-font: 'DM Sans', -apple-system, sans-serif;
+            
+            --shadow-crisp: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
+            --shadow-lift: 0 12px 24px -6px rgba(0,0,0,0.08);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--bg-canvas);
+            color: var(--text-main);
+            font-family: var(--sans-font);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Version Top Bar */
+        .top-nav {
+            background: #FFFFFF;
+            border-bottom: 2px solid var(--border-dark);
+            padding: 10px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: var(--mono-font);
+            font-size: 11px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .v-pills-wrap {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .nav-link {
+            text-decoration: none;
+            padding: 5px 12px;
+            color: var(--text-subtle);
+            border: 1px solid var(--border-grid);
+            border-radius: 4px;
+            font-weight: 700;
+            transition: all .15s;
+        }
+        .nav-link:hover { border-color: var(--text-main); color: var(--text-main); }
+        .nav-link.active {
+            background: var(--text-main);
+            color: #FFFFFF;
+            border-color: var(--text-main);
+        }
+
+        /* Header Grid Banner */
+        .swiss-header {
+            max-width: 1300px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 40px 24px 28px;
+            display: grid;
+            grid-template-columns: 1.8fr 1.2fr;
+            border-bottom: 1px solid var(--border-grid);
+            gap: 32px;
+        }
+        .swiss-title-box h1 {
+            font-size: 40px;
+            font-weight: 800;
+            letter-spacing: -1.5px;
+            line-height: 1.08;
+            margin-bottom: 12px;
+        }
+        .swiss-meta-badge {
+            display: inline-block;
+            font-family: var(--mono-font);
+            font-size: 11px;
+            font-weight: 700;
+            background: #000;
+            color: #FFF;
+            padding: 3px 8px;
+            margin-bottom: 14px;
+        }
+        .swiss-kpi-table {
+            border: 1px solid var(--border-dark);
+            background: #FFFFFF;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+        .kpi-block {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border-grid);
+            border-right: 1px solid var(--border-grid);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .kpi-block:nth-child(2n) { border-right: none; }
+        .kpi-block:nth-last-child(-n+2) { border-bottom: none; }
+        .kpi-lbl { font-family: var(--mono-font); font-size: 10px; color: var(--text-subtle); text-transform: uppercase; }
+        .kpi-val { font-size: 22px; font-weight: 800; font-family: var(--mono-font); margin-top: 4px; }
+
+        /* Controls Ribbon */
+        .controls-ribbon {
+            max-width: 1300px;
+            width: 100%;
+            margin: 24px auto 0;
+            padding: 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .swiss-search-input {
+            border: 1px solid var(--border-dark);
+            padding: 8px 14px;
+            font-family: var(--mono-font);
+            font-size: 12px;
+            width: 280px;
+            outline: none;
+            background: #FFFFFF;
+        }
+        .swiss-search-input:focus {
+            box-shadow: 0 0 0 2px var(--accent-orange);
+        }
+        .swiss-filters {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .sw-btn {
+            border: 1px solid var(--border-grid);
+            background: #FFFFFF;
+            padding: 6px 14px;
+            font-family: var(--mono-font);
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .sw-btn:hover { border-color: var(--text-main); }
+        .sw-btn.active {
+            background: var(--accent-orange);
+            color: #FFFFFF;
+            border-color: var(--accent-orange);
+        }
+
+        .view-seg {
+            display: flex;
+            border: 1px solid var(--border-dark);
+            background: #FFF;
+        }
+        .seg-btn {
+            border: none;
+            background: transparent;
+            padding: 6px 14px;
+            font-family: var(--mono-font);
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .seg-btn.active {
+            background: #111111;
+            color: #FFFFFF;
+        }
+
+        /* Swiss Layout Container */
+        .main-swiss-board {
+            max-width: 1300px;
+            width: 100%;
+            margin: 24px auto 60px;
+            padding: 0 24px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(390px, 1fr));
+            gap: 20px;
+        }
+
+        /* Precision Card */
+        .swiss-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-dark);
+            box-shadow: var(--shadow-crisp);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform .2s, box-shadow .2s;
+            position: relative;
+        }
+        .swiss-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lift);
+            border-color: var(--accent-orange);
+        }
+        .swiss-card-head {
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--border-grid);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .swiss-name {
+            font-size: 19px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .price-badge-mono {
+            font-family: var(--mono-font);
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--accent-orange);
+            border: 1px solid var(--border-grid);
+            padding: 3px 8px;
+            background: #FFF5F0;
+        }
+
+        .status-row-grid {
+            padding: 8px 20px;
+            background: #F4F4F5;
+            border-bottom: 1px solid var(--border-grid);
+            font-family: var(--mono-font);
+            font-size: 10.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status-pill-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 700;
+        }
+        .dot-pulse {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--accent-green);
+        }
+
+        .dish-swiss-list {
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .dish-cell-item {
+            border: 1px solid var(--border-grid);
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .dish-cell-item:hover {
+            border-color: var(--text-main);
+            background: #FAFAFA;
+        }
+        .dish-cell-title {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+        .dish-cell-desc {
+            font-size: 11.5px;
+            color: var(--text-subtle);
+            margin-top: 2px;
+        }
+        .tag-cell {
+            font-family: var(--mono-font);
+            font-size: 9.5px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border: 1px solid var(--border-grid);
+            background: #FFFFFF;
+        }
+
+        .card-bottom-actions {
+            padding: 14px 20px;
+            border-top: 1px solid var(--border-grid);
+            background: #FAFAFA;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn-order-swiss {
+            background: #111111;
+            color: #FFFFFF;
+            border: none;
+            padding: 8px 18px;
+            font-family: var(--mono-font);
+            font-size: 11.5px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .btn-order-swiss:hover {
+            background: var(--accent-orange);
+        }
+
+        /* Modal */
+        .swiss-modal-bg {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 2000;
+            display: none;
+            place-items: center;
+            padding: 20px;
+        }
+        .swiss-modal-bg.active { display: grid; }
+        .swiss-modal-card {
+            background: #FFFFFF;
+            border: 2px solid #000;
+            max-width: 480px;
+            width: 100%;
+            padding: 28px;
+            box-shadow: 8px 8px 0px #000;
+            position: relative;
+        }
+        .modal-x {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: #000;
+            color: #FFF;
+            border: none;
+            width: 28px;
+            height: 28px;
+            font-family: var(--mono-font);
+            cursor: pointer;
+        }
+
+        .toast-box {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #000;
+            color: #FFF;
+            border-left: 4px solid var(--accent-orange);
+            padding: 12px 20px;
+            font-family: var(--mono-font);
+            font-size: 12px;
+            font-weight: 700;
+            display: none;
+            z-index: 3000;
+        }
+        .toast-box.show { display: block; }
+    </style>
+</head>
+<body>
+
+    <nav class="top-nav">
+        <div>
+            <span style="font-weight:800; letter-spacing:1px;">STATUSKOLL // B2B DATA GRID</span>
+        </div>
+        <div class="v-pills-wrap">
+            <a href="style-15-v1-live-ops.html" class="nav-link">v1 Live Ops</a>
+            <a href="style-15-v2-swiss-grid.html" class="nav-link active">v2 Swiss Precision</a>
+            <a href="style-15-v3-dark-cockpit.html" class="nav-link">v3 Dark Cockpit</a>
+            <a href="style-15-v4-modular-bento.html" class="nav-link">v4 Modular Bento</a>
+            <a href="style-15-v5-transit-dispatch.html" class="nav-link">v5 Transit Dispatch</a>
+            <a href="style-15-v6-appnest.html" class="nav-link">v6 Appnest ✦</a>
+            <a href="style-15-statuskoll.html" class="nav-link">Baseline</a>
+        </div>
+    </nav>
+
+    <header class="swiss-header">
+        <div class="swiss-title-box">
+            <span class="swiss-meta-badge">SYS.SPEC • 2026.09.20</span>
+            <h1>Göteborg Lunch Status Index</h1>
+            <p style="color:var(--text-subtle); font-size:14px; line-height:1.6; max-width:560px;">
+                Strikt dataöversikt och realtidstelemetri för restauranger, sittplatser och dagsmenyer i Lindholmen Science Park.
+            </p>
+        </div>
+
+        <div class="swiss-kpi-table">
+            <div class="kpi-block">
+                <span class="kpi-lbl">Restauranger</span>
+                <span class="kpi-val">14/14</span>
+            </div>
+            <div class="kpi-block">
+                <span class="kpi-lbl">Medianpris</span>
+                <span class="kpi-val">132 SEK</span>
+            </div>
+            <div class="kpi-block">
+                <span class="kpi-lbl">Bokningsläge</span>
+                <span class="kpi-val" style="color:var(--accent-green);">ÖPPET</span>
+            </div>
+            <div class="kpi-block">
+                <span class="kpi-lbl">Serveringsfönster</span>
+                <span class="kpi-val" style="font-size:16px;">11:00-14:00</span>
+            </div>
+        </div>
+    </header>
+
+    <section class="controls-ribbon">
+        <input type="text" class="swiss-search-input" placeholder="[FILTER // SÖK MENY]..." oninput="onSearch(this.value)">
+
+        <div class="swiss-filters">
+            <button class="sw-btn active" onclick="setCategory('Alla', this)">ALLA (14)</button>
+            <button class="sw-btn" onclick="setCategory('Husman', this)">HUSMAN</button>
+            <button class="sw-btn" onclick="setCategory('Fisk', this)">FISK</button>
+            <button class="sw-btn" onclick="setCategory('Veg', this)">VEGETARISKT</button>
+            <button class="sw-btn" onclick="setCategory('Asiatiskt', this)">ASIATISKT</button>
+        </div>
+
+        <div class="view-seg">
+            <button class="seg-btn active" id="segToday" onclick="setViewMode('today')">DAGENS</button>
+            <button class="seg-btn" id="segWeek" onclick="setViewMode('week')">VECKOPLAN</button>
+        </div>
+    </section>
+
+    <main class="main-swiss-board" id="swissBoard"></main>
+
+    <!-- Modal -->
+    <div class="swiss-modal-bg" id="modalContainer" onclick="if(event.target===this) closeModal()">
+        <div class="swiss-modal-card">
+            <button class="modal-x" onclick="closeModal()">✕</button>
+            <div style="font-family:var(--mono-font); font-size:10px; font-weight:700; color:var(--accent-orange);">SPECIFIKATION // ORDER</div>
+            <h2 id="mRest" style="font-size:24px; font-weight:800; margin:4px 0;">Kooperativet</h2>
+            <div id="mDish" style="font-weight:700; color:var(--accent-orange); margin-bottom:12px;">Helstekt Ryggbiff</div>
+            <p id="mDesc" style="font-size:13px; color:var(--text-subtle); line-height:1.6; margin-bottom:18px;">
+                Serveras med klassiska tillbehör och kaffe.
+            </p>
+            <div style="border:1px solid var(--border-grid); padding:12px; font-family:var(--mono-font); font-size:11.5px; margin-bottom:18px; display:flex; justify-content:space-between;">
+                <span>PRIS: <strong id="mPrice">135 SEK</strong></span>
+                <span>STATUS: <strong style="color:var(--accent-green);">BEKRÄFTAD</strong></span>
+            </div>
+            <button class="btn-order-swiss" style="width:100%; padding:12px;" onclick="confirmOrder()">BEKRÄFTA BOKNING [RETURN]</button>
+        </div>
+    </div>
+
+    <div class="toast-box" id="swissToast">SYSTEM: Uppdaterat</div>
+
+    <script>
+        const data = [
+            {
+                id: 'kooperativet',
+                name: 'Kooperativet',
+                area: 'Lindholmen',
+                dist: '250m',
+                price: '135 SEK',
+                rating: '4.8',
+                status: 'Kapacitet OK • 12 bord',
+                cat: 'Husman',
+                today: [
+                    { title: 'Helstekt Ryggbiff & Rödvinssky', desc: 'Rostad potatis, örtsmör, primörer', tag: 'KÖTT' },
+                    { title: 'Ugnsbakad Laxfilé & Sandefjordsås', desc: 'Dillpotatis, fänkålscrudité', tag: 'FISK' },
+                    { title: 'Rostad Blomkålsbiff med Linser', desc: 'Örtaioli, picklad rödlök', tag: 'VEG' }
+                ],
+                week: [
+                    { day: 'MÅN', dish: 'Wallenbergare med skirat smör & potatismos' },
+                    { day: 'TIS', dish: 'Stekt fläsk med raggmunk & lingon' },
+                    { day: 'ONS', dish: 'Fiskgryta med saffran & aioli' },
+                    { day: 'TOR', dish: 'Ärtsoppa & pannkakor med sylt och grädde' },
+                    { day: 'FRE', dish: 'Helstekt Ryggbiff & rödvinssås' }
+                ]
+            },
+            {
+                id: 'porten',
+                name: 'Restaurang Porten',
+                area: 'Science Park',
+                dist: '400m',
+                price: '129 SEK',
+                rating: '4.6',
+                status: 'Normal belastning • 4 min kö',
+                cat: 'Husman',
+                today: [
+                    { title: 'Klassiska Köttbullar & Gräddsås', desc: 'Potatismos, rårörda lingon, pressgurka', tag: 'HUSMAN' },
+                    { title: 'Smörstekt Torskrygg & Äggsås', desc: 'Kokt potatis, citron & dill', tag: 'FISK' }
+                ],
+                week: [
+                    { day: 'MÅN', dish: 'Kycklingfilé med dragonsås & ris' },
+                    { day: 'TIS', dish: 'Köttbullar med gräddsås & lingon' },
+                    { day: 'ONS', dish: 'Pannbiff med stekt lök & skysås' },
+                    { day: 'TOR', dish: 'Gulaschsoppa med hembakt bröd' },
+                    { day: 'FRE', dish: 'Smörstekt Torskrygg & citron' }
+                ]
+            },
+            {
+                id: 'ls_resto',
+                name: 'L\'s Resto',
+                area: 'Lindholmen',
+                dist: '300m',
+                price: '125 SEK',
+                rating: '4.5',
+                status: 'Snabb servering • Kök aktivt',
+                cat: 'Asiatiskt',
+                today: [
+                    { title: 'Vietnamesisk Pho Bo Biffsoppa', desc: 'Risnudlar, färska örter, lime & chili', tag: 'ASIAT' },
+                    { title: 'Wokad Tofu & Grönsaker', desc: 'Jasminris, sweet chili, cashewnötter', tag: 'VEG' }
+                ],
+                week: [
+                    { day: 'MÅN', dish: 'Pad Thai med kyckling & jordnötter' },
+                    { day: 'TIS', dish: 'Biff i röd curry & bambuskott' },
+                    { day: 'ONS', dish: 'Pho Bo & färsk koriander' },
+                    { day: 'TOR', dish: 'Crispy Duck med plommonsås' },
+                    { day: 'FRE', dish: 'Vietnamesisk Nudelwok' }
+                ]
+            },
+            {
+                id: 'cuckoos',
+                name: 'Cuckoo\'s Nest',
+                area: 'Riverside',
+                dist: '550m',
+                price: '155 SEK',
+                rating: '4.9',
+                status: 'Hög efterfrågan • Boka förväg',
+                cat: 'Husman',
+                today: [
+                    { title: 'Majskycklingbröst & Tryffelrisotto', desc: 'Parmesan, rostade hasselnötter', tag: 'GOURMET' },
+                    { title: 'Grillad Spetskål & Vit bönkräm', desc: 'Rostad mandel, brynt smör', tag: 'VEG' }
+                ],
+                week: [
+                    { day: 'MÅN', dish: 'Rimmad lax med dillstuvad potatis' },
+                    { day: 'TIS', dish: 'Biff Rydberg med dijonsenap' },
+                    { day: 'ONS', dish: 'Hjortgryta med enbär & svamp' },
+                    { day: 'TOR', dish: 'Fisk & skaldjursgryta' },
+                    { day: 'FRE', dish: 'Majskycklingbröst & Tryffelrisotto' }
+                ]
+            }
+        ];
+
+        let mode = 'today';
+        let curCat = 'Alla';
+        let query = '';
+        let favs = ['kooperativet'];
+
+        function setViewMode(m) {
+            mode = m;
+            document.getElementById('segToday').classList.toggle('active', m === 'today');
+            document.getElementById('segWeek').classList.toggle('active', m === 'week');
+            render();
+            triggerToast(`VY ÄNDRAD: ${m.toUpperCase()}`);
+        }
+
+        function setCategory(c, btn) {
+            curCat = c;
+            document.querySelectorAll('.sw-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            render();
+            triggerToast(`FILTER: ${c.toUpperCase()}`);
+        }
+
+        function onSearch(v) {
+            query = v.toLowerCase();
+            render();
+        }
+
+        function toggleFav(id, e) {
+            e.stopPropagation();
+            favs = favs.includes(id) ? favs.filter(x => x !== id) : [...favs, id];
+            triggerToast('SPARA-STATUS ÄNDRAD');
+            render();
+        }
+
+        function openModal(name, dish, desc, price) {
+            document.getElementById('mRest').textContent = name;
+            document.getElementById('mDish').textContent = dish;
+            document.getElementById('mDesc').textContent = desc;
+            document.getElementById('mPrice').textContent = price;
+            document.getElementById('modalContainer').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modalContainer').classList.remove('active');
+        }
+
+        function confirmOrder() {
+            closeModal();
+            triggerToast('ORDER REGISTRERAD // SUCCESS');
+        }
+
+        function triggerToast(msg) {
+            const t = document.getElementById('swissToast');
+            t.textContent = msg;
+            t.classList.add('show');
+            clearTimeout(window._to);
+            window._to = setTimeout(() => t.classList.remove('show'), 2200);
+        }
+
+        function render() {
+            const el = document.getElementById('swissBoard');
+            const items = data.filter(d => {
+                const mc = curCat === 'Alla' || d.cat === curCat || (curCat === 'Fisk' && d.today.some(x => x.tag.includes('FISK'))) || (curCat === 'Veg' && d.today.some(x => x.tag.includes('VEG')));
+                const ms = d.name.toLowerCase().includes(query) || d.today.some(t => t.title.toLowerCase().includes(query));
+                return mc && ms;
+            });
+
+            if (items.length === 0) {
+                el.innerHTML = '<div style="grid-column:1/-1; padding:40px; font-family:var(--mono-font); color:var(--text-subtle);">INGA RESULTAT I DATABASEN.</div>';
+                return;
+            }
+
+            el.innerHTML = items.map(d => {
+                const isF = favs.includes(d.id);
+                return `
+                    <div class="swiss-card">
+                        <div>
+                            <div class="swiss-card-head">
+                                <div>
+                                    <h3 class="swiss-name">
+                                        ${d.name}
+                                        <button onclick="toggleFav('${d.id}', event)" style="background:none; border:none; cursor:pointer; font-size:14px;">
+                                            ${isF ? '★' : '☆'}
+                                        </button>
+                                    </h3>
+                                    <div style="font-family:var(--mono-font); font-size:11px; color:var(--text-subtle); margin-top:2px;">
+                                        LOC: ${d.area} // DIST: ${d.dist} // SCORE: ${d.rating}
+                                    </div>
+                                </div>
+                                <span class="price-badge-mono">${d.price}</span>
+                            </div>
+
+                            <div class="status-row-grid">
+                                <span class="status-pill-indicator"><span class="dot-pulse"></span> TELEMETRI</span>
+                                <span>${d.status}</span>
+                            </div>
+
+                            ${mode === 'today' ? `
+                                <div class="dish-swiss-list">
+                                    ${d.today.map(t => `
+                                        <div class="dish-cell-item" onclick="openModal('${d.name}', '${t.title}', '${t.desc}', '${d.price}')">
+                                            <div>
+                                                <div class="dish-cell-title">${t.title}</div>
+                                                <div class="dish-cell-desc">${t.desc}</div>
+                                            </div>
+                                            <span class="tag-cell">${t.tag}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : `
+                                <div style="padding:14px 20px; display:flex; flex-direction:column; gap:6px; font-family:var(--mono-font); font-size:11px;">
+                                    ${d.week.map(w => `
+                                        <div style="display:flex; gap:8px; border-bottom:1px dashed var(--border-grid); padding-bottom:4px;">
+                                            <strong style="color:var(--accent-orange); min-width:32px;">${w.day}:</strong>
+                                            <span>${w.dish}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `}
+                        </div>
+
+                        <div class="card-bottom-actions">
+                            <span style="font-family:var(--mono-font); font-size:10.5px; color:var(--text-subtle);">INCL. BUFFÉ & KAFFE</span>
+                            <button class="btn-order-swiss" onclick="openModal('${d.name}', 'LUNCHVAL', 'Inkluderar salladsbuffé och kaffe.', '${d.price}')">
+                                BOKA BORD →
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.addEventListener('DOMContentLoaded', render);
+    </script>
+</body>
+</html>

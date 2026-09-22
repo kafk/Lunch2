@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StatusKoll v4 • Modular Bento & Widget Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-bento: #F0F4F8;
+            --card-surface: #FFFFFF;
+            --card-subtle: #F8FAFC;
+            --border-subtle: #E2E8F0;
+            
+            --coral-accent: #FF5A36;
+            --coral-soft: #FFF1EE;
+            
+            --mint-accent: #0D9488;
+            --mint-soft: #F0FDFA;
+            
+            --indigo-accent: #6366F1;
+            --indigo-soft: #EEF2FF;
+            
+            --amber-accent: #D97706;
+            --amber-soft: #FFFBEB;
+            
+            --slate-text: #0F172A;
+            --slate-muted: #64748B;
+            
+            --radius-bento: 24px;
+            --radius-inner: 16px;
+            --radius-pill: 999px;
+            
+            --shadow-bento: 0 10px 30px -8px rgba(15, 23, 42, 0.08);
+            --shadow-hover: 0 20px 40px -10px rgba(15, 23, 42, 0.12);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--bg-bento);
+            color: var(--slate-text);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        .font-mono { font-family: 'Space Mono', monospace; }
+
+        /* Top Bar */
+        .bento-nav {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(14px);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .bento-nav-links {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .bento-pill {
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: var(--radius-pill);
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--slate-muted);
+            border: 1px solid transparent;
+            transition: all .2s;
+        }
+        .bento-pill:hover { background: var(--card-subtle); color: var(--slate-text); }
+        .bento-pill.active {
+            background: var(--coral-accent);
+            color: #FFF;
+            box-shadow: 0 4px 12px rgba(255, 90, 54, 0.3);
+        }
+
+        /* Bento Hero & Stats Layout */
+        .bento-header-grid {
+            max-width: 1300px;
+            margin: 32px auto 20px;
+            padding: 0 24px;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 20px;
+        }
+        .bento-box {
+            background: var(--card-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-bento);
+            padding: 26px;
+            box-shadow: var(--shadow-bento);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+        .bento-main-hero {
+            background: linear-gradient(135deg, #FFFFFF 0%, #FFF5F2 100%);
+            border-color: rgba(255, 90, 54, 0.25);
+        }
+        .bento-hero-title {
+            font-size: 34px;
+            font-weight: 900;
+            letter-spacing: -1px;
+            line-height: 1.15;
+            margin-bottom: 8px;
+        }
+        .bento-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--coral-soft);
+            color: var(--coral-accent);
+            font-size: 12px;
+            font-weight: 800;
+            padding: 4px 14px;
+            border-radius: var(--radius-pill);
+            margin-bottom: 12px;
+            width: fit-content;
+        }
+
+        .stat-icon-wrap {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            display: grid;
+            place-items: center;
+            font-size: 20px;
+            margin-bottom: 14px;
+        }
+
+        /* Controls Strip */
+        .bento-controls {
+            max-width: 1300px;
+            margin: 0 auto 28px;
+            padding: 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            width: 100%;
+        }
+        .bento-search {
+            background: var(--card-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-pill);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 300px;
+            box-shadow: var(--shadow-bento);
+        }
+        .bento-search input {
+            border: none;
+            outline: none;
+            background: transparent;
+            font-family: inherit;
+            font-size: 13px;
+            width: 100%;
+        }
+
+        .cat-pills-bento {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .bento-cat-btn {
+            background: var(--card-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-pill);
+            padding: 8px 18px;
+            font-size: 12.5px;
+            font-weight: 700;
+            color: var(--slate-muted);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+            transition: all .15s;
+        }
+        .bento-cat-btn:hover { color: var(--coral-accent); border-color: var(--coral-accent); }
+        .bento-cat-btn.active {
+            background: var(--slate-text);
+            color: #FFF;
+            border-color: var(--slate-text);
+        }
+
+        .view-switch-bento {
+            background: #E2E8F0;
+            padding: 4px;
+            border-radius: var(--radius-pill);
+            display: flex;
+            gap: 4px;
+        }
+        .vs-bento-btn {
+            border: none;
+            background: transparent;
+            padding: 6px 16px;
+            border-radius: var(--radius-pill);
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--slate-muted);
+            cursor: pointer;
+        }
+        .vs-bento-btn.active {
+            background: #FFFFFF;
+            color: var(--slate-text);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        /* Bento Cards Grid */
+        .bento-cards-container {
+            max-width: 1300px;
+            margin: 0 auto 60px;
+            padding: 0 24px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(390px, 1fr));
+            gap: 24px;
+            width: 100%;
+        }
+
+        /* Modular Restaurant Bento Card */
+        .resto-bento-card {
+            background: var(--card-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-bento);
+            padding: 24px;
+            box-shadow: var(--shadow-bento);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 20px;
+            transition: all .25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .resto-bento-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+            border-color: rgba(255, 90, 54, 0.4);
+        }
+
+        .bento-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .bento-name {
+            font-size: 21px;
+            font-weight: 900;
+            letter-spacing: -0.4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .price-chip-bento {
+            background: var(--coral-soft);
+            color: var(--coral-accent);
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            font-size: 13.5px;
+            padding: 5px 12px;
+            border-radius: var(--radius-pill);
+        }
+
+        .status-pill-rail {
+            background: var(--card-subtle);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-inner);
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        /* Dish Bento Tile */
+        .dish-bento-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .dish-bento-tile {
+            background: #FFFFFF;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-inner);
+            padding: 12px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .dish-bento-tile:hover {
+            border-color: var(--mint-accent);
+            background: var(--mint-soft);
+        }
+        .dish-b-title {
+            font-size: 13.5px;
+            font-weight: 800;
+            color: var(--slate-text);
+        }
+        .dish-b-desc {
+            font-size: 11.5px;
+            color: var(--slate-muted);
+            margin-top: 2px;
+        }
+        .dish-b-tag {
+            font-size: 10px;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: var(--radius-pill);
+            background: #E2E8F0;
+            color: var(--slate-text);
+        }
+
+        .bento-card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 14px;
+            border-top: 1px solid var(--border-subtle);
+        }
+        .btn-bento-order {
+            background: linear-gradient(135deg, var(--coral-accent), #FF7854);
+            color: #FFFFFF;
+            border: none;
+            padding: 9px 20px;
+            border-radius: var(--radius-pill);
+            font-size: 12.5px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(255, 90, 54, 0.3);
+            transition: all .15s;
+        }
+        .btn-bento-order:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.05);
+        }
+
+        /* Modal */
+        .bento-modal-layer {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            display: none;
+            place-items: center;
+            padding: 20px;
+        }
+        .bento-modal-layer.active { display: grid; }
+        .bento-modal-content {
+            background: #FFFFFF;
+            border-radius: 28px;
+            max-width: 480px;
+            width: 100%;
+            padding: 32px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        .bento-modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid var(--border-subtle);
+            background: var(--card-subtle);
+            cursor: pointer;
+            font-weight: 800;
+        }
+
+        .bento-toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--slate-text);
+            color: #FFF;
+            padding: 12px 24px;
+            border-radius: var(--radius-pill);
+            font-size: 13px;
+            font-weight: 700;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            opacity: 0;
+            transition: all .25s ease;
+            z-index: 3000;
+        }
+        .bento-toast.active {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        @media (max-width: 960px) {
+            .bento-header-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="bento-nav">
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-weight:900; font-size:14px;">🍱 STATUSKOLL BENTO</span>
+        </div>
+        <div class="bento-nav-links">
+            <a href="style-15-v1-live-ops.html" class="bento-pill">v1 Live Ops</a>
+            <a href="style-15-v2-swiss-grid.html" class="bento-pill">v2 Swiss Precision</a>
+            <a href="style-15-v3-dark-cockpit.html" class="bento-pill">v3 Dark Cockpit</a>
+            <a href="style-15-v4-modular-bento.html" class="bento-pill active">v4 Modular Bento</a>
+            <a href="style-15-v5-transit-dispatch.html" class="bento-pill">v5 Transit Dispatch</a>
+            <a href="style-15-v6-appnest.html" class="bento-pill">v6 Appnest ✦</a>
+            <a href="style-15-statuskoll.html" class="bento-pill">Baseline</a>
+        </div>
+    </nav>
+
+    <header class="bento-header-grid">
+        <div class="bento-box bento-main-hero">
+            <div>
+                <div class="bento-badge">✨ Modular Lunch Dashboard</div>
+                <h1 class="bento-hero-title">StatusKoll Bento Edition</h1>
+                <p style="font-size:14px; color:var(--slate-muted); line-height:1.6; max-width:540px;">
+                    En modulär widget- och bento-struktur med blixtsnabb överblick av lunchmenyer, köksbelastning och bordsplatser.
+                </p>
+            </div>
+            <div style="margin-top:18px; font-size:12px; font-weight:700; color:var(--coral-accent);">
+                ● 14 aktiva kök redo för servering idag
+            </div>
+        </div>
+
+        <div class="bento-box">
+            <div>
+                <div class="stat-icon-wrap" style="background:var(--mint-soft); color:var(--mint-accent);">⚡</div>
+                <div style="font-size:12px; color:var(--slate-muted); font-weight:700;">SERVERINGSNIVÅ</div>
+                <div style="font-size:26px; font-weight:900; margin-top:4px;">100% Drift</div>
+            </div>
+            <div style="font-size:11.5px; color:var(--mint-accent); font-weight:700;">Alla menyer live</div>
+        </div>
+
+        <div class="bento-box">
+            <div>
+                <div class="stat-icon-wrap" style="background:var(--indigo-soft); color:var(--indigo-accent);">💳</div>
+                <div style="font-size:12px; color:var(--slate-muted); font-weight:700;">MEDELPRIS LUNCH</div>
+                <div style="font-size:26px; font-weight:900; margin-top:4px;" class="font-mono">132 kr</div>
+            </div>
+            <div style="font-size:11.5px; color:var(--slate-muted);">Inklusive kaffe & bröd</div>
+        </div>
+    </header>
+
+    <section class="bento-controls">
+        <div class="bento-search">
+            <span>🔍</span>
+            <input type="text" placeholder="Sök restaurang eller favorit..." oninput="onSearch(this.value)">
+        </div>
+
+        <div class="cat-pills-bento">
+            <button class="bento-cat-btn active" onclick="setCategory('Alla', this)">Alla Restauranger</button>
+            <button class="bento-cat-btn" onclick="setCategory('Husman', this)">🥩 Husman</button>
+            <button class="bento-cat-btn" onclick="setCategory('Fisk', this)">🐟 Fisk</button>
+            <button class="bento-cat-btn" onclick="setCategory('Veg', this)">🌱 Vegetariskt</button>
+            <button class="bento-cat-btn" onclick="setCategory('Asiatiskt', this)">🍜 Asiatiskt</button>
+        </div>
+
+        <div class="view-switch-bento">
+            <button class="vs-bento-btn active" id="bentoToday" onclick="setViewMode('today')">Idag</button>
+            <button class="vs-bento-btn" id="bentoWeek" onclick="setViewMode('week')">Hela Veckan</button>
+        </div>
+    </section>
+
+    <main class="bento-cards-container" id="bentoGrid"></main>
+
+    <!-- Modal -->
+    <div class="bento-modal-layer" id="bModal" onclick="if(event.target===this) closeModal()">
+        <div class="bento-modal-content">
+            <button class="bento-modal-close" onclick="closeModal()">✕</button>
+            <div style="font-size:11px; font-weight:800; color:var(--coral-accent); text-transform:uppercase;">
+                ● STATUSKOLL BORDSBOKNING
+            </div>
+            <h2 id="bRest" style="font-size:24px; font-weight:900; margin:6px 0;">Kooperativet</h2>
+            <div id="bDish" style="font-size:15px; font-weight:800; color:var(--coral-accent); margin-bottom:12px;">Helstekt Ryggbiff</div>
+            <p id="bDesc" style="font-size:13px; color:var(--slate-muted); line-height:1.6; margin-bottom:18px;">
+                Serveras nylagad med tillbehör, färskt bröd och kaffe.
+            </p>
+            <div style="background:var(--card-subtle); border:1px solid var(--border-subtle); border-radius:var(--radius-inner); padding:14px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:12px; color:var(--slate-muted);">Pris inklusive buffé:</span>
+                <span id="bPrice" style="font-size:16px; font-weight:800; color:var(--coral-accent);" class="font-mono">135 SEK</span>
+            </div>
+            <button class="btn-bento-order" style="width:100%; padding:13px;" onclick="confirmOrder()">Bekräfta Bokning ✅</button>
+        </div>
+    </div>
+
+    <div class="bento-toast" id="bToast">Meddelande</div>
+
+    <script>
+        const restaurants = [
+            {
+                id: 'kooperativet',
+                name: 'Kooperativet',
+                area: 'Lindholmen',
+                distance: '250 m',
+                price: '135 SEK',
+                rating: '4.8',
+                status: 'Kort kö • 12 lediga bord',
+                category: 'Husman',
+                today: [
+                    { title: 'Helstekt Ryggbiff & Rödvinssky', desc: 'Rostad potatis, örtsmör, primörer', tag: 'Kött' },
+                    { title: 'Ugnsbakad Laxfilé & Sandefjordsås', desc: 'Dillpotatis, fänkålscrudité', tag: 'Fisk' },
+                    { title: 'Rostad Blomkålsbiff med Linser', desc: 'Örtaioli, picklad rödlök', tag: 'Veg' }
+                ],
+                week: [
+                    { day: 'Mån', dish: 'Wallenbergare med skirat smör & potatismos' },
+                    { day: 'Tis', dish: 'Stekt fläsk med raggmunk & lingon' },
+                    { day: 'Ons', dish: 'Fiskgryta med saffran & aioli' },
+                    { day: 'Tor', dish: 'Ärtsoppa & pannkakor med sylt och grädde' },
+                    { day: 'Fre', dish: 'Helstekt Ryggbiff & rödvinssås' }
+                ]
+            },
+            {
+                id: 'porten',
+                name: 'Restaurang Porten',
+                area: 'Science Park',
+                distance: '400 m',
+                price: '129 SEK',
+                rating: '4.6',
+                status: 'Snabb kassa • God plats',
+                category: 'Husman',
+                today: [
+                    { title: 'Klassiska Köttbullar & Gräddsås', desc: 'Potatismos, rårörda lingon, pressgurka', tag: 'Husman' },
+                    { title: 'Smörstekt Torskrygg & Äggsås', desc: 'Kokt potatis, citron & dill', tag: 'Fisk' }
+                ],
+                week: [
+                    { day: 'Mån', dish: 'Kycklingfilé med dragonsås & ris' },
+                    { day: 'Tis', dish: 'Köttbullar med gräddsås & lingon' },
+                    { day: 'Ons', dish: 'Pannbiff med stekt lök & skysås' },
+                    { day: 'Tor', dish: 'Gulaschsoppa med hembakt bröd' },
+                    { day: 'Fre', dish: 'Smörstekt Torskrygg & citron' }
+                ]
+            },
+            {
+                id: 'ls_resto',
+                name: 'L\'s Resto',
+                area: 'Lindholmen',
+                distance: '300 m',
+                price: '125 SEK',
+                rating: '4.5',
+                status: 'Direktbord • Kök redo',
+                category: 'Asiatiskt',
+                today: [
+                    { title: 'Vietnamesisk Pho Bo Biffsoppa', desc: 'Risnudlar, färska örter, lime & chili', tag: 'Asiatiskt' },
+                    { title: 'Wokad Tofu & Grönsaker', desc: 'Jasminris, sweet chili, cashewnötter', tag: 'Veg' }
+                ],
+                week: [
+                    { day: 'Mån', dish: 'Pad Thai med kyckling & jordnötter' },
+                    { day: 'Tis', dish: 'Biff i röd curry & bambuskott' },
+                    { day: 'Ons', dish: 'Pho Bo & färsk koriander' },
+                    { day: 'Tor', dish: 'Crispy Duck med plommonsås' },
+                    { day: 'Fre', dish: 'Vietnamesisk Nudelwok' }
+                ]
+            },
+            {
+                id: 'cuckoos',
+                name: 'Cuckoo\'s Nest',
+                area: 'Radisson Riverside',
+                distance: '550 m',
+                price: '155 SEK',
+                rating: '4.9',
+                status: 'Hög efterfrågan • Boka i förväg',
+                category: 'Husman',
+                today: [
+                    { title: 'Majskycklingbröst & Tryffelrisotto', desc: 'Parmesan, rostade hasselnötter', tag: 'Gourmet' },
+                    { title: 'Grillad Spetskål & Vit bönkräm', desc: 'Rostad mandel, brynt smör', tag: 'Veg' }
+                ],
+                week: [
+                    { day: 'Mån', dish: 'Rimmad lax med dillstuvad potatis' },
+                    { day: 'Tis', dish: 'Biff Rydberg med dijonsenap' },
+                    { day: 'Ons', dish: 'Hjortgryta med enbär & svamp' },
+                    { day: 'Tor', dish: 'Fisk & skaldjursgryta' },
+                    { day: 'Fre', dish: 'Majskycklingbröst & Tryffelrisotto' }
+                ]
+            }
+        ];
+
+        let curView = 'today';
+        let curCat = 'Alla';
+        let searchQuery = '';
+        let favorites = ['kooperativet', 'cuckoos'];
+
+        function setViewMode(v) {
+            curView = v;
+            document.getElementById('bentoToday').classList.toggle('active', v === 'today');
+            document.getElementById('bentoWeek').classList.toggle('active', v === 'week');
+            render();
+            triggerToast(`Vy: ${v === 'today' ? 'Dagens menyer' : 'Veckomeny'}`);
+        }
+
+        function setCategory(c, btn) {
+            curCat = c;
+            document.querySelectorAll('.bento-cat-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            render();
+            triggerToast(`Kategori: ${c}`);
+        }
+
+        function onSearch(val) {
+            searchQuery = val.toLowerCase();
+            render();
+        }
+
+        function toggleFav(id, e) {
+            e.stopPropagation();
+            favorites = favorites.includes(id) ? favorites.filter(x => x !== id) : [...favorites, id];
+            triggerToast('Favoritlistan uppdaterad ❤️');
+            render();
+        }
+
+        function openModal(name, dish, desc, price) {
+            document.getElementById('bRest').textContent = name;
+            document.getElementById('bDish').textContent = dish;
+            document.getElementById('bDesc').textContent = desc;
+            document.getElementById('bPrice').textContent = price;
+            document.getElementById('bModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('bModal').classList.remove('active');
+        }
+
+        function confirmOrder() {
+            closeModal();
+            triggerToast('Bokning bekräftad! ✅');
+        }
+
+        function triggerToast(msg) {
+            const t = document.getElementById('bToast');
+            t.textContent = msg;
+            t.classList.add('active');
+            clearTimeout(window._tb);
+            window._tb = setTimeout(() => t.classList.remove('active'), 2200);
+        }
+
+        function render() {
+            const grid = document.getElementById('bentoGrid');
+            const items = restaurants.filter(r => {
+                const mc = curCat === 'Alla' || r.category === curCat || (curCat === 'Fisk' && r.today.some(x => x.tag === 'Fisk')) || (curCat === 'Veg' && r.today.some(x => x.tag === 'Veg'));
+                const ms = r.name.toLowerCase().includes(searchQuery) || r.today.some(t => t.title.toLowerCase().includes(searchQuery));
+                return mc && ms;
+            });
+
+            if (items.length === 0) {
+                grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--slate-muted);">Inga menyer matchade sökningen.</div>';
+                return;
+            }
+
+            grid.innerHTML = items.map(r => {
+                const isFav = favorites.includes(r.id);
+                return `
+                    <div class="resto-bento-card">
+                        <div>
+                            <div class="bento-card-top">
+                                <div>
+                                    <h3 class="bento-name">
+                                        ${r.name}
+                                        <button onclick="toggleFav('${r.id}', event)" style="background:none; border:none; cursor:pointer; font-size:16px;">
+                                            ${isFav ? '❤️' : '🤍'}
+                                        </button>
+                                    </h3>
+                                    <div style="font-size:12px; color:var(--slate-muted); margin-top:2px;">
+                                        📍 ${r.area} (${r.distance}) • ⭐ ${r.rating}
+                                    </div>
+                                </div>
+                                <span class="price-chip-bento">${r.price}</span>
+                            </div>
+
+                            <div class="status-pill-rail" style="margin:14px 0 16px;">
+                                <span style="font-weight:800; color:var(--mint-accent);">● Live Status:</span>
+                                <span style="color:var(--slate-muted);">${r.status}</span>
+                            </div>
+
+                            ${curView === 'today' ? `
+                                <div class="dish-bento-list">
+                                    ${r.today.map(d => `
+                                        <div class="dish-bento-tile" onclick="openModal('${r.name}', '${d.title}', '${d.desc}', '${r.price}')">
+                                            <div>
+                                                <div class="dish-b-title">${d.title}</div>
+                                                <div class="dish-b-desc">${d.desc}</div>
+                                            </div>
+                                            <span class="dish-b-tag">${d.tag}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : `
+                                <div style="display:flex; flex-direction:column; gap:6px; font-size:12px;">
+                                    ${r.week.map(w => `
+                                        <div style="background:var(--card-subtle); padding:8px 12px; border-radius:8px; display:flex; gap:8px;">
+                                            <strong style="color:var(--coral-accent); min-width:32px;">${w.day}:</strong>
+                                            <span>${w.dish}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `}
+                        </div>
+
+                        <div class="bento-card-footer">
+                            <span style="font-size:11.5px; color:var(--slate-muted);">☕ Buffé & kaffe ingår</span>
+                            <button class="btn-bento-order" onclick="openModal('${r.name}', 'Lunchbokning', 'Boka lunch och bord', '${r.price}')">
+                                Boka Nu
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.addEventListener('DOMContentLoaded', render);
+    </script>
+</body>
+</html>
