@@ -1,0 +1,28 @@
+{
+  "restaurant_id": "roots",
+  "restaurant_name": "Roots Food Market",
+  "url": "https://www.rootsfoodmarket.se/lunch",
+  "expected_days": ["Måndag", "Tisdag", "Onsdag", "Torsdag", "Fredag"],
+  "min_dishes_per_day": 3,
+  "golden_sample": {
+    "restaurant": "Roots Food Market",
+    "items": [
+      {
+        "name": "Smörstekt gnocchi med vildsvamp, pärllök, grönkål och svampgrädde",
+        "price": 123
+      },
+      {
+        "name": "Lågbakad lax med Sandefjord sås och kokt potatis",
+        "price": 123
+      },
+      {
+        "name": "Schnitzel med rostad potatis och rödvinssås",
+        "price": 123
+      },
+      {
+        "name": "Stekt kycklingfärs i kokosmjölk med thaibasilika och ris",
+        "price": 123
+      }
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "restaurant_id": "divan",
+  "restaurant_name": "Divan",
+  "url": "https://www.restaurangdivan.se/",
+  "expected_days": ["Måndag", "Tisdag", "Onsdag", "Torsdag", "Fredag"],
+  "min_dishes_per_day": 1,
+  "golden_sample": {
+    "restaurant": "Divan",
+    "items": [
+      {
+        "name": "Adana kebab med ris och sallad",
+        "price": 129
+      },
+      {
+        "name": "Köfte med bulgur och grillade grönsaker",
+        "price": 129
+      },
+      {
+        "name": "Iskender kebab",
+        "price": 139
+      }
+    ]
+  }
+}

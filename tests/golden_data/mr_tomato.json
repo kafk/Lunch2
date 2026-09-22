@@ -1,0 +1,24 @@
+{
+  "restaurant_id": "mr_tomato",
+  "restaurant_name": "Mr Tomato",
+  "url": "https://mistertomato.se/",
+  "expected_days": ["Måndag", "Tisdag", "Onsdag", "Torsdag", "Fredag"],
+  "min_dishes_per_day": 1,
+  "golden_sample": {
+    "restaurant": "Mr Tomato",
+    "items": [
+      {
+        "name": "Pasta Carbonara",
+        "price": 129
+      },
+      {
+        "name": "Pizza Margherita",
+        "price": 119
+      },
+      {
+        "name": "Lasagne al forno",
+        "price": 129
+      }
+    ]
+  }
+}
