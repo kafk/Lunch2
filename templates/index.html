@@ -8,6 +8,45 @@
     .device-info { min-width: 0; }
     .device-name, .device-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+    .compact-header { cursor: pointer; }
+    .restaurant-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: rgba(17, 24, 39, .45);
+        backdrop-filter: blur(4px);
+    }
+    .restaurant-modal.active { display: flex; }
+    .restaurant-modal-content {
+        width: min(720px, 100%);
+        max-height: 88vh;
+        overflow: auto;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0,0,0,.2);
+    }
+    .restaurant-modal-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 22px 24px 16px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .restaurant-modal-header h2 { margin: 0; color: #111827; font-size: 20px; }
+    .restaurant-modal-close { border: 0; background: transparent; color: #6b7280; cursor: pointer; padding: 4px; font-size: 24px; line-height: 1; }
+    .restaurant-modal-body { padding: 20px 24px 24px; }
+    .restaurant-modal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 20px; }
+    .restaurant-modal-section { padding: 14px; border: 1px solid #e5e7eb; border-radius: 10px; }
+    .restaurant-modal-section h3 { margin: 0 0 8px; color: #374151; font-size: 13px; }
+    .restaurant-modal-section p, .restaurant-modal-section a { margin: 0; color: #4b5563; font-size: 14px; line-height: 1.55; word-break: break-word; }
+    .restaurant-week-menu { white-space: pre-wrap; color: #374151; font-size: 14px; line-height: 1.6; }
+    @media (max-width: 600px) { .restaurant-modal-grid { grid-template-columns: 1fr; } .restaurant-modal-header, .restaurant-modal-body { padding-left: 18px; padding-right: 18px; } }
+
     @media (max-width: 768px) {
         .card-header {
             flex-direction: column;
@@ -124,6 +163,16 @@
             </div>
         </div>
 
+    </div>
+</div>
+
+<div class="restaurant-modal" id="restaurantModal" role="dialog" aria-modal="true" aria-labelledby="restaurantModalTitle" onclick="closeRestaurantModal(event)">
+    <div class="restaurant-modal-content" onclick="event.stopPropagation()">
+        <div class="restaurant-modal-header">
+            <h2 id="restaurantModalTitle">Restaurang</h2>
+            <button class="restaurant-modal-close" type="button" aria-label="Stäng" onclick="closeRestaurantModal()">&times;</button>
+        </div>
+        <div class="restaurant-modal-body" id="restaurantModalBody"></div>
     </div>
 </div>
 {% endblock %}
@@ -265,7 +314,7 @@
             const text = menuText(menu);
             return `
                 <div class="compact-item" onclick="toggleCompact(this, event)">
-                    <div class="compact-header">
+                    <div class="compact-header" onclick='openRestaurantModal(${JSON.stringify(menu.name).replace(/</g, '&lt;')}, event)'>
                         <span class="compact-name"><span class="compact-dot"></span>${escapeHtml(menu.name)}</span>
                         <a href="${escapeHtml(menu.url)}" target="_blank" class="compact-link" onclick="event.stopPropagation()">
                             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -347,6 +396,7 @@
     }
 
     function toggleCompact(element, event) {
+        if (event.target.closest('.compact-header')) return;
         element.classList.toggle('expanded');
         const expandText = element.querySelector('.expand-text');
         if (element.classList.contains('expanded')) {
@@ -355,6 +405,44 @@
             expandText.textContent = 'Visa mer';
         }
     }
+
+    async function openRestaurantModal(name, event) {
+        event.stopPropagation();
+        const menu = cachedMenus.find(item => item.name === name);
+        if (!menu) return;
+        const modal = document.getElementById('restaurantModal');
+        const body = document.getElementById('restaurantModalBody');
+        document.getElementById('restaurantModalTitle').textContent = name;
+        body.innerHTML = '<p class="loading-text">Hämtar restauranguppgifter...</p>';
+        modal.classList.add('active');
+        try {
+            const response = await fetch('/api/restaurant-info?name=' + encodeURIComponent(name));
+            const info = response.ok ? await response.json() : {};
+            const hours = info.opening_hours?.length ? info.opening_hours.map(escapeHtml).join('<br>') : 'Öppettider saknas på webbplatsen.';
+            const contact = [info.phone, info.email, info.address].filter(Boolean).map(escapeHtml).join('<br>') || 'Kontaktuppgifter saknas på webbplatsen.';
+            body.innerHTML = `
+                <div class="restaurant-modal-grid">
+                    <section class="restaurant-modal-section"><h3>Öppettider</h3><p>${hours}</p></section>
+                    <section class="restaurant-modal-section"><h3>Kontakt</h3><p>${contact}</p></section>
+                </div>
+                <section class="restaurant-modal-section">
+                    <h3>Hela veckans meny</h3>
+                    <div class="restaurant-week-menu">${escapeHtml(menu.menu || 'Ingen meny tillgänglig.')}</div>
+                </section>
+                <p style="margin:16px 0 0"><a href="${escapeHtml(menu.url)}" target="_blank" rel="noopener noreferrer" style="color:#16a34a;font-weight:600">Besök restaurangens hemsida ↗</a></p>`;
+        } catch (error) {
+            body.innerHTML = `<p>Kunde inte hämta restauranguppgifter.</p><p style="margin-top:16px"><a href="${escapeHtml(menu.url)}" target="_blank" rel="noopener noreferrer">Besök restaurangens hemsida</a></p>`;
+        }
+    }
+
+    function closeRestaurantModal(event) {
+        if (event && event.target !== event.currentTarget) return;
+        document.getElementById('restaurantModal').classList.remove('active');
+    }
+
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') closeRestaurantModal();
+    });
 
     function toggleRestaurant(index, enabled) {
         if (!cachedUrls[index]) return;

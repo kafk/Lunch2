@@ -227,6 +227,54 @@ def get_storage_info():
         'storage_type': 'Firebase Firestore' if db else 'Local JSON'
     }
 
+def get_restaurant_info(url):
+    """Hämta kontakt- och öppettidsuppgifter från restaurangens webbplats."""
+    response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.text, 'html.parser')
+    info = {'opening_hours': [], 'phone': '', 'email': '', 'address': ''}
+
+    for script in soup.find_all('script', type='application/ld+json'):
+        try:
+            data = json.loads(script.string or script.get_text())
+        except (TypeError, json.JSONDecodeError):
+            continue
+        entries = data if isinstance(data, list) else data.get('@graph', [data]) if isinstance(data, dict) else []
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            hours = entry.get('openingHours') or entry.get('openingHoursSpecification')
+            if isinstance(hours, list):
+                for item in hours:
+                    if isinstance(item, str):
+                        info['opening_hours'].append(item)
+                    elif isinstance(item, dict):
+                        days = item.get('dayOfWeek', [])
+                        days = ', '.join(days) if isinstance(days, list) else days
+                        opens = item.get('opens', '')
+                        closes = item.get('closes', '')
+                        info['opening_hours'].append(f'{days}: {opens}-{closes}'.strip(': -'))
+            elif isinstance(hours, str):
+                info['opening_hours'].append(hours)
+            info['phone'] = info['phone'] or entry.get('telephone', '')
+            info['email'] = info['email'] or entry.get('email', '')
+            address = entry.get('address')
+            if isinstance(address, dict):
+                info['address'] = info['address'] or ', '.join(
+                    value for value in [address.get('streetAddress'), address.get('postalCode'), address.get('addressLocality')] if value
+                )
+            elif isinstance(address, str):
+                info['address'] = info['address'] or address
+
+    if not info['opening_hours']:
+        text = soup.get_text(' ', strip=True)
+        match = re.search(r'(?:Öppettider|Öppet)\s*:?\s*(.{0,300}?)(?=Kontakt|Telefon|Adress|$)', text, re.IGNORECASE)
+        if match:
+            info['opening_hours'] = [re.sub(r'\s+', ' ', match.group(1)).strip(' .,:')]
+
+    info['opening_hours'] = list(dict.fromkeys(hour for hour in info['opening_hours'] if hour))
+    return info
+
 def get_cached_menus():
     """Hämta cachade menyer om de är från idag."""
     today = swedish_now().strftime('%Y-%m-%d')
@@ -1503,6 +1551,19 @@ def demo():
 def get_urls():
     """Hämta alla sparade URL:er."""
     return jsonify(load_urls())
+
+@app.route('/api/restaurant-info', methods=['GET'])
+def api_restaurant_info():
+    """Hämta kontakt- och öppettidsuppgifter för en registrerad restaurang."""
+    name = request.args.get('name', '').strip()
+    restaurant = next((item for item in load_urls() if item.get('name') == name), None)
+    if not restaurant:
+        return jsonify({'error': 'Restaurangen hittades inte'}), 404
+    try:
+        info = get_restaurant_info(restaurant['url'])
+        return jsonify({'url': restaurant['url'], **info})
+    except requests.RequestException:
+        return jsonify({'url': restaurant['url'], 'opening_hours': [], 'phone': '', 'email': '', 'address': ''})
 
 @app.route('/api/urls', methods=['POST'])
 def add_url():
