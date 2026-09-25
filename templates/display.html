@@ -278,12 +278,12 @@
     .spin { width:18px;height:18px;border:2px solid #e5e7eb;border-top-color:#22c55e;border-radius:50%;animation:disp-spin .7s linear infinite;display:inline-block; }
     @keyframes disp-spin { to { transform:rotate(360deg); } }
 
-    .lab-card-header { display:flex;align-items:center;gap:12px;padding:16px 16px 10px; }
+    .lab-card-header { display:flex;align-items:center;gap:12px;padding:16px;cursor:pointer;border-bottom:1px solid #e5e7eb; }
     .lab-card-icon { width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;background:#f0fdf4; }
     .lab-card-info { flex:1;min-width:0; }
     .lab-card-name { font-size:14px;font-weight:600;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
     .lab-card-domain { font-size:12px;margin-top:1px; }
-    .lab-card-content { margin:0 16px 16px;font-size:13px;color:#374151;line-height:1.5;max-height:300px;overflow-y:auto; }
+    .lab-card-content { margin:16px 16px 16px;font-size:13px;color:#374151;line-height:1.5;max-height:300px;overflow-y:auto; }
 
     .dish-block { margin-bottom:14px; }
     .dish-block:last-child { margin-bottom:0; }
@@ -811,6 +811,30 @@
         modal.classList.add('active');
     }
 
+    async function openRestaurantModalByName(name, event) {
+        event.stopPropagation();
+        const menu = allMenus.find(item => item.name === name);
+        if (!menu) return;
+        modalTitle.textContent = name;
+        modalBody.innerHTML = '<p class="loading-text">Hämtar restauranguppgifter...</p>';
+        modal.classList.add('active');
+        try {
+            const response = await fetch('/api/restaurant-info?name=' + encodeURIComponent(name));
+            const info = response.ok ? await response.json() : {};
+            const hours = info.opening_hours?.length ? info.opening_hours.map(escapeHtml).join('<br>') : 'Öppettider saknas på webbplatsen.';
+            const contact = [info.phone, info.email, info.address].filter(Boolean).map(escapeHtml).join('<br>') || 'Kontaktuppgifter saknas på webbplatsen.';
+            modalBody.innerHTML = `
+                <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:20px;">
+                    <section style="padding:14px;border:1px solid #e5e7eb;border-radius:10px;"><h4 style="margin:0 0 8px;color:#374151;font-size:13px;">Öppettider</h4><p style="margin:0;color:#4b5563;line-height:1.55;">${hours}</p></section>
+                    <section style="padding:14px;border:1px solid #e5e7eb;border-radius:10px;"><h4 style="margin:0 0 8px;color:#374151;font-size:13px;">Kontakt</h4><p style="margin:0;color:#4b5563;line-height:1.55;">${contact}</p></section>
+                </div>
+                <section style="padding:14px;border:1px solid #e5e7eb;border-radius:10px;"><h4 style="margin:0 0 8px;color:#374151;font-size:13px;">Hela veckans meny</h4><div style="white-space:pre-wrap;color:#374151;line-height:1.6;">${formatMenuContent(escapeHtml(menu.menu || 'Ingen meny tillgänglig.'))}</div></section>
+                <p style="margin:16px 0 0;"><a href="${escapeHtml(menu.url)}" target="_blank" rel="noopener noreferrer" style="color:#16a34a;font-weight:600;">Besök restaurangens hemsida ↗</a></p>`;
+        } catch (error) {
+            modalBody.innerHTML = `<p>Kunde inte hämta restauranguppgifter.</p><p style="margin-top:16px;"><a href="${escapeHtml(menu.url)}" target="_blank" rel="noopener noreferrer">Besök restaurangens hemsida</a></p>`;
+        }
+    }
+
     function closeModal() {
         modal.classList.remove('active');
     }
@@ -848,7 +872,7 @@
         const text = displayView === 'today' ? extractToday(menu.menu || '') : (menu.menu || '');
         return `
             <div class="lab-card ${menu.success ? 'lab-success' : 'lab-failed'}" id="disp-card-${escapeHtml(u.name).replace(/\s/g,'_')}">
-                <div class="lab-card-header">
+                <div class="lab-card-header" onclick='openRestaurantModalByName(${JSON.stringify(menu.name)}, event)'>
                     <div class="lab-card-icon">${menu.success ? '🍴' : '❌'}</div>
                     <div class="lab-card-info">
                         <div class="lab-card-name">${escapeHtml(menu.name)}</div>
