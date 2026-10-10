@@ -1,0 +1,8 @@
+# restaurant-research Skill — runtime dependencies.
+# Core Skill + tests use only the Python standard library.
+# `requests` is required for the live HTTP fetcher; `pypdf` is optional and only
+# used to read text from PDF menus. `truststore` helps on TLS-intercepting
+# corporate networks. Tests need none of these.
+requests>=2.31.0
+pypdf>=4.0.0
+truststore>=0.9.0

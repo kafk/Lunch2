@@ -1,0 +1,9 @@
+# restaurant-discovery Skill — runtime dependencies.
+# The core Skill and its tests use ONLY the Python standard library.
+# `requests` is required only when using a LIVE search provider (Brave/SerpAPI)
+# or the optional Gemini reasoner. Tests do not need it.
+requests>=2.31.0
+
+# Optional: on networks with TLS interception (corporate proxies), this makes
+# Python trust the OS/Windows certificate store. Imported best-effort by the CLI.
+truststore>=0.9.0

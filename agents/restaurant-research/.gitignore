@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+*.db
+.env
+_pipeline_demo.py

@@ -1,0 +1,11 @@
+# lunch-scraping Skill — runtime dependencies.
+# Tests use only mocked responses (no network, no browser), but the HTML/XPath
+# strategies require bs4 + lxml, so they are core deps.
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=5.0.0
+pypdf>=4.0.0
+truststore>=0.9.0
+# Optional: only needed for the JavaScript/browser strategy. If absent, that
+# strategy returns BROWSER_REQUIRED instead of pretending to scrape.
+# playwright>=1.40.0
