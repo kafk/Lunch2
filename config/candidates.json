@@ -1,0 +1,552 @@
+[
+  {
+    "id": "fiskekrogen",
+    "name": "Fiskekrogen",
+    "city": "Göteborg",
+    "address": "Lilla Torget 1",
+    "website": "https://www.fiskekrogen.nu",
+    "lunch_url": null,
+    "status": "FAILED",
+    "lunch_found": false,
+    "evidence": [],
+    "strategy": {
+      "type": "auto"
+    },
+    "test_result": null,
+    "validation_issues": [],
+    "error": "Kunde inte nå webbplatsen: HTTP fetch failed for https://www.fiskekrogen.nu: HTTPSConnectionPool(host='www.fiskekrogen.nu', port=443): Max retries exceeded with url: / (Caused by NameResolutionError(\"HTTPSConnection(host='www.fiskekrogen.nu', port=443): Failed to resolve 'www.fiskekrogen.nu' ([Errno 11001] getaddrinfo failed)\"))",
+    "discovered_at": "2026-10-10 10:36:29",
+    "updated_at": "2026-10-10 10:39:12"
+  },
+  {
+    "id": "restaurang_kometen",
+    "name": "Restaurang Kometen",
+    "city": "Göteborg",
+    "address": "Vasagatan 58",
+    "website": "https://restaurangkometen.se",
+    "lunch_url": "https://restaurangkometen.se",
+    "status": "PENDING_APPROVAL",
+    "lunch_found": true,
+    "evidence": [
+      "Found lunch context: lunch, dagens",
+      "Found 4 weekdays (Måndag, Fredag, Lördag...)",
+      "Found lunch context: lunch, dagens",
+      "Found 4 weekdays (Måndag, Fredag, Lördag...)"
+    ],
+    "strategy": {
+      "type": "auto",
+      "confidence": "medium",
+      "reason": "Standard HTML heuristics with weekday grouping"
+    },
+    "test_result": {
+      "success": true,
+      "source": "HTML",
+      "error": null,
+      "days_found": 2,
+      "dishes_found": 12,
+      "is_valid": true,
+      "preview": "Måndag:\n- tisd  11.30-20.00\n- onsd-fred  11.30-21.00\n\nLördag:\n- 12.00-21.00\n- Söndagar 15.00-20.00\n- För att boka bord på Kometen så kan du antingen använda onlinebokningen eller ringa 031-13 79 88.\n- Vill du boka bord med kort varsel - ring oss, eller välkomna på dropp in\n- BOKA NU\n- Restaurang Kom"
+    },
+    "validation_issues": [],
+    "error": null,
+    "discovered_at": "2026-10-10 10:36:29",
+    "updated_at": "2026-10-10 10:39:33"
+  },
+  {
+    "id": "brasserie_lipp",
+    "name": "Brasserie Lipp",
+    "city": "Göteborg",
+    "address": "Kungsportsavenyen 8",
+    "website": "https://www.brasserielipp.se",
+    "lunch_url": null,
+    "status": "FAILED",
+    "lunch_found": false,
+    "evidence": [],
+    "strategy": {
+      "type": "auto"
+    },
+    "test_result": null,
+    "validation_issues": [],
+    "error": "Kunde inte nå webbplatsen: HTTP fetch failed for https://www.brasserielipp.se: HTTPSConnectionPool(host='www.brasserielipp.se', port=443): Max retries exceeded with url: / (Caused by NameResolutionError(\"HTTPSConnection(host='www.brasserielipp.se', port=443): Failed to resolve 'www.brasserielipp.se' ([Errno 11002] getaddrinfo failed)\"))",
+    "discovered_at": "2026-10-10 10:36:29",
+    "updated_at": "2026-10-10 10:39:33"
+  },
+  {
+    "id": "restaurang_familjen",
+    "name": "Restaurang Familjen",
+    "city": "Göteborg",
+    "address": "Arkivgatan 7",
+    "website": "https://restaurangfamiljen.se",
+    "lunch_url": "https://www.restaurangfamiljen.se/_files/ugd/ee3a06_28673832e7c04e7b86c9412587111bf9.pdf",
+    "status": "NEEDS_MANUAL_REVIEW",
+    "lunch_found": true,
+    "evidence": [
+      "Hittade PDF-lunchmeny: https://www.restaurangfamiljen.se/_files/ugd/ee3a06_28673832e7c04e7b86c9412587111bf9.pdf",
+      "Hittade PDF-lunchmeny: https://www.restaurangfamiljen.se/_files/ugd/ee3a06_28673832e7c04e7b86c9412587111bf9.pdf"
+    ],
+    "strategy": {
+      "type": "pdf",
+      "confidence": "high",
+      "reason": "Direct PDF URL"
+    },
+    "test_result": {
+      "success": true,
+      "source": "PDF",
+      "error": null,
+      "days_found": 0,
+      "dishes_found": 0,
+      "is_valid": true,
+      "preview": "På Familjen rekommenderar vi att ni skall \n ta en titt på vår förmånliga meny.  \nMenyn bygger alltid på de bästa lokala och  \nekologiska råvaror som säsongen erbjuder. \n \nLägg gärna till lite och få prova ett urval av lokala \nhantverksmässigt framställda ostar innan desserten \n \n \nMeny Familjen \n \nK"
+    },
+    "validation_issues": [],
+    "error": "Needs format review",
+    "discovered_at": "2026-10-10 10:36:29",
+    "updated_at": "2026-10-10 10:39:52"
+  },
+  {
+    "id": "taverna_averna",
+    "name": "Taverna Averna",
+    "city": "Göteborg",
+    "address": "Tredje Långgatan 7",
+    "website": "https://tavernaaverna.se",
+    "lunch_url": "https://tavernaaverna.se/lunch",
+    "status": "PENDING_APPROVAL",
+    "lunch_found": true,
+    "evidence": [
+      "Keyword 'lunch' in URL path",
+      "Keyword 'lunch' in link text 'lunch'",
+      "Found lunch context: lunch, dagens",
+      "Found 2 weekdays (Måndag, Fredag...)",
+      "Keyword 'lunch' in URL path",
+      "Keyword 'lunch' in link text 'lunch'",
+      "Found lunch context: lunch, dagens",
+      "Found 2 weekdays (Måndag, Fredag...)"
+    ],
+    "strategy": {
+      "type": "auto",
+      "confidence": "medium",
+      "reason": "Standard HTML heuristics with weekday grouping"
+    },
+    "test_result": {
+      "success": true,
+      "source": "HTML",
+      "error": null,
+      "days_found": 5,
+      "dishes_found": 105,
+      "is_valid": true,
+      "preview": "Måndag:\n- Burrata med marinerade tomater, basilika, krutonger\n- Toast Skagen ½ med skagenröra, smörstekt bröd, citron\n- Steak Tartare ½ med råbiff, rödbetor, kapris, pepparrot, lök, dijonnaise, äggula\n- Pesto Rigatoni med pasta, pesto, lemon zucchini, soltorkad tomat, kapris, oliver, parmesan, grill"
+    },
+    "validation_issues": [],
+    "error": null,
+    "discovered_at": "2026-10-10 10:36:29",
+    "updated_at": "2026-10-10 10:40:06"
+  },
+  {
+    "id": "spisa_matbar",
+    "name": "Spisa Matbar",
+    "city": "Göteborg",
+    "address": "Övre Husargatan 3",
+    "website": "https://spisamatbar.se",
+    "lunch_url": "https://spisamatbar.se",
+    "status": "RESEARCHED",
+    "lunch_found": false,
+    "evidence": [
+      "Found lunch context: lunch",
+      "Inga tydliga lunchmenysignaler kunde verifieras på sidan",
+      "Found lunch context: lunch",
+      "Inga tydliga lunchmenysignaler kunde verifieras på sidan"
+    ],
+    "strategy": {
+      "type": "auto"
+    },
+    "test_result": null,
+    "validation_issues": [],
+    "error": null,
+    "discovered_at": "2026-10-10 10:36:29",
+    "updated_at": "2026-10-10 10:40:08"
+  },
+  {
+    "id": "kooperativet_pagoden",
+    "name": "Kooperativet Pagoden",
+    "city": "Göteborg",
+    "address": "Kilsgatan 4",
+    "website": "https://kooperativet.se",
+    "lunch_url": "https://kooperativet.se",
+    "status": "PENDING_APPROVAL",
+    "lunch_found": true,
+    "evidence": [
+      "Found lunch context: lunch, veckans lunch",
+      "Found 5 weekdays (Måndag, Tisdag, Onsdag...)",
+      "Found lunch context: lunch, veckans lunch",
+      "Found 5 weekdays (Måndag, Tisdag, Onsdag...)"
+    ],
+    "strategy": {
+      "type": "auto",
+      "confidence": "medium",
+      "reason": "Standard HTML heuristics with weekday grouping"
+    },
+    "test_result": {
+      "success": true,
+      "source": "HTML",
+      "error": null,
+      "days_found": 3,
+      "dishes_found": 22,
+      "is_valid": true,
+      "preview": "Måndag:\n- Caesarsallad – romansallad toppad med kyckling & bacon, serveras med caesardressing, riven grana padano, sardeller samt krutonger\n- Kooperativets ”Tantanmen” Ramen Kryddad med chili & sesambuljong, serveras med risnudlar malen kycklingfärs, grillad pak choi samt bakad ägg och koriander\n- K"
+    },
+    "validation_issues": [],
+    "error": null,
+    "discovered_at": "2026-10-10 10:36:29",
+    "updated_at": "2026-10-10 10:40:19"
+  },
+  {
+    "id": "bar_bulot",
+    "name": "Bar Bulot",
+    "city": "Göteborg",
+    "address": "Stora Saluhallen, Kungstorget",
+    "website": "https://bulot.se",
+    "lunch_url": "https://bulot.se",
+    "status": "RESEARCHED",
+    "lunch_found": false,
+    "evidence": [
+      "Inga tydliga lunchmenysignaler kunde verifieras på sidan",
+      "Inga tydliga lunchmenysignaler kunde verifieras på sidan"
+    ],
+    "strategy": {
+      "type": "auto"
+    },
+    "test_result": null,
+    "validation_issues": [],
+    "error": null,
+    "discovered_at": "2026-10-10 10:36:29",
+    "updated_at": "2026-10-10 10:40:21"
+  },
+  {
+    "id": "tavolo",
+    "name": "Tavolo",
+    "city": "Göteborg",
+    "address": "Magasinsgatan 19",
+    "website": "https://tavolo.se",
+    "lunch_url": "https://tavolo.se",
+    "status": "RESEARCHED",
+    "lunch_found": false,
+    "evidence": [
+      "Found 4 weekdays (Torsdag, Fredag, Lördag...)",
+      "Inga tydliga lunchmenysignaler kunde verifieras på sidan",
+      "Found 4 weekdays (Torsdag, Fredag, Lördag...)",
+      "Inga tydliga lunchmenysignaler kunde verifieras på sidan"
+    ],
+    "strategy": {
+      "type": "auto"
+    },
+    "test_result": null,
+    "validation_issues": [],
+    "error": null,
+    "discovered_at": "2026-10-10 10:36:29",
+    "updated_at": "2026-10-10 10:40:21"
+  },
+  {
+    "id": "sjomagasinet",
+    "name": "Sjömagasinet",
+    "city": "Göteborg",
+    "address": "Adolf Edelsvärds gata 5",
+    "website": "https://sjomagasinet.se",
+    "lunch_url": "https://sjomagasinet.se",
+    "status": "RESEARCHED",
+    "lunch_found": false,
+    "evidence": [
+      "Inga tydliga lunchmenysignaler kunde verifieras på sidan",
+      "Inga tydliga lunchmenysignaler kunde verifieras på sidan"
+    ],
+    "strategy": {
+      "type": "auto"
+    },
+    "test_result": null,
+    "validation_issues": [],
+    "error": null,
+    "discovered_at": "2026-10-10 10:36:29",
+    "updated_at": "2026-10-10 10:40:23"
+  },
+  {
+    "id": "smaka_restaurang",
+    "name": "Smaka Restaurang",
+    "city": "Göteborg",
+    "address": "Vasaplatsen 3",
+    "website": "https://smaka.se",
+    "lunch_url": "https://smaka.se",
+    "status": "RESEARCHED",
+    "lunch_found": false,
+    "evidence": [
+      "Inga tydliga lunchmenysignaler kunde verifieras på sidan",
+      "Inga tydliga lunchmenysignaler kunde verifieras på sidan"
+    ],
+    "strategy": {
+      "type": "auto"
+    },
+    "test_result": null,
+    "validation_issues": [],
+    "error": null,
+    "discovered_at": "2026-10-10 10:36:29",
+    "updated_at": "2026-10-10 10:40:33"
+  },
+  {
+    "id": "restaurang_gabriel",
+    "name": "Restaurang Gabriel",
+    "city": "Göteborg",
+    "address": "Feskekôrka",
+    "website": "https://restauranggabriel.se",
+    "lunch_url": "https://restauranggabriel.se",
+    "status": "RESEARCHED",
+    "lunch_found": false,
+    "evidence": [
+      "Found lunch context: lunch",
+      "Inga tydliga lunchmenysignaler kunde verifieras på sidan",
+      "Found lunch context: lunch",
+      "Inga tydliga lunchmenysignaler kunde verifieras på sidan"
+    ],
+    "strategy": {
+      "type": "auto"
+    },
+    "test_result": null,
+    "validation_issues": [],
+    "error": null,
+    "discovered_at": "2026-10-10 10:36:29",
+    "updated_at": "2026-10-10 10:40:34"
+  },
+  {
+    "id": "natur_restaurang",
+    "name": "Natur Restaurang",
+    "city": "Göteborg",
+    "address": "Geijersgatan 12",
+    "website": "https://restaurangnatur.se",
+    "lunch_url": "https://restaurangnatur.se",
+    "status": "RESEARCHED",
+    "lunch_found": false,
+    "evidence": [
+      "Found 5 weekdays (Måndag, Torsdag, Fredag...)",
+      "Found lunch pricing (e.g. 150 kr)",
+      "Inga tydliga lunchmenysignaler kunde verifieras på sidan",
+      "Found 5 weekdays (Måndag, Torsdag, Fredag...)",
+      "Found lunch pricing (e.g. 150 kr)",
+      "Inga tydliga lunchmenysignaler kunde verifieras på sidan"
+    ],
+    "strategy": {
+      "type": "auto"
+    },
+    "test_result": null,
+    "validation_issues": [],
+    "error": null,
+    "discovered_at": "2026-10-10 10:36:29",
+    "updated_at": "2026-10-10 10:40:36"
+  },
+  {
+    "id": "bord_27",
+    "name": "Bord 27",
+    "city": "Göteborg",
+    "address": "Haga Kyrkogata 14",
+    "website": "https://bord27.se",
+    "lunch_url": "https://bord27.se",
+    "status": "PENDING_APPROVAL",
+    "lunch_found": true,
+    "evidence": [
+      "Found lunch context: serveras",
+      "Found 5 weekdays (Måndag, Torsdag, Fredag...)",
+      "Found lunch context: serveras",
+      "Found 5 weekdays (Måndag, Torsdag, Fredag...)"
+    ],
+    "strategy": {
+      "type": "auto",
+      "confidence": "medium",
+      "reason": "Standard HTML heuristics with weekday grouping"
+    },
+    "test_result": {
+      "success": true,
+      "source": "HTML",
+      "error": null,
+      "days_found": 3,
+      "dishes_found": 39,
+      "is_valid": true,
+      "preview": "Måndag:\n- torsdag\n- från 17:00\n\nFredag:\n- från 16:00\n\nLördag:\n- söndag\n- från 13:00\n- Nyhetsbrev\n- Nyheter och erbjudanden direkt till din mailkorg.\n- Skicka\n- Skicka\n- Fler krogar i familjen\n- Natur\n- Jordnära smaker och naturliga viner på Geijersgatan 12\n- Totale\n- Mat över eld på Kristinelundsgat"
+    },
+    "validation_issues": [],
+    "error": null,
+    "discovered_at": "2026-10-10 10:36:29",
+    "updated_at": "2026-10-10 10:40:56"
+  },
+  {
+    "id": "john_scotts_stable",
+    "name": "John Scott's Stable",
+    "city": "Göteborg",
+    "address": "Kyrkogatan 33",
+    "website": "https://johnscotts.se",
+    "lunch_url": "http://johnscotts.se/kungstradgarden/wp-content/uploads/sites/23/2026/10/Lunch-V41-2026.pdf",
+    "status": "PENDING_APPROVAL",
+    "lunch_found": true,
+    "evidence": [
+      "Keyword 'lunch' in URL path",
+      "Keyword 'lunch' in link text 'dagens luncherse alla luncher'",
+      "Keyword 'dagens' in URL path",
+      "Keyword 'dagens' in link text 'dagens luncherse alla luncher'",
+      "Keyword 'dagens-lunch' in URL path",
+      "Hittade PDF-meny på lunchsidan: http://johnscotts.se/kungstradgarden/wp-content/uploads/sites/23/2026/10/Lunch-V41-2026.pdf",
+      "Keyword 'lunch' in URL path",
+      "Keyword 'lunch' in link text 'dagens luncherse alla luncher'",
+      "Keyword 'dagens' in URL path",
+      "Keyword 'dagens' in link text 'dagens luncherse alla luncher'",
+      "Keyword 'dagens-lunch' in URL path",
+      "Hittade PDF-meny på lunchsidan: http://johnscotts.se/kungstradgarden/wp-content/uploads/sites/23/2026/10/Lunch-V41-2026.pdf"
+    ],
+    "strategy": {
+      "type": "pdf",
+      "confidence": "high",
+      "reason": "Direct PDF URL"
+    },
+    "test_result": {
+      "success": true,
+      "source": "PDF",
+      "error": null,
+      "days_found": 5,
+      "dishes_found": 9,
+      "is_valid": true,
+      "preview": "Måndag:\n- Stekt strömming\n- Friterad spätta\n- Pannkakor\n\nTisdag:\n- Köttbullar\n- Stekt flundra\n\nOnsdag:\n- Fläskschnitzel\n- Panerad torsk\n\nTorsdag:\n- Kycklingschnitzel\n\nFredag:\n- Cheese Burger"
+    },
+    "validation_issues": [],
+    "error": null,
+    "discovered_at": "2026-10-10 10:36:29",
+    "updated_at": "2026-10-10 10:41:00"
+  },
+  {
+    "id": "restaurang_28",
+    "name": "Restaurang 28+",
+    "city": "Göteborg",
+    "address": "Götabergsgatan 28",
+    "website": "https://28plus.se",
+    "lunch_url": "https://28plus.se",
+    "status": "RESEARCHED",
+    "lunch_found": false,
+    "evidence": [
+      "Found lunch context: lunch",
+      "Inga tydliga lunchmenysignaler kunde verifieras på sidan",
+      "Found lunch context: lunch",
+      "Inga tydliga lunchmenysignaler kunde verifieras på sidan"
+    ],
+    "strategy": {
+      "type": "auto"
+    },
+    "test_result": null,
+    "validation_issues": [],
+    "error": null,
+    "discovered_at": "2026-10-10 10:36:29",
+    "updated_at": "2026-10-10 10:41:02"
+  },
+  {
+    "id": "dubbel_dubbel",
+    "name": "Dubbel Dubbel",
+    "city": "Göteborg",
+    "address": "Kastellgatan 14",
+    "website": "https://dubbeldubbel.se",
+    "lunch_url": "https://dubbeldubbel.se",
+    "status": "RESEARCHED",
+    "lunch_found": false,
+    "evidence": [
+      "Found lunch pricing (e.g. 275 kr)",
+      "Inga tydliga lunchmenysignaler kunde verifieras på sidan",
+      "Found lunch pricing (e.g. 275 kr)",
+      "Inga tydliga lunchmenysignaler kunde verifieras på sidan"
+    ],
+    "strategy": {
+      "type": "auto"
+    },
+    "test_result": null,
+    "validation_issues": [],
+    "error": null,
+    "discovered_at": "2026-10-10 10:36:29",
+    "updated_at": "2026-10-10 10:41:03"
+  },
+  {
+    "id": "totemo_ramen",
+    "name": "Totemo Ramen",
+    "city": "Göteborg",
+    "address": "Magasinsgatan 22",
+    "website": "https://totemoramen.com",
+    "lunch_url": "https://usercontent.one/wp/www.totemoramen.com/wp-content/uploads/2017/Menu_Totemo_Ramen.pdf",
+    "status": "PENDING_APPROVAL",
+    "lunch_found": true,
+    "evidence": [
+      "Hittade PDF-lunchmeny: https://usercontent.one/wp/www.totemoramen.com/wp-content/uploads/2017/Menu_Totemo_Ramen.pdf",
+      "Hittade PDF-lunchmeny: https://usercontent.one/wp/www.totemoramen.com/wp-content/uploads/2017/Menu_Totemo_Ramen.pdf"
+    ],
+    "strategy": {
+      "type": "pdf",
+      "confidence": "high",
+      "reason": "Direct PDF URL"
+    },
+    "test_result": {
+      "success": true,
+      "source": "PDF",
+      "error": null,
+      "days_found": 5,
+      "dishes_found": 20,
+      "is_valid": true,
+      "preview": "Måndag:\n- Spicy Ramen miso\n- Vegan Spicy Ramen miso\n- Niboshi Ramen shoyu\n- Tokyo Ramen shoyu\n\nTisdag:\n- Spicy Ramen miso\n- Vegan Spicy Ramen miso\n- Niboshi Ramen shoyu\n- Tokyo Ramen shoyu\n\nOnsdag:\n- Spicy Ramen miso\n- Vegan Spicy Ramen miso\n- Niboshi Ramen shoyu\n- Tokyo Ramen shoyu\n\nTorsdag:\n- Spic"
+    },
+    "validation_issues": [],
+    "error": null,
+    "discovered_at": "2026-10-10 10:36:29",
+    "updated_at": "2026-10-10 10:41:08"
+  },
+  {
+    "id": "restaurang_bellora",
+    "name": "Restaurang Bellora",
+    "city": "Göteborg",
+    "address": "Kungsportsavenyen 32",
+    "website": "https://hotelbellora.se",
+    "lunch_url": "https://www.hotelbellora.se/wp-content/uploads/Bellora-ALC-Meny.pdf",
+    "status": "NEEDS_MANUAL_REVIEW",
+    "lunch_found": true,
+    "evidence": [
+      "Hittade PDF-lunchmeny: https://www.hotelbellora.se/wp-content/uploads/Bellora-ALC-Meny.pdf",
+      "Hittade PDF-lunchmeny: https://www.hotelbellora.se/wp-content/uploads/Bellora-ALC-Meny.pdf"
+    ],
+    "strategy": {
+      "type": "pdf",
+      "confidence": "high",
+      "reason": "Direct PDF URL"
+    },
+    "test_result": {
+      "success": true,
+      "source": "PDF",
+      "error": null,
+      "days_found": 0,
+      "dishes_found": 0,
+      "is_valid": true,
+      "preview": "PROSCIUTTO DI PARMA RISERVA DOP 24 MÅN  � � � � � � � � � � � � � � � � � � �85 SEK\n50g\nSALAMINO PICCANTE  ����������������������������������������� 65 SEK\n40g\nCOPPA  ������������������������������������������������������� 69 SEK\n50g\nSALAME AL TARTUFO  ����������������������������������������� 69 SE"
+    },
+    "validation_issues": [],
+    "error": "Needs format review",
+    "discovered_at": "2026-10-10 10:36:29",
+    "updated_at": "2026-10-10 10:41:26"
+  },
+  {
+    "id": "levantine",
+    "name": "Levantine",
+    "city": "Göteborg",
+    "address": "Aschebergsgatan 22",
+    "website": "https://levantine.se",
+    "lunch_url": "https://levantine.se",
+    "status": "RESEARCHED",
+    "lunch_found": false,
+    "evidence": [
+      "Inga tydliga lunchmenysignaler kunde verifieras på sidan",
+      "Inga tydliga lunchmenysignaler kunde verifieras på sidan"
+    ],
+    "strategy": {
+      "type": "auto"
+    },
+    "test_result": null,
+    "validation_issues": [],
+    "error": null,
+    "discovered_at": "2026-10-10 10:36:29",
+    "updated_at": "2026-10-10 10:41:26"
+  }
+]

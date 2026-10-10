@@ -16,7 +16,10 @@ The project consists of:
   * `validator.py` — Pydantic schema validation
   * `models.py` — data models
   * `pipeline.py` — orchestrates fetch → extract → normalize → validate
+* **Autonomous Agents** (`agents/`):
+  * `discovery_agent/` — discovers restaurants geographically, investigates websites, tests scrapers, stages candidates
 * **Config-driven restaurant definitions** (`config/restaurants.json`)
+* **Candidate Staging** (`config/candidates.json`) — discovered candidates pending approval
 * **Golden data regression tests** (`tests/golden_data/`)
 * **Jinja2 templates** (`templates/`) — HTML rendering
 * **Static assets** (`static/`) — CSS, JS, images
