@@ -3,5 +3,8 @@
 # `requests` is required for the live HTTP fetcher; `pypdf` is optional (PDF menus);
 # `truststore` helps on TLS-intercepting corporate networks. Tests need none.
 requests>=2.31.0
+# Optional: enables CSS-selector detection (falls back to whole-page text without it).
+beautifulsoup4>=4.12.0
+lxml>=5.0.0
 pypdf>=4.0.0
 truststore>=0.9.0

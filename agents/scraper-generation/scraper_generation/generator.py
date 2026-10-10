@@ -29,6 +29,17 @@ def _strategy_for(page_type: str) -> str:
     return ScraperStrategy.UNSUPPORTED.value
 
 
+def _detect_css(page: FetchedPage, restaurant: ScraperInput):
+    if (restaurant.menu_page_type or "html") not in ("html", "") or not page.html:
+        return None
+    try:
+        from .css_detection import detect_css_selector
+
+        return detect_css_selector(page.html)
+    except ImportError:  # bs4 not installed -> whole-page extraction only
+        return None
+
+
 def build_recipe(
     restaurant: ScraperInput,
     page: FetchedPage,
@@ -60,6 +71,13 @@ def build_recipe(
     text = page.text or ""
     days = extract_menu(text)
 
+    # Prefer a focused CSS container when it holds at least as many days as the whole page.
+    css = _detect_css(page, restaurant)
+    if css and len(css["days"]) >= len(days):
+        text, days = css["text"], css["days"]
+    else:
+        css = None
+
     # LLM fallback: locate the menu portion of a messy page, then re-extract.
     if not days and reasoner is not None and text:
         menu_text = reasoner.extract_menu_text(restaurant.name, recipe.lunch_page_url or "", text)
@@ -67,7 +85,8 @@ def build_recipe(
             text = menu_text
             days = extract_menu(text)
 
-    recipe.strategy = _strategy_for(restaurant.menu_page_type or "html")
+    recipe.strategy = (ScraperStrategy.CSS_SELECTOR.value if css
+                       else _strategy_for(restaurant.menu_page_type or "html"))
     recipe.weekdays_detected = detect_weekdays(text)
     recipe.has_prices = has_prices(text)
     recipe.sample_days = days
@@ -80,6 +99,9 @@ def build_recipe(
         "price_pattern": r"\b(\d{2,3})\s*(?:kr|:-|sek|,-)\b",
         "max_dishes_per_day": 8,
     }
+    if css:
+        recipe.config["selector"] = css["selector"]
+        recipe.config["text_source"] = "css_selector"
 
     if recipe.extracted_day_count >= config_min_days and recipe.extracted_dish_count > 0:
         recipe.valid = True

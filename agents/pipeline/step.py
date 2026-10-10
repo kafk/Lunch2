@@ -243,11 +243,19 @@ def generation():
 def scraping():
     from lunch_scraping import ScrapingConfig, scrape_restaurants
     research_out = _load("research")
+    recipes = {g["restaurant_id"]: g for g in _load("generation").get("restaurants", [])}
+
+    def _scraper(p):
+        cfg = (recipes.get(p["restaurant_id"]) or {}).get("config") or {}
+        base = {"scraper_id": p["restaurant_id"], "scraper_version": 1, "source_url": p["lunch_page_url"]}
+        if cfg.get("strategy") == "css_selector" and cfg.get("selector"):
+            return {**base, "strategy": "css_selector", "selector": cfg["selector"]}
+        return {**base, "strategy": "static_html"}
+
     pairs = [{
         "restaurant": {"restaurant_id": p["restaurant_id"], "restaurant_name": p["name"],
                        "lunch_source_url": p["lunch_page_url"]},
-        "scraper": {"scraper_id": p["restaurant_id"], "scraper_version": 1,
-                    "strategy": "static_html", "source_url": p["lunch_page_url"]},
+        "scraper": _scraper(p),
     } for p in research_out.get("restaurants", []) if p.get("lunch_page_url")]
     _hr(f"STAGE 4/6 — lunch-scraping (executes {len(pairs)} scrapers)")
     out = scrape_restaurants(pairs, config=ScrapingConfig(fetcher="http", default_timeout=TIMEOUT))

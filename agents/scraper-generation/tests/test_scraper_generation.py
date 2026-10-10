@@ -34,9 +34,9 @@ WEEKLY_MENU = (
 )
 
 
-def page(url, text="", content_type="text/html", ok=True, status=200):
+def page(url, text="", content_type="text/html", ok=True, status=200, html=""):
     return FetchedPage(url=url, ok=ok, final_url=url, status_code=status,
-                       content_type=content_type, text=text)
+                       content_type=content_type, text=text, html=html)
 
 
 class TestExtraction(unittest.TestCase):
@@ -178,6 +178,84 @@ class TestGenerationFlow(unittest.TestCase):
         )
         self.assertEqual(len(out["restaurants"]), 2)
         self.assertEqual(out["result"]["validated_count"], 1)
+
+
+CSS_HTML = (
+    "<html><body><nav>Meny Kontakt</nav>"
+    "<div class='intro'>Hemsida skapad av Webbyr\u00e5n</div>"
+    "<section id='dagens-lunch'>"
+    "<p>M\u00e5ndag</p><p>K\u00f6ttbullar med potatismos 125 kr</p>"
+    "<p>Tisdag</p><p>Stekt fl\u00e4sk med l\u00f6ks\u00e5s 129 kr</p>"
+    "<p>Onsdag</p><p>Fiskgrat\u00e4ng 135 kr</p>"
+    "</section><footer>\u00a9 2026</footer></body></html>"
+)
+
+CSS_TEXT = (
+    "Meny Kontakt\nHemsida skapad av Webbyr\u00e5n\n"
+    "M\u00e5ndag\nK\u00f6ttbullar med potatismos 125 kr\n"
+    "Tisdag\nStekt fl\u00e4sk med l\u00f6ks\u00e5s 129 kr\n"
+    "Onsdag\nFiskgrat\u00e4ng 135 kr\n\u00a9 2026"
+)
+
+
+class TestCssDetection(unittest.TestCase):
+    def setUp(self):
+        try:
+            import bs4  # noqa: F401
+        except ImportError:
+            self.skipTest("beautifulsoup4 not installed")
+
+    def test_detects_focused_container(self):
+        from scraper_generation.css_detection import detect_css_selector
+        found = detect_css_selector(CSS_HTML)
+        self.assertEqual(found["selector"], "#dagens-lunch")
+        self.assertEqual(len(found["days"]), 3)
+        self.assertNotIn("Hemsida skapad", found["text"])
+
+    def test_detects_by_class_token(self):
+        from scraper_generation.css_detection import detect_css_selector
+        html = ("<div class='weekly-lunch-box'><p>M\u00e5ndag</p><p>Pasta 110 kr</p>"
+                "<p>Tisdag</p><p>Soppa 99 kr</p></div>")
+        self.assertEqual(detect_css_selector(html)["selector"], "div.weekly-lunch-box")
+
+    def test_none_when_no_menu_container(self):
+        from scraper_generation.css_detection import detect_css_selector
+        self.assertIsNone(detect_css_selector("<div id='lunch'>Vi \u00e4r st\u00e4ngda</div>"))
+        self.assertIsNone(detect_css_selector(""))
+
+    def test_rejects_footer_opening_hours(self):
+        from scraper_generation.css_detection import detect_css_selector
+        html = ("<footer><div class='footer-menu'>Måndag : 11:00 till 21:00. Fredag : 11:00 till 21:00. "
+                "Söndag : 12:00 till 21:00.</div></footer>")
+        self.assertIsNone(detect_css_selector(html))
+
+    def test_rejects_hours_in_non_footer_widget(self):
+        from scraper_generation.css_detection import detect_css_selector
+        html = ("<div class='side-menu'><p>Måndag</p><p>10:30 – 21:00</p>"
+                "<p>Fredag</p><p>10:30 – 22:00</p></div>")
+        self.assertIsNone(detect_css_selector(html))
+
+    def test_recipe_uses_css_selector_strategy(self):
+        url = "https://x.se/lunch"
+        fetcher = MockWebFetcher({url: page(url, text=CSS_TEXT, html=CSS_HTML)})
+        out = generate_scrapers(
+            [{"restaurant_id": "x", "name": "X", "city": "G\u00f6teborg",
+              "lunch_page_url": url, "menu_page_type": "html"}],
+            city="G\u00f6teborg", fetcher=fetcher,
+        )
+        r = out["restaurants"][0]
+        self.assertEqual(r["strategy"], "css_selector")
+        self.assertEqual(r["config"]["selector"], "#dagens-lunch")
+
+    def test_falls_back_when_page_has_more_days_than_container(self):
+        url = "https://x.se/lunch"
+        fetcher = MockWebFetcher({url: page(url, text=WEEKLY_MENU, html=CSS_HTML)})
+        # Whole page text has 5 days, the container only 3 -> keep whole-page strategy.
+        out = generate_scrapers(
+            [{"restaurant_id": "x", "name": "X", "lunch_page_url": url}],
+            city="G\u00f6teborg", fetcher=fetcher,
+        )
+        self.assertEqual(out["restaurants"][0]["strategy"], "html_weekday_blocks")
 
 
 class TestPersistence(unittest.TestCase):

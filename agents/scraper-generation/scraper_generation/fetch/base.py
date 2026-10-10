@@ -16,6 +16,7 @@ class FetchedPage:
     status_code: Optional[int] = None
     content_type: Optional[str] = None
     text: str = ""
+    html: str = ""  # raw HTML (HTML pages only); used for CSS-selector detection
     error: Optional[str] = None
 
 

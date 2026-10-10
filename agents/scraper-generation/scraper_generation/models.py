@@ -15,6 +15,7 @@ class ScraperStrategy(str, Enum):
     """How the generated scraper extracts the menu."""
 
     HTML_WEEKDAY_BLOCKS = "html_weekday_blocks"
+    CSS_SELECTOR = "css_selector"
     PDF_WEEKDAY_BLOCKS = "pdf_weekday_blocks"
     UNSUPPORTED = "unsupported"
 

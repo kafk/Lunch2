@@ -87,6 +87,6 @@ class HttpWebFetcher(WebFetcher):
             except Exception:
                 pass
             return FetchedPage(url=url, ok=True, final_url=final_url, status_code=status,
-                               content_type=content_type or "text/html", text=parser.text)
+                               content_type=content_type or "text/html", text=parser.text, html=html)
         except Exception as exc:
             return FetchedPage(url=url, ok=False, error=f"fetch failed: {exc}")
