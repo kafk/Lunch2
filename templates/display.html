@@ -1367,12 +1367,14 @@
             dayMatches.push({ day: m[1], index: m.index, end: m.index + m[0].length });
         }
         
+        const weeklyHeaderRegex = /(?:^|\n)\s*(?:LUNCH\s*V\d+[^\n]*)?(?:(VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*|(?:KÖTT|FISK|PASTA|SALLAD|BURGARE)\s*[:/]|KÖTT\s+[/❖])|LUNCH\s*V\d+)/i;
+        
         if (dayMatches.length === 0) {
-            const weeklyHeaderRegex = /(?:^|\n|\b)\s*(?:LUNCH\s*V\d+)?\s*(KÖTT|FISK|PASTA|SALLAD|BURGARE|VECKANS|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY)/i;
             const wMatch = weeklyHeaderRegex.exec(cleaned);
             if (wMatch) {
                 let daysPart = cleaned.slice(0, wMatch.index).trim();
                 let weeklyPart = cleaned.slice(wMatch.index).trim();
+                weeklyPart = weeklyPart.replace(/^(?:LUNCH\s*V\d+[^\n]*|VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*)\s*/i, '').trim();
                 return { daysText: daysPart, weeklyText: weeklyPart, noteText };
             }
             return { daysText: cleaned, weeklyText: '', noteText };
@@ -1380,16 +1382,13 @@
         
         const lastDayEnd = dayMatches[dayMatches.length - 1].end;
         const afterDays = cleaned.slice(lastDayEnd);
-        
-        // Look for weekly headers or standing category headers (KÖTT, FISK, etc.)
-        const weeklyHeaderRegex = /(?:^|\n|\b)\s*(?:LUNCH\s*V\d+)?\s*(KÖTT|FISK|PASTA|SALLAD|BURGARE|VECKANS|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY)/i;
         const wMatch = weeklyHeaderRegex.exec(afterDays);
         
         if (wMatch) {
             const weeklyStart = lastDayEnd + wMatch.index;
             let daysText = cleaned.slice(0, weeklyStart).trim();
             let weeklyRaw = cleaned.slice(weeklyStart).trim();
-            weeklyRaw = weeklyRaw.replace(/^(?:LUNCH\s*V\d+|VECKANS(?:\s+[A-ZÅÄÖa-z]+)*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY(?:\s+[A-ZÅÄÖa-z]+)*)\s*/i, '').trim();
+            weeklyRaw = weeklyRaw.replace(/^(?:LUNCH\s*V\d+[^\n]*|VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*)\s*/i, '').trim();
             return { daysText, weeklyRaw: weeklyRaw, weeklyText: weeklyRaw, noteText };
         }
         
@@ -1399,12 +1398,45 @@
         const topMatch = weeklyHeaderRegex.exec(beforeDays);
         if (topMatch) {
             let weeklyRaw = beforeDays.slice(topMatch.index).trim();
-            weeklyRaw = weeklyRaw.replace(/^(?:LUNCH\s*V\d+|VECKANS(?:\s+[A-ZÅÄÖa-z]+)*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY(?:\s+[A-ZÅÄÖa-z]+)*)\s*/i, '').trim();
+            weeklyRaw = weeklyRaw.replace(/^(?:LUNCH\s*V\d+[^\n]*|VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*)\s*/i, '').trim();
             let daysText = cleaned.slice(firstDayIndex).trim();
             return { daysText, weeklyText: weeklyRaw, noteText };
         }
         
         return { daysText: cleaned, weeklyText: '', noteText };
+    }
+
+    function parseNumberedList(text) {
+        if (!text) return null;
+        const itemRegex = /(?:^|\n|\s+)(\d{1,2})[\.\)]\s*(?=[A-ZÅÄÖa-z])/g;
+        const matches = [];
+        let m;
+        while ((m = itemRegex.exec(text)) !== null) {
+            const fullMatch = m[0];
+            const num = m[1];
+            const numOffset = fullMatch.indexOf(num);
+            const numStart = m.index + numOffset;
+            const dishStart = m.index + fullMatch.length;
+            matches.push({ num, matchStart: m.index, dishStart, end: m.index + fullMatch.length });
+        }
+        if (matches.length > 1) {
+            const items = [];
+            for (let i = 0; i < matches.length; i++) {
+                const cur = matches[i];
+                const next = matches[i + 1];
+                let itemText = text.slice(cur.dishStart, next ? next.matchStart : text.length).trim();
+                itemText = itemText
+                    .replace(/Kolgr\s+illad/gi, 'Kolgrillad')
+                    .replace(/mari\s+nerad/gi, 'marinerad')
+                    .replace(/\s+,\s*/g, ', ')
+                    .replace(/\(\s*stark\s*\)/gi, '(stark)')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+                items.push({ num: cur.num, text: itemText });
+            }
+            return items;
+        }
+        return null;
     }
 
     function parseTildasWeekly(weeklyText, lang) {
@@ -1992,16 +2024,30 @@
                 }
             }
         } else {
-            const lines = cleaned.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-            html = lines.map(line => {
-                let cleanLine = line.replace(/^[❖•\-\*]\s*/, '');
-                if (currentLang === 'en') cleanLine = translateCulinaryText(cleanLine);
-                return `
-                    <div class="week-day-row">
-                        <span class="week-dishes-text">${linkify(escapeHtml(cleanLine))}</span>
-                    </div>
-                `;
-            }).join('');
+            const numberedItems = parseNumberedList(cleaned);
+            if (numberedItems && numberedItems.length > 0) {
+                html = numberedItems.map(item => {
+                    let cleanText = item.text;
+                    if (currentLang === 'en') cleanText = translateCulinaryText(cleanText);
+                    return `
+                        <div class="week-day-row">
+                            <strong class="week-day-name">${item.num}.</strong>
+                            <span class="week-dishes-text">${linkify(escapeHtml(cleanText))}</span>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                const lines = cleaned.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+                html = lines.map(line => {
+                    let cleanLine = line.replace(/^[❖•\-\*]\s*/, '');
+                    if (currentLang === 'en') cleanLine = translateCulinaryText(cleanLine);
+                    return `
+                        <div class="week-day-row">
+                            <span class="week-dishes-text">${linkify(escapeHtml(cleanLine))}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
         }
 
         // Standing weekly dishes handling

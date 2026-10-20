@@ -614,12 +614,14 @@
             dayMatches.push({ day: m[1], index: m.index, end: m.index + m[0].length });
         }
         
+        const weeklyHeaderRegex = /(?:^|\n)\s*(?:LUNCH\s*V\d+[^\n]*)?(?:(VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*|(?:KÖTT|FISK|PASTA|SALLAD|BURGARE)\s*[:/]|KÖTT\s+[/❖])|LUNCH\s*V\d+)/i;
+        
         if (dayMatches.length === 0) {
-            const weeklyHeaderRegex = /(?:^|\n|\b)\s*(?:LUNCH\s*V\d+)?\s*(KÖTT|FISK|PASTA|SALLAD|BURGARE|VECKANS|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY)/i;
             const wMatch = weeklyHeaderRegex.exec(cleaned);
             if (wMatch) {
                 let daysPart = cleaned.slice(0, wMatch.index).trim();
                 let weeklyPart = cleaned.slice(wMatch.index).trim();
+                weeklyPart = weeklyPart.replace(/^(?:LUNCH\s*V\d+[^\n]*|VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*)\s*/i, '').trim();
                 return { daysText: daysPart, weeklyText: weeklyPart, noteText };
             }
             return { daysText: cleaned, weeklyText: '', noteText };
@@ -628,15 +630,12 @@
         const lastDayEnd = dayMatches[dayMatches.length - 1].end;
         const afterDays = cleaned.slice(lastDayEnd);
         
-        // Look for weekly headers or standing category headers (KÖTT, FISK, etc.)
-        const weeklyHeaderRegex = /(?:^|\n|\b)\s*(?:LUNCH\s*V\d+)?\s*(KÖTT|FISK|PASTA|SALLAD|BURGARE|VECKANS|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY)/i;
         const wMatch = weeklyHeaderRegex.exec(afterDays);
-        
         if (wMatch) {
             const weeklyStart = lastDayEnd + wMatch.index;
             let daysText = cleaned.slice(0, weeklyStart).trim();
             let weeklyRaw = cleaned.slice(weeklyStart).trim();
-            weeklyRaw = weeklyRaw.replace(/^(?:LUNCH\s*V\d+|VECKANS(?:\s+[A-ZÅÄÖa-z]+)*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY(?:\s+[A-ZÅÄÖa-z]+)*)\s*/i, '').trim();
+            weeklyRaw = weeklyRaw.replace(/^(?:LUNCH\s*V\d+[^\n]*|VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*)\s*/i, '').trim();
             return { daysText, weeklyRaw: weeklyRaw, weeklyText: weeklyRaw, noteText };
         }
         
@@ -646,12 +645,45 @@
         const topMatch = weeklyHeaderRegex.exec(beforeDays);
         if (topMatch) {
             let weeklyRaw = beforeDays.slice(topMatch.index).trim();
-            weeklyRaw = weeklyRaw.replace(/^(?:LUNCH\s*V\d+|VECKANS(?:\s+[A-ZÅÄÖa-z]+)*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY(?:\s+[A-ZÅÄÖa-z]+)*)\s*/i, '').trim();
+            weeklyRaw = weeklyRaw.replace(/^(?:LUNCH\s*V\d+[^\n]*|VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*)\s*/i, '').trim();
             let daysText = cleaned.slice(firstDayIndex).trim();
             return { daysText, weeklyText: weeklyRaw, noteText };
         }
         
         return { daysText: cleaned, weeklyText: '', noteText };
+    }
+
+    function parseNumberedList(text) {
+        if (!text) return null;
+        const itemRegex = /(?:^|\n|\s+)(\d{1,2})[\.\)]\s*(?=[A-ZÅÄÖa-z])/g;
+        const matches = [];
+        let m;
+        while ((m = itemRegex.exec(text)) !== null) {
+            const fullMatch = m[0];
+            const num = m[1];
+            const numOffset = fullMatch.indexOf(num);
+            const numStart = m.index + numOffset;
+            const dishStart = m.index + fullMatch.length;
+            matches.push({ num, matchStart: m.index, dishStart, end: m.index + fullMatch.length });
+        }
+        if (matches.length > 1) {
+            const items = [];
+            for (let i = 0; i < matches.length; i++) {
+                const cur = matches[i];
+                const next = matches[i + 1];
+                let itemText = text.slice(cur.dishStart, next ? next.matchStart : text.length).trim();
+                itemText = itemText
+                    .replace(/Kolgr\s+illad/gi, 'Kolgrillad')
+                    .replace(/mari\s+nerad/gi, 'marinerad')
+                    .replace(/\s+,\s*/g, ', ')
+                    .replace(/\(\s*stark\s*\)/gi, '(stark)')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+                items.push({ num: cur.num, text: itemText });
+            }
+            return items;
+        }
+        return null;
     }
 
     function formatWeeklyDishes(weeklyText, noteText) {
@@ -767,7 +799,17 @@
                 if (isOtherDay) { end = i; break; }
             }
         }
-        let todayText = start === -1 ? target : lines.slice(start, end).join('\n').trim();
+        let todayText;
+        if (start === -1) {
+            const numItems = parseNumberedList(target);
+            if (numItems && numItems.length > 0) {
+                todayText = numItems.map(item => `${item.num}. ${item.text}`).join('\n');
+            } else {
+                todayText = target;
+            }
+        } else {
+            todayText = lines.slice(start, end).join('\n').trim();
+        }
 
         if (isTheGrill) {
             const catRegex = /(?:^|\n)\s*(KÖTT|FISK|VEGETARISKT|VEGAN|SALLAD|PASTA|BURGARE)\s*:\s*/gi;
@@ -820,6 +862,39 @@
         return todayText;
     }
 
+    function formatWeekMenu(text, restaurantName) {
+        if (!text) return text;
+        const isTildas = restaurantName && /tilda/i.test(restaurantName);
+        const { daysText, weeklyText, noteText } = extractWeeklySection(text, restaurantName);
+        const target = daysText || text;
+        const numItems = parseNumberedList(target);
+        let out = target;
+        if (numItems && numItems.length > 0) {
+            out = numItems.map(item => `${item.num}. ${item.text}`).join('\n');
+        }
+        if (weeklyText) {
+            if (isTildas) {
+                const cats = parseTildasWeekly(weeklyText, currentLang);
+                if (cats.length > 0) {
+                    out += '\n\n' + cats.map(c => `${c.label}: ${c.content}`).join('\n');
+                } else {
+                    out += '\n\nVeckans:\n' + formatWeeklyDishes(weeklyText, noteText);
+                }
+            } else {
+                const weeklyLabel = currentLang === 'en' ? 'Weekly specials:' : 'Veckans:';
+                const formatted = formatWeeklyDishes(weeklyText, noteText);
+                out += `\n\n${weeklyLabel}\n${formatted}`;
+            }
+        }
+        if (isTildas) {
+            const tildasDisclaimer = currentLang === 'en'
+                ? 'Lunch is served weekdays 11–15. Beverage, salad and coffee included.\nWe reserve the right to make changes to the lunch menu.'
+                : 'Lunch serveras vardagar klockan 11–15. Dryck, sallad och kaffe ingår.\nVi reserverar oss för eventuella ändringar i lunchmenyn.';
+            out += `\n\n${tildasDisclaimer}`;
+        }
+        return out;
+    }
+
     function setView(mode) {
         currentView = mode;
         const todayBtn = document.getElementById('btn-view-today');
@@ -836,7 +911,7 @@
     function menuText(menu) {
         if (!menu.success) return menu.menu || '';
         const raw = (currentLang === 'en' && menu.menu_en) ? menu.menu_en : menu.menu;
-        return currentView === 'today' ? extractToday(raw, menu.name) : raw;
+        return currentView === 'today' ? extractToday(raw, menu.name) : formatWeekMenu(raw, menu.name);
     }
 
     // Last scraped timestamp display (static scraped time, not ticking clock)
