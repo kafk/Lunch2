@@ -687,8 +687,43 @@
         return lines.join('\n').trim();
     }
 
-    function extractToday(text) {
+    function parseTildasWeekly(weeklyText, lang) {
+        if (!weeklyText) return [];
+        let cleaned = weeklyText.replace(/^(?:LUNCH\s*V\d+|VECKANS(?:\s+[A-ZÅÄÖa-z]+)*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY(?:\s+[A-ZÅÄÖa-z]+)*)\s*/i, '').trim();
+        cleaned = cleaned.replace(/Lunch serveras vardagar[\s\S]*?(?:ändringar i lunchmenyn\.?|ändringar\.?|\.|$)/gi, '')
+                         .replace(/Vi reserverar oss för[\s\S]*?(?:ändringar i lunchmenyn\.?|\.|$)/gi, '').trim();
+
+        const catRegex = /(?:^|\n|\s)(KÖTT|FISK|PASTA|SALLAD|BURGARE|VEGETARISKT|VEGAN)\b/gi;
+        const matches = [];
+        let m;
+        while ((m = catRegex.exec(cleaned)) !== null) {
+            matches.push({ cat: m[1].toUpperCase(), index: m.index, end: m.index + m[0].length });
+        }
+
+        const CAT_LABELS_SV = {
+            'KÖTT': 'Kött', 'FISK': 'Fisk', 'PASTA': 'Pasta', 'SALLAD': 'Sallad', 'BURGARE': 'Burgare', 'VEGETARISKT': 'Vegetariskt', 'VEGAN': 'Vegan'
+        };
+        const CAT_LABELS_EN = {
+            'KÖTT': 'Meat', 'FISK': 'Fish', 'PASTA': 'Pasta', 'SALLAD': 'Salad', 'BURGARE': 'Burger', 'VEGETARISKT': 'Vegetarian', 'VEGAN': 'Vegan'
+        };
+
+        const results = [];
+        for (let i = 0; i < matches.length; i++) {
+            const cur = matches[i];
+            const next = matches[i + 1];
+            let content = cleaned.slice(cur.end, next ? next.index : cleaned.length).trim();
+            content = content.replace(/^[❖•\-\*:\s/]+/, '').replace(/[❖•]+/g, ' / ').replace(/\s+/g, ' ').replace(/\s*\/\s*\/\s*/g, ' / ').trim();
+            content = content.replace(/^(?:\/\s*)+/, '').replace(/(?:\/\s*)+$/, '').trim();
+
+            const label = lang === 'en' ? (CAT_LABELS_EN[cur.cat] || cur.cat) : (CAT_LABELS_SV[cur.cat] || cur.cat);
+            results.push({ label, content });
+        }
+        return results;
+    }
+
+    function extractToday(text, restaurantName) {
         if (!text) return text;
+        const isTildas = restaurantName && /tilda/i.test(restaurantName);
         const { daysText, weeklyText, noteText } = extractWeeklySection(text);
         const target = daysText || text;
 
@@ -712,9 +747,24 @@
         }
         let todayText = start === -1 ? target : lines.slice(start, end).join('\n').trim();
         if (weeklyText) {
-            const weeklyLabel = currentLang === 'en' ? 'Weekly specials:' : 'Veckans:';
-            const formatted = formatWeeklyDishes(weeklyText, noteText);
-            todayText += `\n\n${weeklyLabel}\n${formatted}`;
+            if (isTildas) {
+                const cats = parseTildasWeekly(weeklyText, currentLang);
+                if (cats.length > 0) {
+                    todayText += '\n\n' + cats.map(c => `${c.label}: ${c.content}`).join('\n');
+                } else {
+                    todayText += '\n\nVeckans:\n' + formatWeeklyDishes(weeklyText, noteText);
+                }
+            } else {
+                const weeklyLabel = currentLang === 'en' ? 'Weekly specials:' : 'Veckans:';
+                const formatted = formatWeeklyDishes(weeklyText, noteText);
+                todayText += `\n\n${weeklyLabel}\n${formatted}`;
+            }
+        }
+        if (isTildas) {
+            const tildasDisclaimer = currentLang === 'en'
+                ? 'Lunch is served weekdays 11–15. Beverage, salad and coffee included.\nWe reserve the right to make changes to the lunch menu.'
+                : 'Lunch serveras vardagar klockan 11–15. Dryck, sallad och kaffe ingår.\nVi reserverar oss för eventuella ändringar i lunchmenyn.';
+            todayText += `\n\n${tildasDisclaimer}`;
         }
         return todayText;
     }
@@ -735,7 +785,7 @@
     function menuText(menu) {
         if (!menu.success) return menu.menu || '';
         const raw = (currentLang === 'en' && menu.menu_en) ? menu.menu_en : menu.menu;
-        return currentView === 'today' ? extractToday(raw) : raw;
+        return currentView === 'today' ? extractToday(raw, menu.name) : raw;
     }
 
     // Last scraped timestamp display (static scraped time, not ticking clock)
