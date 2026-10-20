@@ -154,20 +154,34 @@
         display: inline-flex;
         align-items: center;
         gap: 5px;
-        font-size: 13px;
-        color: #22c55e;
+        font-size: 12.5px;
+        color: var(--bistro-green);
         text-decoration: none;
         margin-top: 6px;
-        font-weight: 500;
+        font-weight: 600;
         transition: color 0.15s ease, opacity 0.15s ease;
     }
 
     .header-add-link:hover {
-        color: #16a34a;
+        color: #14331b;
         text-decoration: underline;
     }
 
+    .date-time {
+        font-family: 'Cinzel', serif;
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--ink-muted);
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+    }
+
     .view-bar-card {
+        background: var(--bg-paper);
+        border: 1.5px solid var(--paper-border);
+        border-radius: 12px;
+        box-shadow: var(--shadow-card);
+        padding: 14px 20px;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -175,33 +189,34 @@
         flex-wrap: wrap;
     }
 
-    /* Day/Week Toggle styling (Desktop: inline; Mobile: floating bottom-right) */
+    /* Day/Week Toggle styling */
     .day-week-toggle-container {
         display: inline-flex;
-        background: #f3f4f6;
-        padding: 4px;
-        border-radius: 10px;
-        gap: 4px;
+        background: #2a2722;
+        padding: 3px;
+        border-radius: 20px;
+        gap: 2px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
 
     .day-toggle-btn {
         padding: 6px 14px;
         border: none;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 500;
+        border-radius: 16px;
+        font-size: 12.5px;
+        font-weight: 700;
         cursor: pointer;
-        font-family: inherit;
-        transition: all 0.15s ease;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        transition: all 0.2s ease;
         background: transparent;
-        color: #6b7280;
+        color: #d1cbc1;
     }
 
     .day-toggle-btn.active {
-        background: #22c55e;
-        color: white;
-        font-weight: 600;
-        box-shadow: 0 1px 4px rgba(34, 197, 94, 0.35);
+        background: #ffffff;
+        color: var(--bistro-green);
+        font-weight: 700;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.12);
     }
 
     @media (max-width: 768px) {
@@ -210,43 +225,46 @@
             bottom: 74px;
             right: 16px;
             z-index: 950;
-            background: white;
-            border: 1px solid #e5e7eb;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0,0,0,0.06);
-            border-radius: 12px;
+            background: #2a2722;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
         }
     }
 
     .view-toggle {
         display: flex;
-        gap: 10px;
+        gap: 8px;
         flex-wrap: wrap;
     }
 
     .view-btn {
-        padding: 10px 18px;
-        border: 1px solid #e5e7eb;
-        background: white;
-        border-radius: 10px;
+        padding: 8px 16px;
+        border: 1.5px solid var(--paper-border);
+        background: #ffffff;
+        border-radius: 8px;
         cursor: pointer;
-        font-size: 13px;
-        font-weight: 500;
-        transition: all 0.2s;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 12.5px;
+        font-weight: 600;
+        transition: all 0.15s ease;
         display: flex;
         align-items: center;
         gap: 8px;
-        color: #6b7280;
+        color: var(--ink-muted);
+        box-shadow: var(--shadow-subtle);
     }
 
     .view-btn:hover {
-        border-color: #22c55e;
-        color: #22c55e;
+        border-color: #b8ac95;
+        color: var(--ink-black);
     }
 
     .view-btn.active {
-        background: #22c55e;
-        color: white;
-        border-color: #22c55e;
+        background: var(--bistro-green);
+        color: #ffffff;
+        border-color: var(--bistro-green);
+        box-shadow: 0 2px 8px rgba(27, 67, 36, 0.25);
     }
 
     .view-container {
@@ -264,29 +282,177 @@
         gap: 20px;
     }
 
-    .chip { display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600; }
-    .chip-green  { background:#dcfce7;color:#166534; }
-    .chip-red    { background:#fee2e2;color:#991b1b; }
-    .chip-dot { width:7px;height:7px;border-radius:50%;background:currentColor; }
+    .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+    }
+    .chip-green {
+        background: var(--bistro-green-light);
+        color: var(--bistro-green);
+        border: 1px solid rgba(27, 67, 36, 0.2);
+    }
+    .chip-red {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+    }
+    .chip-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+    }
 
-    .lab-card { background:white;border-radius:14px;border:2px solid #e8ebe9;overflow:hidden;transition:border-color .2s,box-shadow .2s; }
-    .lab-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.07); }
-    .lab-card.lab-success { border-color:#22c55e; }
-    .lab-card.lab-failed  { border-color:#ef4444; }
-    .lab-card.lab-testing { border-color:#fbbf24; }
+    /* Restaurant Card (Trattoria/Gazette Style) */
+    .lab-card {
+        background: #ffffff;
+        border-radius: 10px;
+        border: 1.5px solid var(--paper-border);
+        overflow: hidden;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+        box-shadow: 0 2px 8px rgba(42, 39, 34, 0.05);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+    }
+    .lab-card:hover {
+        border-color: #b8ac95;
+        box-shadow: 0 8px 24px rgba(42, 39, 34, 0.09);
+        transform: translateY(-2px);
+    }
+    .lab-card.lab-success {
+        border-color: var(--paper-border);
+    }
+    .lab-card.lab-failed {
+        border-color: #fca5a5;
+    }
+    .lab-card.lab-testing {
+        border-color: #fde68a;
+    }
 
-    .spin { width:18px;height:18px;border:2px solid #e5e7eb;border-top-color:#22c55e;border-radius:50%;animation:disp-spin .7s linear infinite;display:inline-block; }
-    @keyframes disp-spin { to { transform:rotate(360deg); } }
+    .spin {
+        width: 18px;
+        height: 18px;
+        border: 2px solid #e5e7eb;
+        border-top-color: var(--bistro-green);
+        border-radius: 50%;
+        animation: disp-spin .7s linear infinite;
+        display: inline-block;
+    }
+    @keyframes disp-spin { to { transform: rotate(360deg); } }
 
-    .lab-card-header { display:flex;align-items:center;gap:12px;padding:16px;cursor:pointer;border-bottom:1px solid #e5e7eb; }
-    .lab-card-icon { width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;background:#f0fdf4; }
-    .lab-card-info { flex:1;min-width:0; }
-    .lab-card-name { font-size:14px;font-weight:600;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-    .lab-card-domain { font-size:12px;margin-top:1px; }
-    .lab-card-content { margin:16px 16px 16px;font-size:13px;color:#374151;line-height:1.5;max-height:300px;overflow-y:auto; }
+    .lab-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 18px;
+        cursor: pointer;
+        border-bottom: 1.5px solid #ece4d4;
+        background: #fdfcf9;
+    }
+    .lab-card-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        flex-shrink: 0;
+        background: var(--bistro-green-light);
+        border: 1px solid rgba(27, 67, 36, 0.15);
+        color: var(--bistro-green);
+    }
+    .lab-card-info {
+        flex: 1;
+        min-width: 0;
+    }
+    .lab-card-name {
+        font-family: 'Cinzel', serif;
+        font-size: 15.5px;
+        font-weight: 800;
+        color: var(--ink-black);
+        letter-spacing: 0.3px;
+        line-height: 1.25;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .lab-card-domain {
+        font-size: 11.5px;
+        margin-top: 3px;
+    }
+    .lab-card-domain a {
+        color: var(--bistro-green) !important;
+        font-weight: 700;
+        background: var(--bistro-green-light);
+        padding: 2px 8px;
+        border-radius: 4px;
+        letter-spacing: 0.3px;
+        text-decoration: none !important;
+        border: 1px solid rgba(27, 67, 36, 0.15);
+        display: inline-block;
+        transition: background 0.15s ease;
+    }
+    .lab-card-domain a:hover {
+        background: #dce9de;
+    }
 
-    .dish-block { margin-bottom:14px; }
-    .dish-block:last-child { margin-bottom:0; }
+    .lab-card-content {
+        margin: 16px 18px 18px;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 12.5px;
+        color: var(--ink-dark);
+        line-height: 1.6;
+        max-height: 320px;
+        overflow-y: auto;
+    }
+
+    .dish-block {
+        margin-bottom: 12px;
+        padding-bottom: 10px;
+        border-bottom: 1px dotted #e5ded1;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 12.5px;
+        line-height: 1.6;
+        color: var(--ink-dark);
+    }
+    .dish-block:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+
+    .weekday-badge {
+        font-family: 'Cinzel', serif;
+        font-size: 11px;
+        font-weight: 800;
+        color: var(--bistro-green);
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        display: inline-block;
+        background: var(--bistro-green-light);
+        padding: 2px 7px;
+        border-radius: 4px;
+        margin-bottom: 6px;
+        border: 1px solid rgba(27, 67, 36, 0.15);
+    }
+
+    .dish-cat-title {
+        font-family: 'Cinzel', serif;
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--ink-black);
+        letter-spacing: 0.4px;
+    }
 
     /* Modal */
     .modal {
@@ -862,7 +1028,7 @@
                     <div class="lab-card-icon">🍴</div>
                     <div class="lab-card-info">
                         <div class="lab-card-name">${escapeHtml(u.name)}</div>
-                        <div class="lab-card-domain"><a href="${escapeHtml(u.url)}" target="_blank" style="color:#3b82f6;text-decoration:none;">${domain}</a></div>
+                        <div class="lab-card-domain"><a href="${escapeHtml(u.url)}" target="_blank" onclick="event.stopPropagation()">${domain}</a></div>
                     </div>
                 </div>
                 <div style="display:flex;justify-content:center;padding:24px 0;">
@@ -876,9 +1042,9 @@
                     <div class="lab-card-icon">${menu.success ? '🍴' : '❌'}</div>
                     <div class="lab-card-info">
                         <div class="lab-card-name">${escapeHtml(menu.name)}</div>
-                        <div class="lab-card-domain"><a href="${escapeHtml(menu.url)}" target="_blank" style="color:#3b82f6;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${domain}</a></div>
+                        <div class="lab-card-domain"><a href="${escapeHtml(menu.url)}" target="_blank" onclick="event.stopPropagation()">${domain}</a></div>
                     </div>
-                    <span class="chip chip-green" style="flex-shrink:0;font-size:11px;"><span class="chip-dot"></span>Live</span>
+                    <span class="chip chip-green"><span class="chip-dot"></span>Live</span>
                 </div>
                 <div class="lab-card-content">${formatMenuContent(text)}</div>
             </div>`;
@@ -1057,13 +1223,16 @@
                 suffix = cleanUrl.slice(-1);
                 cleanUrl = cleanUrl.slice(0, -1);
             }
-            return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" style="color: #22c55e; text-decoration: underline; word-break: break-all; font-weight: 500;" onclick="event.stopPropagation();">${cleanUrl}</a>${suffix}`;
+            return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" style="color: var(--bistro-green); text-decoration: underline; word-break: break-all; font-weight: 600;" onclick="event.stopPropagation();">${cleanUrl}</a>${suffix}`;
         });
     }
 
     function highlightWeekdays(html) {
-        return html.replace(/(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)/gi,
-            '<strong><u>$1</u></strong>');
+        let res = html.replace(/(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag|MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG)/gi,
+            '<span class="weekday-badge">$1</span>');
+        res = res.replace(/(KÖTT|FISK|PASTA|SALLAD|BURGARE|VEGETARISKT|VEGAN|Dagens Kött|Dagens Fisk|Dagens Vegetariska|Dagens Asiatisk):/gi,
+            '<strong class="dish-cat-title">$1:</strong>');
+        return res;
     }
 
     function escapeHtml(text) {
