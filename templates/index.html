@@ -381,6 +381,11 @@
         </div>
     </div>
     <div class="header-right">
+        <div class="lang-switcher" role="group" aria-label="Välj språk / Select language">
+            <button class="lang-btn active" id="langSvBtn" onclick="setLanguage('sv')" title="Svenska">🇸🇪 SWE</button>
+            <span class="lang-sep">|</span>
+            <button class="lang-btn" id="langEnBtn" onclick="setLanguage('en')" title="English">🇬🇧 ENG</button>
+        </div>
         <span class="date-time" id="currentDateTime"></span>
         <span class="date-time" id="lastUpdateTimeHeader" style="color: #6b7280;">Uppdaterad: --:--</span>
         <div class="alert-badge" id="alertBadge" style="display: none;">
@@ -396,7 +401,7 @@
     <div class="main-area">
         <div class="card">
             <div class="card-header">
-                <span class="card-title">Dagens Lunchmenyer</span>
+                <span class="card-title" id="mainCardTitle">Dagens Lunchmenyer</span>
                 <div class="card-header-actions" style="display:flex;gap:10px;align-items:center;">
                 <div class="view-toggle-pill">
                     <button id="btn-view-today" class="mode-btn active" onclick="setView('today')">Idag</button>
@@ -407,7 +412,7 @@
                         <path d="M23 4v6h-6M1 20v-6h6"/>
                         <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
                     </svg>
-                    Uppdatera
+                    <span id="refreshBtnText">Uppdatera</span>
                 </button>
                 </div>
             </div>
@@ -461,21 +466,80 @@
     let cachedUrls = [];
     let lastUpdatedAt = null;
     let currentView = new Date().getDay() >= 1 && new Date().getDay() <= 5 ? 'today' : 'week';
+    let currentLang = localStorage.getItem('lunch_language') || 'sv';
+
+    const I18N = {
+        sv: {
+            mainTitle: "Dagens Lunchmenyer",
+            today: "Idag",
+            week: "Vecka",
+            refresh: "Uppdatera",
+            updated: "Uppdaterad",
+            warnings: "Varningar",
+            weekdays: ['Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag','Söndag']
+        },
+        en: {
+            mainTitle: "Today's Lunch Menus",
+            today: "Today",
+            week: "All week",
+            refresh: "Refresh",
+            updated: "Updated",
+            warnings: "Warnings",
+            weekdays: ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+        }
+    };
+
+    function setLanguage(lang) {
+        currentLang = lang;
+        localStorage.setItem('lunch_language', lang);
+        applyLanguageUI();
+        updateDateTime();
+        loadMenus(false);
+    }
+
+    function applyLanguageUI() {
+        const t = I18N[currentLang] || I18N.sv;
+        document.documentElement.lang = currentLang;
+
+        const svBtn = document.getElementById('langSvBtn');
+        const enBtn = document.getElementById('langEnBtn');
+        if (svBtn && enBtn) {
+            svBtn.classList.toggle('active', currentLang === 'sv');
+            enBtn.classList.toggle('active', currentLang === 'en');
+        }
+
+        const title = document.getElementById('mainCardTitle');
+        if (title) title.textContent = t.mainTitle;
+
+        const todayBtn = document.getElementById('btn-view-today');
+        if (todayBtn) todayBtn.textContent = t.today;
+
+        const weekBtn = document.getElementById('btn-view-week');
+        if (weekBtn) weekBtn.textContent = t.week;
+
+        const refText = document.getElementById('refreshBtnText');
+        if (refText) refText.textContent = t.refresh;
+    }
 
     const WEEKDAYS = ['Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag','Söndag'];
+    const WEEKDAYS_EN = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 
     function extractToday(text) {
         if (!text) return text;
         const dayIdx = new Date().getDay(); // 0=Sun
-        const today = WEEKDAYS[dayIdx === 0 ? 6 : dayIdx - 1]; // Mon=0 → index 0
+        const todaySv = WEEKDAYS[dayIdx === 0 ? 6 : dayIdx - 1];
+        const todayEn = WEEKDAYS_EN[dayIdx === 0 ? 6 : dayIdx - 1];
+        const allDays = [...WEEKDAYS, ...WEEKDAYS_EN];
+        const targetDays = [todaySv, todayEn];
+
         const lines = text.split('\n');
         let start = -1, end = lines.length;
         for (let i = 0; i < lines.length; i++) {
             const l = lines[i].trim();
-            if (start === -1 && new RegExp('\\b' + today + '\\b', 'i').test(l)) {
+            if (start === -1 && targetDays.some(d => new RegExp('\\b' + d + '\\b', 'i').test(l))) {
                 start = i;
             } else if (start !== -1) {
-                const isOtherDay = WEEKDAYS.filter(d => d !== today)
+                const isOtherDay = allDays.filter(d => !targetDays.includes(d))
                     .some(d => new RegExp('\\b' + d + '\\b', 'i').test(l));
                 if (isOtherDay) { end = i; break; }
             }
@@ -499,15 +563,17 @@
 
     function menuText(menu) {
         if (!menu.success) return menu.menu || '';
-        return currentView === 'today' ? extractToday(menu.menu) : menu.menu;
+        const raw = (currentLang === 'en' && menu.menu_en) ? menu.menu_en : menu.menu;
+        return currentView === 'today' ? extractToday(raw) : raw;
     }
 
     // Update date/time
     function updateDateTime() {
         const now = new Date();
+        const locale = currentLang === 'en' ? 'en-GB' : 'sv-SE';
         const options = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
-        const dateStr = now.toLocaleDateString('sv-SE', options);
-        const timeStr = now.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+        const dateStr = now.toLocaleDateString(locale, options);
+        const timeStr = now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
         document.getElementById('currentDateTime').textContent = `${dateStr}    ${timeStr}`;
     }
     updateDateTime();
@@ -552,7 +618,7 @@
                 `;
             }).join('');
 
-            const response = await fetch('/api/menus' + (forceRefresh ? '?refresh=true' : ''));
+            const response = await fetch('/api/menus?lang=' + encodeURIComponent(currentLang) + (forceRefresh ? '&refresh=true' : ''));
             const data = await response.json();
             const menus = data.menus || data;
             const updatedAt = data.updated_at;
@@ -702,6 +768,7 @@
         updateStats(cachedMenus, cachedUrls, lastUpdatedAt);
     }
 
+    applyLanguageUI();
     loadMenus();
     setView(currentView);
 </script>

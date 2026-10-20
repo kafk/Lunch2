@@ -37,6 +37,14 @@ try:
 except ImportError:
     ENGINE_AVAILABLE = False
 
+try:
+    from engine.translation import translate_culinary_text, detect_language
+    TRANSLATION_AVAILABLE = True
+except ImportError:
+    TRANSLATION_AVAILABLE = False
+    def translate_culinary_text(t): return t or ''
+    def detect_language(t): return 'sv'
+
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
 
@@ -1320,8 +1328,36 @@ def scrape_nordic_taste_lab(url, name, session):
         return None
 
 
-def scrape_url(url, name):
-    """Scrapa en URL och returnera menyinformation."""
+def enrich_menu_languages(result, lang='sv'):
+    """Fördela ut och berika skrapad meny med språkinformation (sv/en)."""
+    if not result or not isinstance(result, dict):
+        return result
+    menu_text = result.get('menu', '')
+    if result.get('success') and menu_text:
+        det = detect_language(menu_text)
+        result['detected_lang'] = det
+        if det == 'sv':
+            result['menu_sv'] = menu_text
+            result['menu_en'] = translate_culinary_text(menu_text)
+        else:
+            result['menu_en'] = menu_text
+            result['menu_sv'] = menu_text
+        result['lang'] = lang
+        if lang == 'en':
+            result['menu'] = result['menu_en']
+        else:
+            result['menu'] = result['menu_sv']
+    return result
+
+
+def scrape_url(url, name, lang='sv'):
+    """Scrapa en URL och returnera menyinformation fördelat efter språk."""
+    res = _scrape_url_raw(url, name, lang=lang)
+    return enrich_menu_languages(res, lang=lang)
+
+
+def _scrape_url_raw(url, name, lang='sv'):
+    """Scrapa en URL och returnera rå menyinformation."""
     try:
         # 1. Kolla om restaurangen har en specifik konfiguration i config/restaurants.json
         if ENGINE_AVAILABLE and os.path.exists(RESTAURANTS_CONFIG_FILE):
@@ -1340,10 +1376,11 @@ def scrape_url(url, name):
 
         # Använd session för att hantera cookies automatiskt
         session = requests.Session()
+        accept_lang = 'en-US,en;q=0.9,sv;q=0.5' if lang == 'en' else 'sv-SE,sv;q=0.9,en-US;q=0.8,en;q=0.7'
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'sv-SE,sv;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept-Language': accept_lang,
             'Referer': 'https://www.google.com/',
             'DNT': '1',
             'Connection': 'keep-alive',
@@ -1924,7 +1961,8 @@ def admin_test_scrape():
     if not url.startswith(('http://', 'https://')):
         url = 'https://' + url
     name = data.get('name') or url.split('/')[2]
-    result = scrape_url(url, name)
+    lang = data.get('lang', 'sv')
+    result = scrape_url(url, name, lang=lang)
     if result.get('menu'):
         result['menu'] = strip_menu_footers(result['menu'])
     return jsonify(result)
@@ -2229,16 +2267,18 @@ def debug_tildas():
 
 @app.route('/api/menus', methods=['GET'])
 def get_menus():
-    """Scrapa alla aktiverade URL:er och returnera menyerna."""
+    """Scrapa alla aktiverade URL:er och returnera menyerna anpassade efter språk."""
     # Check if refresh is requested
     force_refresh = request.args.get('refresh', 'false').lower() == 'true'
     # Om today_only=true, filtrera texten till bara dagens sektion
     today_only = request.args.get('today_only', 'false').lower() == 'true'
+    lang = request.args.get('lang', 'sv').lower()
 
     def postprocess(menu_list):
-        """Applicera svarstids-transformationer på en menylist."""
+        """Applicera svarstids-transformationer och språkanpassning på en menylist."""
         for menu in menu_list:
             if menu.get('success') and menu.get('menu'):
+                enrich_menu_languages(menu, lang=lang)
                 menu['menu'] = strip_menu_footers(menu['menu'])
                 if today_only:
                     menu['menu'] = extract_today_section(menu['menu'])
@@ -2257,7 +2297,7 @@ def get_menus():
     for url_data in urls:
         # Endast scrapa aktiverade restauranger
         if url_data.get('enabled', True):
-            result = scrape_url(url_data['url'], url_data['name'])
+            result = scrape_url(url_data['url'], url_data['name'], lang=lang)
             menus.append(result)
 
     # Save to cache
@@ -2268,6 +2308,7 @@ def get_menus():
     # Return with timestamp
     return jsonify({
         'menus': menus,
+        'lang': lang,
         'updated_at': swedish_now().isoformat()
     })
 
