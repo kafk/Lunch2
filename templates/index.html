@@ -55,6 +55,37 @@
         text-decoration: underline;
     }
 
+    .header-left {
+        min-width: 320px;
+        flex: 1;
+    }
+
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-shrink: 0;
+    }
+
+    .lang-switcher {
+        display: inline-flex;
+        align-items: center;
+        width: 140px;
+        min-width: 140px;
+        max-width: 140px;
+        justify-content: center;
+        box-sizing: border-box;
+    }
+
+    .lang-btn {
+        width: 60px;
+        min-width: 60px;
+        max-width: 60px;
+        text-align: center;
+        justify-content: center;
+        box-sizing: border-box;
+    }
+
     .date-time {
         font-family: 'Cinzel', serif;
         font-size: 11.5px;
@@ -62,6 +93,24 @@
         color: var(--ink-muted);
         letter-spacing: 0.4px;
         text-transform: uppercase;
+        width: 220px;
+        min-width: 220px;
+        max-width: 220px;
+        text-align: right;
+        display: inline-block;
+        white-space: nowrap;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    #refreshBtn {
+        width: 126px;
+        min-width: 126px;
+        max-width: 126px;
+        justify-content: center;
+        display: inline-flex;
+        align-items: center;
+        box-sizing: border-box;
     }
 
     .alert-badge {
@@ -86,7 +135,13 @@
     .mode-btn {
         border: none;
         background: transparent;
-        padding: 6px 14px;
+        padding: 6px 12px;
+        width: 76px;
+        min-width: 76px;
+        max-width: 76px;
+        text-align: center;
+        justify-content: center;
+        display: inline-flex;
         border-radius: 16px;
         font-size: 12.5px;
         font-weight: 700;
@@ -94,6 +149,7 @@
         cursor: pointer;
         font-family: 'Plus Jakarta Sans', sans-serif;
         transition: all 0.2s ease;
+        box-sizing: border-box;
     }
 
     .mode-btn.active {
@@ -481,7 +537,7 @@
         en: {
             mainTitle: "Today's Lunch Menus",
             today: "Today",
-            week: "All week",
+            week: "Week",
             refresh: "Refresh",
             updated: "Updated",
             warnings: "Warnings",
@@ -493,7 +549,7 @@
         currentLang = lang;
         localStorage.setItem('lunch_language', lang);
         applyLanguageUI();
-        updateDateTime();
+        renderScrapedDateTime();
         loadMenus(false);
     }
 
@@ -519,6 +575,8 @@
 
         const refText = document.getElementById('refreshBtnText');
         if (refText) refText.textContent = t.refresh;
+
+        renderScrapedDateTime();
     }
 
     const WEEKDAYS = ['Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag','Söndag'];
@@ -680,17 +738,40 @@
         return currentView === 'today' ? extractToday(raw) : raw;
     }
 
-    // Update date/time
-    function updateDateTime() {
-        const now = new Date();
-        const locale = currentLang === 'en' ? 'en-GB' : 'sv-SE';
-        const options = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
-        const dateStr = now.toLocaleDateString(locale, options);
-        const timeStr = now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
-        document.getElementById('currentDateTime').textContent = `${dateStr}    ${timeStr}`;
+    // Last scraped timestamp display (static scraped time, not ticking clock)
+    let lastScrapedTime = localStorage.getItem('lunch_last_scraped_at') || null;
+
+    function renderScrapedDateTime(timestamp) {
+        if (timestamp) {
+            lastScrapedTime = timestamp;
+            localStorage.setItem('lunch_last_scraped_at', timestamp);
+        }
+        const dtEl = document.getElementById('currentDateTime');
+        if (!dtEl) return;
+        if (!lastScrapedTime) {
+            dtEl.textContent = currentLang === 'en' ? 'Not scraped yet' : 'Ej hämtad än';
+            return;
+        }
+        try {
+            let iso = lastScrapedTime;
+            if (typeof iso === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(iso)) {
+                iso = iso.replace(' ', 'T');
+            }
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) {
+                dtEl.textContent = lastScrapedTime;
+                return;
+            }
+            const locale = currentLang === 'en' ? 'en-GB' : 'sv-SE';
+            const options = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
+            const dateStr = d.toLocaleDateString(locale, options);
+            const timeStr = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+            dtEl.textContent = `${dateStr}  ${timeStr}`;
+        } catch {
+            dtEl.textContent = lastScrapedTime;
+        }
     }
-    updateDateTime();
-    setInterval(updateDateTime, 60000);
+    renderScrapedDateTime();
 
     async function loadMenus(forceRefresh = false) {
         refreshBtn.disabled = true;
@@ -702,20 +783,23 @@
             const urlsResponse = await fetch('/api/urls');
             const urls = await urlsResponse.json();
 
-            document.getElementById('restaurantCount').textContent = urls.length;
+            // Admin precedence: only enabled urls are counted and shown
+            const enabledUrls = urls.filter(u => u.enabled !== false);
+            document.getElementById('restaurantCount').textContent = enabledUrls.length;
 
-            if (urls.length === 0) {
+            if (enabledUrls.length === 0) {
                 emptyState.style.display = 'block';
                 loading.style.display = 'none';
                 refreshBtn.disabled = false;
-                updateStats([], urls);
+                updateStats([], enabledUrls);
                 return;
             }
 
             // Show restaurant list with toggle switches
             const localPrefs = JSON.parse(localStorage.getItem('restaurant_user_preferences') || '{}');
-            restaurantList.innerHTML = urls.map((url, i) => {
-                const isChecked = localPrefs[url.name] !== undefined ? localPrefs[url.name] : (url.enabled !== false);
+            restaurantList.innerHTML = enabledUrls.map((url, i) => {
+                const isChecked = localPrefs[url.name] !== undefined ? localPrefs[url.name] : true;
+                const origIndex = urls.indexOf(url);
                 return `
                     <div class="device-item ${isChecked ? '' : 'disabled'}">
                         <div class="device-icon">🍴</div>
@@ -724,7 +808,7 @@
                             <div class="device-meta">${escapeHtml(new URL(url.url).hostname)}</div>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleRestaurant(${i}, this.checked)">
+                            <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleRestaurant(${origIndex}, this.checked)">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
@@ -741,7 +825,8 @@
             lastUpdatedAt = updatedAt;
             
             renderCards(menus);
-            updateStats(menus, urls, updatedAt);
+            updateStats(menus, enabledUrls, updatedAt);
+            renderScrapedDateTime(updatedAt);
 
         } catch (error) {
             menuContainer.innerHTML = '<div class="error-msg">Kunde inte hämta menyer. Försök igen.</div>';
@@ -754,6 +839,8 @@
     function renderCards(menus) {
         const localPrefs = JSON.parse(localStorage.getItem('restaurant_user_preferences') || '{}');
         const visibleMenus = menus.filter(menu => {
+            const urlObj = cachedUrls.find(u => u.name === menu.name);
+            if (urlObj && urlObj.enabled === false) return false;
             const pref = localPrefs[menu.name];
             return pref !== false; // If explicitly false, hide. Otherwise show.
         });
@@ -807,7 +894,8 @@
     function updateStats(menus, urls, updatedAt) {
         const localPrefs = JSON.parse(localStorage.getItem('restaurant_user_preferences') || '{}');
         const enabledUrls = urls.filter(url => {
-            const isChecked = localPrefs[url.name] !== undefined ? localPrefs[url.name] : (url.enabled !== false);
+            if (url.enabled === false) return false;
+            const isChecked = localPrefs[url.name] !== undefined ? localPrefs[url.name] : true;
             return isChecked;
         });
         const total = enabledUrls.length;

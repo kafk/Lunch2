@@ -74,6 +74,14 @@
             </svg>
             <span id="viewCompactText">Kompakt</span>
         </button>
+        <!-- Favorite Filter Toggle -->
+        <button class="fav-filter-btn" id="favFilterBtn" onclick="toggleFavoritesFilter()" title="Visa endast favoriter">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+            </svg>
+            <span id="favFilterText">Favoriter</span>
+            <span class="fav-count-pill" id="favCountPill">0</span>
+        </button>
     </div>
 
     <!-- Day / Week Toggle (Desktop: inline right; Mobile: floating bottom-right) -->
@@ -172,6 +180,37 @@
         text-decoration: underline;
     }
 
+    .header-left {
+        min-width: 320px;
+        flex: 1;
+    }
+
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-shrink: 0;
+    }
+
+    .lang-switcher {
+        display: inline-flex;
+        align-items: center;
+        width: 140px;
+        min-width: 140px;
+        max-width: 140px;
+        justify-content: center;
+        box-sizing: border-box;
+    }
+
+    .lang-btn {
+        width: 60px;
+        min-width: 60px;
+        max-width: 60px;
+        text-align: center;
+        justify-content: center;
+        box-sizing: border-box;
+    }
+
     .date-time {
         font-family: 'Cinzel', serif;
         font-size: 11.5px;
@@ -179,6 +218,24 @@
         color: var(--ink-muted);
         letter-spacing: 0.4px;
         text-transform: uppercase;
+        width: 220px;
+        min-width: 220px;
+        max-width: 220px;
+        text-align: right;
+        display: inline-block;
+        white-space: nowrap;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    #refreshBtn {
+        width: 126px;
+        min-width: 126px;
+        max-width: 126px;
+        justify-content: center;
+        display: inline-flex;
+        align-items: center;
+        box-sizing: border-box;
     }
 
     .view-bar-card {
@@ -205,16 +262,23 @@
     }
 
     .day-toggle-btn {
-        padding: 6px 14px;
+        padding: 6px 12px;
+        width: 76px;
+        min-width: 76px;
+        max-width: 76px;
+        text-align: center;
+        justify-content: center;
+        display: inline-flex;
         border: none;
         border-radius: 16px;
         font-size: 12.5px;
         font-weight: 700;
         cursor: pointer;
         font-family: 'Plus Jakarta Sans', sans-serif;
-        transition: all 0.2s ease;
+        transition: background 0.2s ease, color 0.2s ease;
         background: transparent;
         color: #d1cbc1;
+        box-sizing: border-box;
     }
 
     .day-toggle-btn.active {
@@ -241,10 +305,12 @@
         display: flex;
         gap: 8px;
         flex-wrap: wrap;
+        align-items: center;
     }
 
     .view-btn {
-        padding: 8px 16px;
+        padding: 8px 12px;
+        justify-content: center;
         border: 1.5px solid var(--paper-border);
         background: #ffffff;
         border-radius: 8px;
@@ -252,12 +318,37 @@
         font-family: 'Plus Jakarta Sans', sans-serif;
         font-size: 12.5px;
         font-weight: 600;
-        transition: all 0.15s ease;
-        display: flex;
+        transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
         color: var(--ink-muted);
         box-shadow: var(--shadow-subtle);
+        box-sizing: border-box;
+    }
+
+    .view-btn[data-view="cards"], #btnCardsView {
+        width: 96px;
+        min-width: 96px;
+        max-width: 96px;
+    }
+
+    .view-btn[data-view="list"], #btnListView {
+        width: 88px;
+        min-width: 88px;
+        max-width: 88px;
+    }
+
+    .view-btn[data-view="table"], #btnTableView {
+        width: 96px;
+        min-width: 96px;
+        max-width: 96px;
+    }
+
+    .view-btn[data-view="compact"], #btnCompactView {
+        width: 114px;
+        min-width: 114px;
+        max-width: 114px;
     }
 
     .view-btn:hover {
@@ -270,6 +361,90 @@
         color: #ffffff;
         border-color: var(--bistro-green);
         box-shadow: 0 2px 8px rgba(27, 67, 36, 0.25);
+    }
+
+    .fav-filter-btn {
+        padding: 8px 12px;
+        width: 130px;
+        min-width: 130px;
+        max-width: 130px;
+        justify-content: center;
+        border: 1.5px solid var(--paper-border);
+        background: #ffffff;
+        border-radius: 8px;
+        cursor: pointer;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 12.5px;
+        font-weight: 600;
+        transition: all 0.15s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--ink-muted);
+        box-shadow: var(--shadow-subtle);
+        box-sizing: border-box;
+    }
+
+    .fav-filter-btn:hover {
+        border-color: #b8ac95;
+        color: #c23829;
+    }
+
+    .fav-filter-btn.active {
+        background: #fdf2f2;
+        color: #c23829;
+        border-color: #f1b0a8;
+        font-weight: 700;
+        box-shadow: 0 2px 8px rgba(194, 56, 41, 0.15);
+    }
+
+    .fav-filter-btn.active svg {
+        fill: #c23829;
+        stroke: #c23829;
+    }
+
+    .fav-count-pill {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 10px;
+        background: #ede6d6;
+        color: var(--ink-dark);
+        margin-left: 2px;
+    }
+
+    .fav-filter-btn.active .fav-count-pill {
+        background: #c23829;
+        color: #ffffff;
+    }
+
+    .fav-heart-btn {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #a39c8f;
+        transition: transform 0.15s ease, color 0.15s ease;
+        margin-left: 8px;
+        flex-shrink: 0;
+    }
+
+    .fav-heart-btn:hover {
+        transform: scale(1.18);
+        color: #c23829;
+    }
+
+    .fav-heart-btn.is-fav {
+        color: #c23829;
+    }
+
+    .fav-heart-btn.is-fav svg {
+        fill: #c23829;
+        stroke: #c23829;
     }
 
     .view-container {
@@ -498,48 +673,6 @@
         font-style: normal;
         color: #726857;
         line-height: 1.5;
-    }
-
-    /* Card Footer */
-    .lab-card-footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        border-top: 1px solid #ece4d4;
-        padding-top: 9px;
-        margin-top: auto;
-        font-size: 10.5px;
-        gap: 8px;
-    }
-    .lab-includes-text {
-        color: var(--ink-light);
-        font-style: italic;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 65%;
-    }
-    .lab-website-link {
-        color: var(--ink-dark);
-        text-decoration: none;
-        font-weight: 600;
-        font-family: 'Cinzel', serif;
-        font-size: 10.5px;
-        letter-spacing: 0.3px;
-        display: inline-flex;
-        align-items: center;
-        gap: 3px;
-        transition: color 0.15s ease;
-        white-space: nowrap;
-    }
-    .lab-website-link:hover {
-        color: var(--bistro-green);
-        text-decoration: underline;
-    }
-        font-size: 11.5px;
-        font-weight: 700;
-        color: var(--ink-black);
-        letter-spacing: 0.4px;
     }
 
     /* Modal */
@@ -939,6 +1072,9 @@
             list: "Lista",
             table: "Tabell",
             compact: "Kompakt",
+            favorites: "Favoriter",
+            emptyFavTitle: "Inga favoriter sparade",
+            emptyFavDesc: "Klicka på hjärtat på valfritt restaurangkort för att spara dina favoriter här.",
             today: "Idag",
             week: "Vecka",
             loading: "Hämtar lunchmenyer...",
@@ -961,8 +1097,11 @@
             list: "List",
             table: "Table",
             compact: "Compact",
+            favorites: "Favorites",
+            emptyFavTitle: "No favorites saved",
+            emptyFavDesc: "Click the heart icon on any restaurant card to save your favorites here.",
             today: "Today",
-            week: "All week",
+            week: "Week",
             loading: "Fetching lunch menus...",
             noMenu: "No menu available",
             includes: "Salad buffet, meal beverage & coffee",
@@ -1134,7 +1273,7 @@
         currentLang = lang;
         localStorage.setItem('lunch_language', lang);
         applyLanguageUI();
-        updateDateTime();
+        renderScrapedDateTime();
         renderViews();
     }
 
@@ -1170,6 +1309,9 @@
         const viewCompact = document.getElementById('viewCompactText');
         if (viewCompact) viewCompact.textContent = t.compact;
 
+        const favFilterText = document.getElementById('favFilterText');
+        if (favFilterText) favFilterText.textContent = t.favorites;
+
         const todayBtn = document.getElementById('disp-btn-today');
         if (todayBtn) todayBtn.textContent = t.today;
         const weekBtn = document.getElementById('disp-btn-week');
@@ -1184,6 +1326,77 @@
         if (thM) thM.textContent = t.thMenu;
         const thS = document.getElementById('thSource');
         if (thS) thS.textContent = t.thSource;
+
+        renderScrapedDateTime();
+    }
+
+    // Favorites State & Handling
+    let favorites = JSON.parse(localStorage.getItem('lunch_favorites') || '[]');
+    let onlyFavorites = false;
+
+    function isFavorite(name) {
+        return favorites.includes(name);
+    }
+
+    function toggleFavorite(name, event) {
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+        }
+        if (favorites.includes(name)) {
+            favorites = favorites.filter(n => n !== name);
+        } else {
+            favorites.push(name);
+        }
+        localStorage.setItem('lunch_favorites', JSON.stringify(favorites));
+        updateFavoritesBadge();
+        renderViews();
+    }
+
+    function toggleFavoritesFilter() {
+        onlyFavorites = !onlyFavorites;
+        const btn = document.getElementById('favFilterBtn');
+        if (btn) btn.classList.toggle('active', onlyFavorites);
+        renderViews();
+    }
+
+    function updateFavoritesBadge() {
+        const pill = document.getElementById('favCountPill');
+        if (pill) pill.textContent = favorites.length;
+    }
+
+    // Last scraped timestamp display (static scraped time, not ticking clock)
+    let lastScrapedTime = localStorage.getItem('lunch_last_scraped_at') || null;
+
+    function renderScrapedDateTime(timestamp) {
+        if (timestamp) {
+            lastScrapedTime = timestamp;
+            localStorage.setItem('lunch_last_scraped_at', timestamp);
+        }
+        const dtEl = document.getElementById('currentDateTime');
+        if (!dtEl) return;
+        if (!lastScrapedTime) {
+            dtEl.textContent = currentLang === 'en' ? 'Not scraped yet' : 'Ej hämtad än';
+            return;
+        }
+        try {
+            let iso = lastScrapedTime;
+            if (typeof iso === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(iso)) {
+                iso = iso.replace(' ', 'T');
+            }
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) {
+                dtEl.textContent = lastScrapedTime;
+                return;
+            }
+            const locale = currentLang === 'en' ? 'en-GB' : 'sv-SE';
+            const options = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
+            const dateStr = d.toLocaleDateString(locale, options);
+            const timeStr = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+            dtEl.textContent = `${dateStr}  ${timeStr}`;
+        } catch {
+            dtEl.textContent = lastScrapedTime;
+        }
     }
 
     const WEEKDAYS = ['M\u00e5ndag','Tisdag','Onsdag','Torsdag','Fredag','L\u00f6rdag','S\u00f6ndag'];
@@ -1389,9 +1602,13 @@
     function getVisibleMenus() {
         const localPrefs = JSON.parse(localStorage.getItem('restaurant_user_preferences') || '{}');
         const visibleUrls = allUrls.filter(urlEntry => {
+            // 1. Admin toggle precedence: if disabled in admin, NEVER show!
+            if (urlEntry.enabled === false) return false;
+            // 2. Favorites filter: if active, must be in favorites
+            if (onlyFavorites && !isFavorite(urlEntry.name)) return false;
+            // 3. User local preferences
             if (localPrefs[urlEntry.name] !== undefined) return localPrefs[urlEntry.name];
-            // Fall back to admin default from urls list
-            return urlEntry.enabled !== false;
+            return true;
         });
         const menusByName = new Map(allMenus.map(menu => [menu.name, menu]));
         return visibleUrls.map(urlEntry => menusByName.get(urlEntry.name)).filter(Boolean);
@@ -1403,6 +1620,24 @@
             const raw = (currentLang === 'en' && m.menu_en) ? m.menu_en : (m.menu || '');
             return displayView === 'today' ? extractToday(raw) : raw;
         };
+
+        if (allMenus.length > 0 && menus.length === 0) {
+            const isFavEmpty = onlyFavorites;
+            const emptyTitle = isFavEmpty ? (I18N[currentLang]?.emptyFavTitle || 'Inga favoriter sparade') : (I18N[currentLang]?.noMenu || 'Inga menyer tillgängliga');
+            const emptyDesc = isFavEmpty ? (I18N[currentLang]?.emptyFavDesc || 'Klicka på hjärtat på valfritt restaurangkort för att spara dina favoriter här.') : '';
+            const emptyCardHtml = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 48px 20px; background: var(--bg-paper); border: 1.5px dashed var(--paper-border); border-radius: 12px; margin: 10px 0;">
+                    <div style="font-size: 32px; margin-bottom: 8px;">❤️</div>
+                    <h3 style="font-family:'Cinzel',serif; font-size: 16px; margin-bottom: 6px; color: var(--ink-black);">${emptyTitle}</h3>
+                    <p style="font-size: 13px; color: var(--ink-muted); max-width: 420px; margin: 0 auto; line-height: 1.5;">${emptyDesc}</p>
+                </div>
+            `;
+            menuGrid.innerHTML = emptyCardHtml;
+            menuList.innerHTML = emptyCardHtml;
+            menuTable.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 36px;">${emptyTitle}</td></tr>`;
+            compactList.innerHTML = emptyCardHtml;
+            return;
+        }
 
         // Cards view is managed per-card by loadMenus; re-render only on view/pref toggle
         if (allMenus.length > 0) {
@@ -1464,18 +1699,6 @@
             </div>
         `).join('');
     }
-
-    // Update date/time
-    function updateDateTime() {
-        const now = new Date();
-        const locale = currentLang === 'en' ? 'en-GB' : 'sv-SE';
-        const options = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
-        const dateStr = now.toLocaleDateString(locale, options);
-        const timeStr = now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
-        document.getElementById('currentDateTime').textContent = `${dateStr}    ${timeStr}`;
-    }
-    updateDateTime();
-    setInterval(updateDateTime, 60000);
 
     // View switching
     document.querySelectorAll('.view-btn').forEach(btn => {
@@ -1539,6 +1762,18 @@
 
     function cardHtml(u, menu) {
         const domain = (() => { try { return new URL(u.url).hostname.replace('www.',''); } catch { return u.url; } })();
+        const isFav = isFavorite(u.name);
+        const favTitle = isFav ? (currentLang === 'en' ? 'Remove favorite' : 'Ta bort favorit') : (currentLang === 'en' ? 'Add favorite' : 'Lägg till som favorit');
+        const heartBtn = `
+            <button class="fav-heart-btn ${isFav ? 'is-fav' : ''}" 
+                    onclick="toggleFavorite(${JSON.stringify(u.name)}, event)" 
+                    title="${favTitle}"
+                    aria-label="${favTitle}">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="${isFav ? '#c23829' : 'none'}" stroke="currentColor" stroke-width="2">
+                    <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                </svg>
+            </button>
+        `;
         if (!menu) return `
             <div class="lab-card lab-testing" id="disp-card-${escapeHtml(u.name).replace(/\s/g,'_')}">
                 <div class="lab-card-header">
@@ -1546,13 +1781,13 @@
                         <div class="lab-card-name">${escapeHtml(u.name)}</div>
                         <div class="lab-card-domain"><a href="${escapeHtml(u.url)}" target="_blank" onclick="event.stopPropagation()">${domain}</a></div>
                     </div>
+                    ${heartBtn}
                 </div>
                 <div style="display:flex;justify-content:center;padding:24px 0;">
                     <span class="spin" style="width:24px;height:24px;border-width:3px;"></span>
                 </div>
             </div>`;
         const activeText = (currentLang === 'en' && menu.menu_en) ? menu.menu_en : (menu.menu || '');
-        const incText = I18N[currentLang]?.includes || 'Salladsbuffé, måltidsdryck & kaffe';
         return `
             <div class="lab-card ${menu.success ? 'lab-success' : 'lab-failed'}" id="disp-card-${escapeHtml(u.name).replace(/\s/g,'_')}">
                 <div class="lab-card-header" onclick='openRestaurantModalByName(${JSON.stringify(menu.name)}, event)'>
@@ -1560,14 +1795,9 @@
                         <div class="lab-card-name">${escapeHtml(menu.name)}</div>
                         <div class="lab-card-domain"><a href="${escapeHtml(menu.url)}" target="_blank" onclick="event.stopPropagation()">${domain}</a></div>
                     </div>
+                    ${heartBtn}
                 </div>
                 <div class="lab-card-content">${formatMenuContent(activeText, displayView)}</div>
-                <footer class="lab-card-footer">
-                    <span class="lab-includes-text">${incText}</span>
-                    <a href="${escapeHtml(menu.url)}" target="_blank" rel="noopener noreferrer" class="lab-website-link" onclick="event.stopPropagation()">
-                        ${escapeHtml(menu.name)} ↗
-                    </a>
-                </footer>
             </div>`;
     }
 
@@ -1591,9 +1821,11 @@
             }
 
             const localPrefs = JSON.parse(localStorage.getItem('restaurant_user_preferences') || '{}');
+            // Admin toggle ALWAYS takes precedence: if admin disabled it, it must NEVER show!
             const visibleUrls = allUrls.filter(u => {
+                if (u.enabled === false) return false;
                 const pref = localPrefs[u.name];
-                return pref !== undefined ? pref : u.enabled !== false;
+                return pref !== undefined ? pref : true;
             });
 
             // 1. Om vi inte tvingar uppdatering, hämta delad daglig cache först
@@ -1603,6 +1835,7 @@
                     const cacheData = await cacheRes.json();
                     if (cacheData && cacheData.menus && cacheData.menus.length > 0 && cacheData.updated_at) {
                         allMenus = cacheData.menus;
+                        renderScrapedDateTime(cacheData.updated_at);
                         renderViews();
                         refreshBtn.disabled = false;
                         return;
@@ -1632,6 +1865,10 @@
                     if (el) el.outerHTML = cardHtml(u, { success: false, menu: (currentLang === 'en' ? 'Network error' : 'Nätverksfel'), url: u.url, name: u.name });
                 }
             }));
+
+            // Record scraping timestamp
+            const scrapeIso = new Date().toISOString();
+            renderScrapedDateTime(scrapeIso);
 
             // Spara den nya menyn till delad cache så alla andra användare slipper skrapa idag
             if (allMenus.length > 0) {
@@ -1798,13 +2035,19 @@
         }
     }
 
-    // Re-render instantly when main page toggles a restaurant
+    // Re-render instantly when main page toggles a restaurant or favorites change
     window.addEventListener('storage', (e) => {
         if (e.key === 'restaurant_user_preferences') renderViews();
+        if (e.key === 'lunch_favorites') {
+            favorites = JSON.parse(localStorage.getItem('lunch_favorites') || '[]');
+            updateFavoritesBadge();
+            renderViews();
+        }
     });
 
-    // Initialize UI language
+    // Initialize UI language & favorites badge
     applyLanguageUI();
+    updateFavoritesBadge();
 
     // Auto-force-refresh if ?refresh=true is in the URL
     const urlParams = new URLSearchParams(window.location.search);
