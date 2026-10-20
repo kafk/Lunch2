@@ -582,28 +582,51 @@
     const WEEKDAYS = ['Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag','Söndag'];
     const WEEKDAYS_EN = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 
-    function extractWeeklySection(text) {
+    function extractWeeklySection(text, restaurantName) {
         if (!text) return { daysText: '', weeklyText: '', noteText: '' };
+        const isTheGrill = restaurantName && /the\s*grill/i.test(restaurantName);
         
         let noteText = '';
-        const noteMatch = /(Lunch serveras vardagar[^\n\r.]+.*?(?:\.|$)|Vi reserverar oss för[^\n\r.]+.*?(?:\.|$))/i.exec(text);
-        if (noteMatch) {
-            noteText = noteMatch[0].trim();
+        const grillFootnoteMatch = /(UNDER LUNCHEN SERVERAS ÄVEN[\s\S]*)/i.exec(text);
+        const standardNoteMatch = /(Lunch serveras vardagar[\s\S]*?(?:ändringar i lunchmenyn\.?|ändringar\.?|klockan\s*\d+–\d+[\s\S]*?(?:\.|$))|Vi reserverar oss för[\s\S]*?(?:ändringar i lunchmenyn\.?|\.|$))/i.exec(text);
+        
+        if (isTheGrill && grillFootnoteMatch) {
+            noteText = grillFootnoteMatch[1].trim();
+        } else if (standardNoteMatch) {
+            noteText = standardNoteMatch[0].trim();
+        } else if (grillFootnoteMatch) {
+            noteText = grillFootnoteMatch[1].trim();
+        }
+
+        let cleaned = text;
+        if (noteText) {
+            cleaned = cleaned.replace(noteText, '').trim();
+        }
+
+        if (isTheGrill) {
+            return { daysText: cleaned, weeklyText: '', noteText };
         }
 
         const dayRegex = /(?:^|\n|\b)\s*(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)\b/gi;
         const dayMatches = [];
         let m;
-        while ((m = dayRegex.exec(text)) !== null) {
+        while ((m = dayRegex.exec(cleaned)) !== null) {
             dayMatches.push({ day: m[1], index: m.index, end: m.index + m[0].length });
         }
         
         if (dayMatches.length === 0) {
-            return { daysText: text, weeklyText: '', noteText };
+            const weeklyHeaderRegex = /(?:^|\n|\b)\s*(?:LUNCH\s*V\d+)?\s*(KÖTT|FISK|PASTA|SALLAD|BURGARE|VECKANS|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY)/i;
+            const wMatch = weeklyHeaderRegex.exec(cleaned);
+            if (wMatch) {
+                let daysPart = cleaned.slice(0, wMatch.index).trim();
+                let weeklyPart = cleaned.slice(wMatch.index).trim();
+                return { daysText: daysPart, weeklyText: weeklyPart, noteText };
+            }
+            return { daysText: cleaned, weeklyText: '', noteText };
         }
         
         const lastDayEnd = dayMatches[dayMatches.length - 1].end;
-        const afterDays = text.slice(lastDayEnd);
+        const afterDays = cleaned.slice(lastDayEnd);
         
         // Look for weekly headers or standing category headers (KÖTT, FISK, etc.)
         const weeklyHeaderRegex = /(?:^|\n|\b)\s*(?:LUNCH\s*V\d+)?\s*(KÖTT|FISK|PASTA|SALLAD|BURGARE|VECKANS|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY)/i;
@@ -611,26 +634,24 @@
         
         if (wMatch) {
             const weeklyStart = lastDayEnd + wMatch.index;
-            let daysText = text.slice(0, weeklyStart).trim();
-            if (noteText) daysText = daysText.replace(noteText, '').trim();
-            let weeklyRaw = text.slice(weeklyStart).trim();
+            let daysText = cleaned.slice(0, weeklyStart).trim();
+            let weeklyRaw = cleaned.slice(weeklyStart).trim();
             weeklyRaw = weeklyRaw.replace(/^(?:LUNCH\s*V\d+|VECKANS(?:\s+[A-ZÅÄÖa-z]+)*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY(?:\s+[A-ZÅÄÖa-z]+)*)\s*/i, '').trim();
-            return { daysText, weeklyText: weeklyRaw, noteText };
+            return { daysText, weeklyRaw: weeklyRaw, weeklyText: weeklyRaw, noteText };
         }
         
         // Also check if weekly header appeared before the days
         const firstDayIndex = dayMatches[0].index;
-        const beforeDays = text.slice(0, firstDayIndex);
+        const beforeDays = cleaned.slice(0, firstDayIndex);
         const topMatch = weeklyHeaderRegex.exec(beforeDays);
         if (topMatch) {
             let weeklyRaw = beforeDays.slice(topMatch.index).trim();
             weeklyRaw = weeklyRaw.replace(/^(?:LUNCH\s*V\d+|VECKANS(?:\s+[A-ZÅÄÖa-z]+)*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY(?:\s+[A-ZÅÄÖa-z]+)*)\s*/i, '').trim();
-            let daysText = text.slice(firstDayIndex).trim();
-            if (noteText) daysText = daysText.replace(noteText, '').trim();
+            let daysText = cleaned.slice(firstDayIndex).trim();
             return { daysText, weeklyText: weeklyRaw, noteText };
         }
         
-        return { daysText: text, weeklyText: '', noteText };
+        return { daysText: cleaned, weeklyText: '', noteText };
     }
 
     function formatWeeklyDishes(weeklyText, noteText) {
@@ -724,7 +745,8 @@
     function extractToday(text, restaurantName) {
         if (!text) return text;
         const isTildas = restaurantName && /tilda/i.test(restaurantName);
-        const { daysText, weeklyText, noteText } = extractWeeklySection(text);
+        const isTheGrill = restaurantName && /the\s*grill/i.test(restaurantName);
+        const { daysText, weeklyText, noteText } = extractWeeklySection(text, restaurantName);
         const target = daysText || text;
 
         const dayIdx = new Date().getDay(); // 0=Sun
@@ -746,6 +768,35 @@
             }
         }
         let todayText = start === -1 ? target : lines.slice(start, end).join('\n').trim();
+
+        if (isTheGrill) {
+            const catRegex = /(?:^|\n)\s*(KÖTT|FISK|VEGETARISKT|VEGAN|SALLAD|PASTA|BURGARE)\s*:\s*/gi;
+            const catMatches = [];
+            let cm;
+            while ((cm = catRegex.exec(todayText)) !== null) {
+                catMatches.push({ cat: cm[1].toUpperCase(), index: cm.index, end: cm.index + cm[0].length });
+            }
+            if (catMatches.length > 0) {
+                const CAT_LABELS_SV = { 'KÖTT': 'Kött', 'FISK': 'Fisk', 'VEGETARISKT': 'Vegetariskt', 'VEGAN': 'Vegan', 'SALLAD': 'Sallad', 'PASTA': 'Pasta', 'BURGARE': 'Burgare' };
+                const CAT_LABELS_EN = { 'KÖTT': 'Meat', 'FISK': 'Fish', 'VEGETARISKT': 'Vegetarian', 'VEGAN': 'Vegan', 'SALLAD': 'Salad', 'PASTA': 'Pasta', 'BURGARE': 'Burger' };
+                const items = [];
+                for (let j = 0; j < catMatches.length; j++) {
+                    const cCur = catMatches[j];
+                    const cNext = catMatches[j + 1];
+                    let dish = todayText.slice(cCur.end, cNext ? cNext.index : todayText.length).trim();
+                    dish = dish.replace(/\s+/g, ' ').trim();
+                    const label = currentLang === 'en' ? (CAT_LABELS_EN[cCur.cat] || cCur.cat) : (CAT_LABELS_SV[cCur.cat] || cCur.cat);
+                    items.push(`${label}: ${dish}`);
+                }
+                const dayHeader = todayText.slice(0, catMatches[0].index).trim();
+                todayText = (dayHeader ? dayHeader + '\n' : '') + items.join('\n');
+            }
+            const grillFootnote = currentLang === 'en'
+                ? 'During lunch we also serve:\nKoobideh, Joojeh and Adana, vegan Koobideh as well as a veggie grill.'
+                : 'Under lunchen serveras även:\nKoobideh, Joojeh och Adana, vegansk Koobideh samt en veggiegrill.';
+            todayText += `\n\n${grillFootnote}`;
+        }
+
         if (weeklyText) {
             if (isTildas) {
                 const cats = parseTildasWeekly(weeklyText, currentLang);
