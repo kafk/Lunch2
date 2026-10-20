@@ -534,7 +534,7 @@ def format_menu_text(text):
     # Veckodagar - lägg till radbrytning före (versaler)
     weekdays = ['MÅNDAG', 'TISDAG', 'ONSDAG', 'TORSDAG', 'FREDAG', 'LÖRDAG', 'SÖNDAG']
     for day in weekdays:
-        text = re.sub(rf'(?<!\n)({day})', r'\n\n\1', text)
+        text = re.sub(rf'(?<!\n)({day})\b', r'\n\n\1', text)
 
     # Veckodagar i blandat format (t.ex. "TisdagStekt" → "Tisdag\n\nStekt")
     for day in ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag']:
@@ -585,7 +585,7 @@ def format_menu_text(text):
     # Sortera veckodagar i rätt ordning (måndag först)
     # Matchar även veckodagar med valfri suffix, t.ex. "Torsdag - Grilltorsdag!" eller "Måndag 26/5"
     weekday_order = ['MÅNDAG', 'TISDAG', 'ONSDAG', 'TORSDAG', 'FREDAG', 'LÖRDAG', 'SÖNDAG']
-    weekday_pattern = re.compile(r'^(Måndag|Tisdag|Onsdag|Torsdag(?:sgrill)?|Fredag|Lördag|Söndag)\b.*$', re.IGNORECASE | re.MULTILINE)
+    weekday_pattern = re.compile(r'^(Måndag|Tisdag|Onsdag|Torsdag(?:sgrill)?|Fredag|Lördag|Söndag)\b(?!.*\bdessert\b).*$', re.IGNORECASE | re.MULTILINE)
 
     # Hitta alla veckodagsektioner
     matches = list(weekday_pattern.finditer(text))
@@ -638,7 +638,7 @@ def extract_today_section(text):
     # Kolla om texten har veckodagssektioner (samma mönster som format_menu_text)
     # Matchar även veckodagar med valfri suffix, t.ex. "Torsdag - Grilltorsdag!" eller "Måndag 26/5"
     weekday_pattern = re.compile(
-        r'^(Måndag|Tisdag|Onsdag|Torsdag(?:sgrill)?|Fredag|Lördag|Söndag)\b.*$',
+        r'^(Måndag|Tisdag|Onsdag|Torsdag(?:sgrill)?|Fredag|Lördag|Söndag)\b(?!.*\bdessert\b).*$',
         re.IGNORECASE | re.MULTILINE
     )
     matches = list(weekday_pattern.finditer(text))
@@ -1003,11 +1003,15 @@ def get_text_with_html_day_markers(soup):
     to_replace = []
     for tag in soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5']):
         text = tag.get_text(strip=True)
+        if 'dessert' in text.lower():
+            continue
         m = weekday_heading_re.match(text)
         if m:
             to_replace.append((tag, m.group(1)))
     for tag in soup.find_all(['strong', 'b']):
         text = tag.get_text(strip=True)
+        if 'dessert' in text.lower():
+            continue
         m = weekday_standalone_re.match(text)
         if m:
             to_replace.append((tag, m.group(1)))
@@ -1019,6 +1023,87 @@ def get_text_with_html_day_markers(soup):
         tag.decompose()
 
     return soup.get_text(separator='\n')
+
+
+def scrape_bistrot(url, name, session):
+    """Custom scraper för Bistrot Lindholmen (bistrot.se) med FDM-struktur."""
+    try:
+        response = session.get(url, timeout=10)
+        response.raise_for_status()
+        if response.encoding == 'ISO-8859-1':
+            response.encoding = response.apparent_encoding
+        soup = BeautifulSoup(response.text, 'lxml')
+
+        days_order = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag']
+        days_data = {}
+        weekly_data = []
+
+        items = soup.find_all(class_='fdm-item')
+        if not items:
+            lunch_link = soup.find('a', href=lambda h: h and 'fdm-menu-section' in h)
+            if lunch_link:
+                sub_url = lunch_link['href']
+                sub_res = session.get(sub_url, timeout=10)
+                if sub_res.status_code == 200:
+                    soup = BeautifulSoup(sub_res.text, 'lxml')
+                    items = soup.find_all(class_='fdm-item')
+
+        for it in items:
+            title_el = it.find(class_='fdm-item-title')
+            if not title_el:
+                continue
+            title = title_el.get_text(strip=True)
+            content_el = it.find(class_='fdm-item-content')
+            if not content_el:
+                continue
+
+            paras = []
+            for p in content_el.find_all(['p', 'div', 'li']):
+                pt = p.get_text(strip=True)
+                if pt and pt not in paras:
+                    paras.append(pt)
+
+            clean_lines = []
+            for p in paras:
+                lines = [l.strip() for l in p.split('\n') if l.strip()]
+                for l in lines:
+                    if l not in clean_lines:
+                        clean_lines.append(l)
+
+            matched_day = None
+            for d in days_order:
+                if (d.lower() == title.lower() or title.lower().startswith(d.lower())) and 'dessert' not in title.lower():
+                    matched_day = d
+                    break
+
+            if matched_day:
+                days_data[matched_day] = clean_lines
+            elif 'vecka' in title.lower() or 'veckans' in title.lower():
+                weekly_data.extend(clean_lines)
+
+        result_sections = []
+        for d in days_order:
+            if d in days_data:
+                section_text = f"{d}\n" + '\n'.join(days_data[d])
+                result_sections.append(section_text)
+
+        if weekly_data:
+            result_sections.append("VECKANS\n" + '\n'.join(weekly_data))
+
+        raw_menu = '\n\n'.join(result_sections)
+        if raw_menu:
+            menu_text = format_menu_text(raw_menu)
+            return {
+                'name': name,
+                'url': url,
+                'menu': menu_text,
+                'success': True,
+                'source': 'FDM (Bistrot)',
+                'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+            }
+    except Exception as e:
+        print(f"Bistrot scraping error: {e}")
+    return None
 
 
 def scrape_roots(url, name, session):
@@ -1404,6 +1489,12 @@ def _scrape_url_raw(url, name, lang='sv'):
         if 'tsukihana' in url.lower():
             lunch_url = url if '/lunch' in url.lower() else url.rstrip('/') + '/lunch'
             result = scrape_tsukihana(lunch_url, name, session)
+            if result:
+                return result
+
+        # SPECIAL: Bistrot Lindholmen – FDM-meny
+        if 'bistrot.se' in url.lower() or 'bistro' in name.lower():
+            result = scrape_bistrot(url, name, session)
             if result:
                 return result
 

@@ -1360,7 +1360,7 @@
             return { daysText: cleaned, weeklyText: '', noteText };
         }
 
-        const dayRegex = /(?:^|\n|\b)\s*(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)\b/gi;
+        const dayRegex = /(?:^|\n|\b)\s*(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)\b(?![^\n]*\bdessert\b)/gi;
         const dayMatches = [];
         let m;
         while ((m = dayRegex.exec(cleaned)) !== null) {
@@ -1928,7 +1928,7 @@
         const dayPattern = /\b(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)\b/i;
 
         if (dayPattern.test(cleaned)) {
-            const daysRegex = /(?:^|\n)\s*(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)\s*[:.]?/gi;
+            const daysRegex = /(?:^|\n)\s*(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)\b(?![^\n]*\bdessert\b)\s*[:.]?/gi;
             const matches = [];
             let match;
             while ((match = daysRegex.exec(cleaned)) !== null) {
@@ -2135,7 +2135,7 @@
     }
 
     function highlightWeekdays(html) {
-        let res = html.replace(/(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag|MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY|Veckans|Weekly specials):?/gi,
+        let res = html.replace(/\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag|MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY|Veckans|Weekly specials)\b:?/gi,
             '<span class="weekday-badge">$1</span>');
         res = res.replace(/(KÖTT|FISK|PASTA|SALLAD|BURGARE|VEGETARISKT|VEGAN|MEAT|FISH|SALAD|BURGER|Dagens Kött|Dagens Fisk|Dagens Vegetariska|Dagens Asiatisk):/gi,
             '<strong class="dish-cat-title">$1:</strong>');

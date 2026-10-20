@@ -607,7 +607,7 @@
             return { daysText: cleaned, weeklyText: '', noteText };
         }
 
-        const dayRegex = /(?:^|\n|\b)\s*(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)\b/gi;
+        const dayRegex = /(?:^|\n|\b)\s*(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)\b(?![^\n]*\bdessert\b)/gi;
         const dayMatches = [];
         let m;
         while ((m = dayRegex.exec(cleaned)) !== null) {
@@ -791,6 +791,9 @@
         let start = -1, end = lines.length;
         for (let i = 0; i < lines.length; i++) {
             const l = lines[i].trim();
+            if (/dessert/i.test(l)) {
+                continue;
+            }
             if (start === -1 && targetDays.some(d => new RegExp('\\b' + d + '\\b', 'i').test(l))) {
                 start = i;
             } else if (start !== -1) {
@@ -1097,7 +1100,7 @@
     }
 
     function highlightWeekdays(html) {
-        return html.replace(/(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Veckans|Weekly specials)/gi,
+        return html.replace(/\b(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Veckans|Weekly specials)\b/gi,
             '<strong><u>$1</u></strong>');
     }
 
