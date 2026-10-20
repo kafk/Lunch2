@@ -309,32 +309,31 @@
         background: currentColor;
     }
 
-    /* Restaurant Card (Trattoria/Gazette Style) */
+    /* Restaurant Card (Genuine Gazetten Broadsheet Style) */
     .lab-card {
         background: #ffffff;
-        border-radius: 10px;
-        border: 1.5px solid var(--paper-border);
-        overflow: hidden;
-        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-        box-shadow: 0 2px 8px rgba(42, 39, 34, 0.05);
+        border: 1px solid var(--paper-border);
+        padding: 18px 20px;
+        border-radius: 6px;
+        box-shadow: var(--shadow-subtle);
         display: flex;
         flex-direction: column;
         justify-content: space-between;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
         position: relative;
     }
     .lab-card:hover {
-        border-color: #b8ac95;
-        box-shadow: 0 8px 24px rgba(42, 39, 34, 0.09);
         transform: translateY(-2px);
+        box-shadow: var(--shadow-card);
+        border-color: #b8ac95;
     }
-    .lab-card.lab-success {
-        border-color: var(--paper-border);
+    .lab-card.lab-success,
+    .lab-card.lab-testing,
+    .lab-card.lab-failed {
+        border: 1px solid var(--paper-border);
     }
     .lab-card.lab-failed {
         border-color: #fca5a5;
-    }
-    .lab-card.lab-testing {
-        border-color: #fde68a;
     }
 
     .spin {
@@ -350,30 +349,14 @@
 
     .lab-card-header {
         display: flex;
-        align-items: center;
         justify-content: space-between;
-        gap: 12px;
-        padding: 14px 18px;
-        cursor: pointer;
+        align-items: flex-start;
         border-bottom: 1.5px solid #ece4d4;
-        background: #fdfcf9;
-    }
-    .lab-card-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 16px;
-        flex-shrink: 0;
-        background: var(--bistro-green-light);
-        border: 1px solid rgba(27, 67, 36, 0.15);
-        color: var(--bistro-green);
-    }
-    .lab-card-info {
-        flex: 1;
-        min-width: 0;
+        padding-bottom: 8px;
+        margin-bottom: 12px;
+        gap: 10px;
+        cursor: pointer;
+        background: transparent;
     }
     .lab-card-name {
         font-family: 'Cinzel', serif;
@@ -382,72 +365,101 @@
         color: var(--ink-black);
         letter-spacing: 0.3px;
         line-height: 1.25;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
     }
     .lab-card-domain {
-        font-size: 11.5px;
+        font-size: 11px;
+        color: var(--ink-muted);
         margin-top: 3px;
     }
     .lab-card-domain a {
-        color: var(--bistro-green) !important;
-        font-weight: 700;
-        background: var(--bistro-green-light);
-        padding: 2px 8px;
-        border-radius: 4px;
-        letter-spacing: 0.3px;
-        text-decoration: none !important;
-        border: 1px solid rgba(27, 67, 36, 0.15);
-        display: inline-block;
-        transition: background 0.15s ease;
+        color: var(--ink-muted) !important;
+        text-decoration: none;
+        font-weight: 500;
     }
     .lab-card-domain a:hover {
-        background: #dce9de;
+        color: var(--bistro-green) !important;
+        text-decoration: underline !important;
     }
 
     .lab-card-content {
-        margin: 16px 18px 18px;
         font-family: 'Plus Jakarta Sans', sans-serif;
-        font-size: 12.5px;
+        font-size: 11.5px;
         color: var(--ink-dark);
-        line-height: 1.6;
-        max-height: 320px;
-        overflow-y: auto;
+        line-height: 1.5;
+        flex: 1;
+        margin: 0 0 14px 0;
+        overflow-y: visible !important;
+        max-height: none !important;
     }
 
-    .dish-block {
-        margin-bottom: 12px;
-        padding-bottom: 10px;
+    /* Week Day Row (Inline Gazetten Format) */
+    .week-day-row {
+        margin-bottom: 7px;
         border-bottom: 1px dotted #e5ded1;
-        font-family: 'Plus Jakarta Sans', sans-serif;
-        font-size: 12.5px;
-        line-height: 1.6;
-        color: var(--ink-dark);
+        padding-bottom: 5px;
+        font-size: 11.5px;
+        line-height: 1.45;
     }
-    .dish-block:last-child {
+    .week-day-row:last-child {
+        border-bottom: none;
         margin-bottom: 0;
         padding-bottom: 0;
-        border-bottom: none;
     }
-
-    .weekday-badge {
+    .week-day-name {
         font-family: 'Cinzel', serif;
+        font-weight: 700;
         font-size: 11px;
-        font-weight: 800;
-        color: var(--bistro-green);
-        letter-spacing: 0.8px;
-        text-transform: uppercase;
-        display: inline-block;
-        background: var(--bistro-green-light);
-        padding: 2px 7px;
-        border-radius: 4px;
-        margin-bottom: 6px;
-        border: 1px solid rgba(27, 67, 36, 0.15);
+        color: var(--ink-black);
+        margin-right: 5px;
+        letter-spacing: 0.3px;
     }
-
+    .week-dishes-text {
+        color: var(--ink-muted);
+    }
     .dish-cat-title {
         font-family: 'Cinzel', serif;
+        font-weight: 700;
+        font-size: 11px;
+        color: var(--ink-black);
+        margin-right: 4px;
+    }
+
+    /* Card Footer */
+    .lab-card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-top: 1px solid #ece4d4;
+        padding-top: 9px;
+        margin-top: auto;
+        font-size: 10.5px;
+        gap: 8px;
+    }
+    .lab-includes-text {
+        color: var(--ink-light);
+        font-style: italic;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 65%;
+    }
+    .lab-website-link {
+        color: var(--ink-dark);
+        text-decoration: none;
+        font-weight: 600;
+        font-family: 'Cinzel', serif;
+        font-size: 10.5px;
+        letter-spacing: 0.3px;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        transition: color 0.15s ease;
+        white-space: nowrap;
+    }
+    .lab-website-link:hover {
+        color: var(--bistro-green);
+        text-decoration: underline;
+    }
         font-size: 11.5px;
         font-weight: 700;
         color: var(--ink-black);
@@ -1020,13 +1032,11 @@
     }
 
     function cardHtml(u, menu) {
-        const localPrefs = JSON.parse(localStorage.getItem('restaurant_user_preferences') || '{}');
         const domain = (() => { try { return new URL(u.url).hostname.replace('www.',''); } catch { return u.url; } })();
         if (!menu) return `
             <div class="lab-card lab-testing" id="disp-card-${escapeHtml(u.name).replace(/\s/g,'_')}">
                 <div class="lab-card-header">
-                    <div class="lab-card-icon">🍴</div>
-                    <div class="lab-card-info">
+                    <div>
                         <div class="lab-card-name">${escapeHtml(u.name)}</div>
                         <div class="lab-card-domain"><a href="${escapeHtml(u.url)}" target="_blank" onclick="event.stopPropagation()">${domain}</a></div>
                     </div>
@@ -1039,14 +1049,18 @@
         return `
             <div class="lab-card ${menu.success ? 'lab-success' : 'lab-failed'}" id="disp-card-${escapeHtml(u.name).replace(/\s/g,'_')}">
                 <div class="lab-card-header" onclick='openRestaurantModalByName(${JSON.stringify(menu.name)}, event)'>
-                    <div class="lab-card-icon">${menu.success ? '🍴' : '❌'}</div>
-                    <div class="lab-card-info">
+                    <div>
                         <div class="lab-card-name">${escapeHtml(menu.name)}</div>
                         <div class="lab-card-domain"><a href="${escapeHtml(menu.url)}" target="_blank" onclick="event.stopPropagation()">${domain}</a></div>
                     </div>
-                    <span class="chip chip-green"><span class="chip-dot"></span>Live</span>
                 </div>
                 <div class="lab-card-content">${formatMenuContent(text)}</div>
+                <footer class="lab-card-footer">
+                    <span class="lab-includes-text">Salladsbuffé, måltidsdryck & kaffe</span>
+                    <a href="${escapeHtml(menu.url)}" target="_blank" rel="noopener noreferrer" class="lab-website-link" onclick="event.stopPropagation()">
+                        ${escapeHtml(menu.name)} ↗
+                    </a>
+                </footer>
             </div>`;
     }
 
@@ -1139,79 +1153,59 @@
     }
 
     function formatMenuContent(text) {
-        if (!text) return '';
-        // Normalisera: lägg till blank rad före kategori-etiketter (KÖTT:, FISK:, etc.)
-        // för menyer där kategorin saknar radbrytning
-        text = text.replace(/[ \t]+([A-ZÅÄÖ]{3,}:)/g, '\n\n$1');   // inline
-        text = text.replace(/\n([A-ZÅÄÖ]{3,}:)/g, '\n\n$1');         // enstaka radbrytning
-
-        // Blank rad efter ingrediensrader (Bistro-stil: "Ingrediens – Ingrediens – ...")
-        text = text.replace(/^([^\n]* – [^\n]*)$/gm, '$1\n');
-
-        // Varje ❖-rad är en egen rätt — ge dem eget block
-        // (Python lägger till "\n  ❖" med 2 mellanslag, så matcha valfritt whitespace)
-        text = text.replace(/\n[ \t]*(❖)/g, '\n\n❖');
-
-        // Rader som slutar med pris (t.ex. "165.-", "155:-") → eget block
-        text = text.replace(/([\d]+[.:-]+[-]?)\n(?!\n)/g, '$1\n\n');
-
-        // Numrerade rätter (Divan-stil: " 1.Kolgrillad", "2.Kebab" etc.)
-        // Matchar siffra(or) + punkt + stor bokstav (ej tid som "11.00")
-        text = text.replace(/[ \n](\d+\.)([A-ZÅÄÖ])/g, '\n\n$1$2');
-
-        // Beskrivningsrad som slutar med punkt följd av ny rätt (MR Tomato-stil)
-        // t.ex. "kantarellsås.\nTortellini" → extra radbrytning
-        text = text.replace(/\.\n([A-ZÅÄÖ])/g, '.\n\n$1');
-
-        text = text.replace(/\n{3,}/g, '\n\n');
-
-        // Dela upp på blanka rader (varje rätt är ett block)
-        const rawBlocks = text.split(/\n\n+/).map(b => b.trim()).filter(b => b.length > 0);
-
-        // Post-process: flytta kategori-etiketter (KÖTT, FISK etc.) från slutet av ett block
-        // till början av nästa, och slå ihop dagshuvuden med sina ❖-rätter.
-        const categorySet = new Set(['KÖTT', 'FISK', 'PASTA', 'SALLAD', 'BURGARE', 'VEGETARISKT', 'VEGAN']);
-        const daySet = new Set(['MÅNDAG', 'TISDAG', 'ONSDAG', 'TORSDAG', 'FREDAG', 'LÖRDAG', 'SÖNDAG',
-                               'Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag']);
-        const mutableBlocks = rawBlocks.slice();
-        const blocks = [];
-        for (let i = 0; i < mutableBlocks.length; i++) {
-            let block = mutableBlocks[i];
-
-            // Parentesblock som "(FREDAG\nLUNCH 11.00 – 13.00 V12)" → en rad
-            if (block.startsWith('(') && block.endsWith(')')) {
-                block = block.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
+        if (!text) return '<span style="color:var(--ink-light);font-style:italic;">Ingen meny tillgänglig</span>';
+        
+        const cleaned = text.trim();
+        const dayPattern = /\b(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG|Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)\b/i;
+        
+        if (dayPattern.test(cleaned)) {
+            const daysRegex = /(?:^|\n)\s*(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG|Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)\s*[:.]?/gi;
+            const matches = [];
+            let match;
+            while ((match = daysRegex.exec(cleaned)) !== null) {
+                matches.push({ day: match[1], index: match.index, length: match[0].length });
             }
+            
+            if (matches.length > 0) {
+                let html = '';
+                for (let i = 0; i < matches.length; i++) {
+                    const current = matches[i];
+                    const next = matches[i + 1];
+                    const contentStart = current.index + current.length;
+                    const contentEnd = next ? next.index : cleaned.length;
+                    let dayContent = cleaned.slice(contentStart, contentEnd).trim();
+                    
+                    dayContent = dayContent
+                        .split('\n')
+                        .map(l => l.replace(/^[❖•\-\*]\s*/, '').trim())
+                        .filter(l => l.length > 0)
+                        .join(' / ');
+                    
+                    if (dayContent.length === 0) dayContent = 'Se restaurangens webbplats';
 
-            const lines = block.split('\n');
-            const lastLine = lines[lines.length - 1].trim();
+                    const rawDay = current.day.toUpperCase();
+                    const dayDisplay = rawDay.charAt(0) + rawDay.slice(1).toLowerCase();
 
-            // Dagshuvud (TISDAG etc.) – slå ihop med efterföljande ❖-block
-            if (daySet.has(block.trim())) {
-                let j = i + 1;
-                while (j < mutableBlocks.length && mutableBlocks[j].trim().startsWith('❖')) {
-                    block += '\n' + mutableBlocks[j].trim();
-                    j++;
+                    html += `
+                        <div class="week-day-row">
+                            <strong class="week-day-name">${dayDisplay}:</strong>
+                            <span class="week-dishes-text">${linkify(escapeHtml(dayContent))}</span>
+                        </div>
+                    `;
                 }
-                blocks.push(block);
-                i = j - 1;
-                continue;
+                return html;
             }
-
-            // Block som slutar med en kategori-etikett – flytta den till nästa block
-            if (categorySet.has(lastLine) && i + 1 < mutableBlocks.length) {
-                const withoutCat = lines.slice(0, -1).join('\n').trim();
-                if (withoutCat) blocks.push(withoutCat);
-                mutableBlocks[i + 1] = lastLine + '\n' + mutableBlocks[i + 1];
-                continue;
-            }
-
-            blocks.push(block);
         }
-
-        return blocks
-            .map(block => `<div class="dish-block">${linkify(highlightWeekdays(escapeHtml(block).replace(/\n/g, '<br>')))}</div>`)
-            .join('');
+        
+        const lines = cleaned.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        return lines.map(line => {
+            const cleanLine = line.replace(/^[❖•\-\*]\s*/, '');
+            return `
+                <div class="week-day-row">
+                    <span class="week-dishes-text">${linkify(escapeHtml(cleanLine))}</span>
+                </div>
+            `;
+        }).join('');
     }
 
     function linkify(html) {
