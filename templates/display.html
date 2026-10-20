@@ -595,86 +595,6 @@
     }
     .week-dishes-text {
         color: var(--ink-muted);
-    }
-    /* Weekly Standing Specials Section (Gazetten Divided Format) */
-    .weekly-section-container {
-        border-top: 1.5px dashed var(--paper-border);
-        margin-top: 14px;
-        padding-top: 10px;
-    }
-    .weekly-section-header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 8px;
-    }
-    .weekly-section-title {
-        font-family: 'Cinzel', serif;
-        font-weight: 800;
-        font-size: 11.5px;
-        color: var(--bistro-green);
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    .weekly-category-group {
-        margin-bottom: 12px;
-    }
-    .weekly-category-group:last-child {
-        margin-bottom: 0;
-    }
-    .weekly-cat-header {
-        font-family: 'Cinzel', serif;
-        font-weight: 800;
-        font-size: 13.5px;
-        color: var(--ink-black);
-        letter-spacing: 0.8px;
-        text-transform: uppercase;
-        margin-top: 8px;
-        margin-bottom: 4px;
-    }
-    .weekly-dish-list {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-    .weekly-dish-item {
-        display: flex;
-        align-items: baseline;
-        gap: 6px;
-        font-size: 12.5px;
-        line-height: 1.45;
-        color: var(--ink-dark);
-    }
-    .weekly-bullet {
-        font-size: 11px;
-        color: var(--ink-muted);
-        flex-shrink: 0;
-    }
-    .weekly-dish-name {
-        font-weight: 700;
-        color: #23201b;
-    }
-    .weekly-price-tag {
-        text-align: right;
-        font-weight: 800;
-        font-size: 12.5px;
-        color: var(--ink-black);
-        margin-top: 2px;
-        margin-bottom: 4px;
-        letter-spacing: 0.2px;
-    }
-    .weekly-note-text {
-        margin-top: 14px;
-        padding-top: 10px;
-        border-top: 1px dotted #dfd8c8;
-        font-family: 'Playfair Display', Georgia, serif;
-        font-size: 12px;
-        font-weight: 700;
-        font-style: normal;
-        color: #726857;
-        line-height: 1.5;
-    }
-
     /* Modal */
     .modal {
         display: none;
@@ -1465,7 +1385,7 @@
         return { daysText: text, weeklyText: '', noteText };
     }
 
-    function formatWeeklyDishes(weeklyText, noteText, isHtml = true) {
+    function formatWeeklyDishes(weeklyText, noteText) {
         if (!weeklyText) return '';
         let cleaned = weeklyText.replace(/^(?:LUNCH\s*V\d+|VECKANS(?:\s+[A-ZÅÄÖa-z]+)*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY(?:\s+[A-ZÅÄÖa-z]+)*)\s*/i, '').trim();
         
@@ -1479,75 +1399,33 @@
         }
         
         const CAT_TRANSLATIONS = {
-            'KÖTT': 'MEAT', 'FISK': 'FISH', 'PASTA': 'PASTA', 'SALLAD': 'SALAD', 'BURGARE': 'BURGER', 'VEGETARISKT': 'VEGETARIAN', 'VEGAN': 'VEGAN'
+            'KÖTT': 'Kött', 'FISK': 'Fisk', 'PASTA': 'Pasta', 'SALLAD': 'Sallad', 'BURGARE': 'Burgare', 'VEGETARISKT': 'Vegetariskt', 'VEGAN': 'Vegan',
+            'MEAT': 'Kött', 'FISH': 'Fisk', 'SALAD': 'Sallad', 'BURGER': 'Burgare'
+        };
+        const CAT_TRANSLATIONS_EN = {
+            'KÖTT': 'Meat', 'FISK': 'Fish', 'PASTA': 'Pasta', 'SALLAD': 'Salad', 'BURGARE': 'Burger', 'VEGETARISKT': 'Vegetarian', 'VEGAN': 'Vegan',
+            'MEAT': 'Meat', 'FISH': 'Fish', 'SALAD': 'Salad', 'BURGER': 'Burger'
         };
 
         if (matches.length === 0) {
-            let plain = cleaned;
+            let plain = cleaned.split('\n').map(s => s.replace(/^[❖•\-\*]\s*/, '').trim()).filter(Boolean).join(' / ');
             if (currentLang === 'en') plain = translateCulinaryText(plain);
-            return isHtml ? `<div class="weekly-plain">${linkify(escapeHtml(plain))}</div>` : plain;
-        }
-        
-        if (!isHtml) {
-            const parts = [];
-            for (let i = 0; i < matches.length; i++) {
-                const cur = matches[i];
-                const next = matches[i + 1];
-                let content = cleaned.slice(cur.end, next ? next.index : cleaned.length).trim();
-                let catName = currentLang === 'en' ? (CAT_TRANSLATIONS[cur.cat] || cur.cat) : cur.cat;
-                if (currentLang === 'en') content = translateCulinaryText(content);
-                parts.push(catName + ': ' + content);
-            }
-            return parts.join('\n');
+            return plain;
         }
 
-        let html = '<div class="weekly-items-grid">';
+        const parts = [];
         for (let i = 0; i < matches.length; i++) {
             const cur = matches[i];
             const next = matches[i + 1];
-            const content = cleaned.slice(cur.end, next ? next.index : cleaned.length).trim();
+            let content = cleaned.slice(cur.end, next ? next.index : cleaned.length).trim();
+            content = content.replace(/^[❖•\-\*:\s/]+/, '').replace(/[❖•]+/g, ' ').replace(/\s+/g, ' ').trim();
             
-            let price = '';
-            let dishContent = content;
-            const priceMatch = content.match(/(\d+\s*kr(?:\s*\/\s*\d+\s*kr)?)\s*$/i);
-            if (priceMatch) {
-                price = priceMatch[1].trim();
-                dishContent = content.slice(0, priceMatch.index).trim();
-            }
+            let catName = currentLang === 'en' ? (CAT_TRANSLATIONS_EN[cur.cat] || cur.cat) : (CAT_TRANSLATIONS[cur.cat] || cur.cat);
+            if (currentLang === 'en') content = translateCulinaryText(content);
             
-            const rawItems = dishContent.split(/(?:[❖•]|\n+)\s*/).map(s => s.trim()).filter(Boolean);
-            const dishes = rawItems.length > 0 ? rawItems : [dishContent];
-            
-            let displayCat = cur.cat;
-            if (currentLang === 'en') {
-                displayCat = CAT_TRANSLATIONS[cur.cat] || cur.cat;
-            }
-            
-            html += `
-                <div class="weekly-category-group">
-                    <div class="weekly-cat-header">${displayCat}</div>
-                    <div class="weekly-dish-list">
-                        ${dishes.map(d => {
-                            let translatedDish = currentLang === 'en' ? translateCulinaryText(d) : d;
-                            return `
-                                <div class="weekly-dish-item">
-                                    <span class="weekly-bullet">&#10070;</span>
-                                    <span class="weekly-dish-name">${linkify(escapeHtml(translatedDish))}</span>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                    ${price ? `<div class="weekly-price-tag">${escapeHtml(price)}</div>` : ''}
-                </div>
-            `;
+            parts.push(`${catName}: ${content}`);
         }
-        
-        if (noteText) {
-            let displayNote = currentLang === 'en' ? translateCulinaryText(noteText) : noteText;
-            html += `<div class="weekly-note-text">${escapeHtml(displayNote)}</div>`;
-        }
-        html += '</div>';
-        return html;
+        return parts.join(' / ');
     }
 
     function extractToday(text) {
@@ -1981,18 +1859,24 @@
             }).join('');
         }
 
-        // ALWAYS append Veckans section if present, in both 'today' and 'week' modes!
+        // ALWAYS append Veckans row if present, in both 'today' and 'week' modes!
         if (weeklyText) {
-            const formattedWeekly = formatWeeklyDishes(weeklyText, noteText, true);
-            const weeklyLabel = currentLang === 'en' ? 'Weekly specials' : 'Veckans';
+            const formattedWeekly = formatWeeklyDishes(weeklyText, noteText);
+            const weeklyLabel = currentLang === 'en' ? 'Veckans' : 'Veckans';
             html += `
-                <div class="weekly-section-container">
-                    <div class="weekly-section-header">
-                        <span class="weekly-section-title">${weeklyLabel}</span>
-                    </div>
-                    ${formattedWeekly}
+                <div class="week-day-row">
+                    <strong class="week-day-name">${weeklyLabel}:</strong>
+                    <span class="week-dishes-text">${linkify(escapeHtml(formattedWeekly))}</span>
                 </div>
             `;
+            if (noteText) {
+                let displayNote = currentLang === 'en' ? translateCulinaryText(noteText) : noteText;
+                html += `
+                    <div class="week-day-row" style="border-bottom: none; padding-top: 2px;">
+                        <span class="week-dishes-text" style="font-style: italic; color: #8c8273;">${escapeHtml(displayNote)}</span>
+                    </div>
+                `;
+            }
         }
 
         return html;
