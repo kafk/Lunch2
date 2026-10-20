@@ -4,9 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Lunch Monitor{% endblock %}</title>
-    {% block styles %}{% endblock %}
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,900;1,400&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-paper: #fcfaf4;
+            --paper-border: #dcd4c3;
+            --paper-texture: #eae2d1;
+            --ink-black: #181613;
+            --ink-dark: #2a2722;
+            --ink-muted: #5e574b;
+            --ink-light: #7c7466;
+            --bistro-green: #1b4324;
+            --bistro-green-light: #e8f0e9;
+            --accent-red: #c23829;
+            --shadow-subtle: 0 2px 8px rgba(42, 39, 34, 0.04);
+            --shadow-card: 0 4px 14px rgba(42, 39, 34, 0.07);
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -14,8 +30,14 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #f8faf9;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #eee9dc;
+            background-image: 
+                radial-gradient(#d3cbb6 0.75px, transparent 0.75px),
+                radial-gradient(#e0d9c7 0.75px, #eee9dc 0.75px);
+            background-size: 28px 28px;
+            background-position: 0 0, 14px 14px;
+            color: var(--ink-dark);
             min-height: 100vh;
             display: flex;
         }
@@ -23,8 +45,8 @@
         /* Sidebar */
         .sidebar {
             width: 72px;
-            background: white;
-            border-right: 1px solid #e8ebe9;
+            background: var(--bg-paper);
+            border-right: 1.5px solid var(--paper-border);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -32,18 +54,20 @@
             position: fixed;
             height: 100vh;
             z-index: 100;
+            box-shadow: 2px 0 10px rgba(42, 39, 34, 0.03);
         }
 
         .sidebar-logo {
-            width: 40px;
-            height: 40px;
-            background: #22c55e;
-            border-radius: 12px;
+            width: 42px;
+            height: 42px;
+            background: var(--bistro-green);
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 8px;
-            font-size: 20px;
+            font-size: 22px;
+            box-shadow: 0 2px 8px rgba(27, 67, 36, 0.25);
         }
 
         .sidebar-version {
@@ -211,8 +235,8 @@
         }
 
         .sidebar-link.active {
-            background: #f0fdf4;
-            color: #22c55e;
+            background: var(--bistro-green-light);
+            color: var(--bistro-green);
         }
 
         .sidebar-bottom {
@@ -356,10 +380,11 @@
 
         /* Cards */
         .card {
-            background: white;
-            border-radius: 16px;
-            padding: 20px;
-            border: 1px solid #f0f0f0;
+            background: var(--bg-paper);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1.5px solid var(--paper-border);
+            box-shadow: var(--shadow-card);
             min-width: 0;
             max-width: 100%;
             box-sizing: border-box;
@@ -370,13 +395,17 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
+            border-bottom: 1.5px solid #ece4d4;
+            padding-bottom: 12px;
+            margin-bottom: 18px;
         }
 
         .card-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: #374151;
+            font-family: 'Cinzel', serif;
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--ink-black);
+            letter-spacing: 0.3px;
         }
 
         .card-icon {
@@ -871,22 +900,27 @@
 
         /* Buttons */
         .btn {
-            background: #22c55e;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 10px;
+            background: #ffffff;
+            color: var(--ink-dark);
+            border: 1.5px solid var(--paper-border);
+            padding: 9px 16px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.2s;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.15s ease;
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            box-shadow: var(--shadow-subtle);
         }
 
         .btn:hover {
-            background: #16a34a;
+            background: #ffffff;
+            border-color: #b8ac95;
+            color: var(--bistro-green);
+            box-shadow: var(--shadow-card);
         }
 
         .btn:disabled {
@@ -1281,7 +1315,7 @@
         }
 
         .toggle-switch input:checked + .toggle-slider {
-            background-color: #22c55e;
+            background-color: var(--bistro-green);
         }
 
         .toggle-switch input:checked + .toggle-slider:before {
@@ -1297,6 +1331,7 @@
             color: #9ca3af;
         }
     </style>
+    {% block styles %}{% endblock %}
 </head>
 <body>
     <!-- Version Update Banner -->

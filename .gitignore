@@ -21,3 +21,9 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local prototype and showcase layouts - NEVER commit or push to GitHub
+bistro-menu-recreation.html
+hailwards-bistro-layout.html
+lunchdejt-gazetten.html
+lunchdejt-layout-showcase.html
