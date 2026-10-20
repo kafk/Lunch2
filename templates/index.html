@@ -524,15 +524,95 @@
     const WEEKDAYS = ['Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag','Söndag'];
     const WEEKDAYS_EN = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 
+    function extractWeeklySection(text) {
+        if (!text) return { daysText: '', weeklyText: '' };
+        
+        const dayRegex = /(?:^|\n)\s*(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)\b/gi;
+        const dayMatches = [];
+        let m;
+        while ((m = dayRegex.exec(text)) !== null) {
+            dayMatches.push({ day: m[1], index: m.index, end: m.index + m[0].length });
+        }
+        
+        if (dayMatches.length === 0) {
+            return { daysText: text, weeklyText: '' };
+        }
+        
+        const lastDayEnd = dayMatches[dayMatches.length - 1].end;
+        const afterDays = text.slice(lastDayEnd);
+        
+        // Look for weekly headers or standing category headers (KÖTT, FISK, etc.)
+        const weeklyHeaderRegex = /(?:^|\n)\s*(?:LUNCH\s+V\d+|VECKANS(?:\s+[A-ZÅÄÖa-z]+)*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY(?:\s+[A-ZÅÄÖa-z]+)*|KÖTT|FISK|PASTA|SALLAD|BURGARE)\b/i;
+        const wMatch = weeklyHeaderRegex.exec(afterDays);
+        
+        if (wMatch) {
+            const weeklyStart = lastDayEnd + wMatch.index;
+            const daysText = text.slice(0, weeklyStart).trim();
+            let weeklyRaw = text.slice(weeklyStart).trim();
+            weeklyRaw = weeklyRaw.replace(/^(?:LUNCH\s+V\d+|VECKANS(?:\s+[A-ZÅÄÖa-z]+)*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY(?:\s+[A-ZÅÄÖa-z]+)*)\s*/i, '').trim();
+            return { daysText, weeklyText: weeklyRaw };
+        }
+        
+        // Also check if weekly header appeared before the days
+        const firstDayIndex = dayMatches[0].index;
+        const beforeDays = text.slice(0, firstDayIndex);
+        const topMatch = weeklyHeaderRegex.exec(beforeDays);
+        if (topMatch) {
+            let weeklyRaw = beforeDays.slice(topMatch.index).trim();
+            weeklyRaw = weeklyRaw.replace(/^(?:LUNCH\s+V\d+|VECKANS(?:\s+[A-ZÅÄÖa-z]+)*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY(?:\s+[A-ZÅÄÖa-z]+)*)\s*/i, '').trim();
+            const daysText = text.slice(firstDayIndex).trim();
+            return { daysText, weeklyText: weeklyRaw };
+        }
+        
+        return { daysText: text, weeklyText: '' };
+    }
+
+    function formatWeeklyDishes(weeklyText) {
+        if (!weeklyText) return '';
+        const lines = weeklyText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        const catPattern = /^(KÖTT|FISK|PASTA|SALLAD|BURGARE|VEGETARISKT|VEGAN|MEAT|FISH|SALAD|BURGER)$/i;
+        
+        const parts = [];
+        let currentCat = null;
+        let currentLines = [];
+        
+        for (let i = 0; i < lines.length; i++) {
+            const l = lines[i].replace(/^[❖•\-\*]\s*/, '').trim();
+            const catMatch = catPattern.exec(l);
+            if (catMatch) {
+                if (currentCat || currentLines.length > 0) {
+                    const dishStr = currentLines.join(' ');
+                    const label = currentCat ? (currentCat.toUpperCase() + ': ') : '';
+                    parts.push(label + dishStr);
+                    currentLines = [];
+                }
+                currentCat = catMatch[1];
+            } else {
+                currentLines.push(l);
+            }
+        }
+        
+        if (currentCat || currentLines.length > 0) {
+            const dishStr = currentLines.join(' ');
+            const label = currentCat ? (currentCat.toUpperCase() + ': ') : '';
+            parts.push(label + dishStr);
+        }
+        
+        return parts.length > 0 ? parts.join(' / ') : lines.map(l => l.replace(/^[❖•\-\*]\s*/, '').trim()).join(' / ');
+    }
+
     function extractToday(text) {
         if (!text) return text;
+        const { daysText, weeklyText } = extractWeeklySection(text);
+        const target = daysText || text;
+
         const dayIdx = new Date().getDay(); // 0=Sun
         const todaySv = WEEKDAYS[dayIdx === 0 ? 6 : dayIdx - 1];
         const todayEn = WEEKDAYS_EN[dayIdx === 0 ? 6 : dayIdx - 1];
         const allDays = [...WEEKDAYS, ...WEEKDAYS_EN];
         const targetDays = [todaySv, todayEn];
 
-        const lines = text.split('\n');
+        const lines = target.split('\n');
         let start = -1, end = lines.length;
         for (let i = 0; i < lines.length; i++) {
             const l = lines[i].trim();
@@ -544,8 +624,13 @@
                 if (isOtherDay) { end = i; break; }
             }
         }
-        if (start === -1) return text;
-        return lines.slice(start, end).join('\n').trim();
+        let todayText = start === -1 ? target : lines.slice(start, end).join('\n').trim();
+        if (weeklyText) {
+            const weeklyLabel = currentLang === 'en' ? 'Weekly specials:' : 'Veckans:';
+            const formatted = formatWeeklyDishes(weeklyText);
+            todayText += `\n\n${weeklyLabel}\n${formatted}`;
+        }
+        return todayText;
     }
 
     function setView(mode) {
@@ -720,7 +805,7 @@
     }
 
     function highlightWeekdays(html) {
-        return html.replace(/(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag)/gi,
+        return html.replace(/(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Veckans|Weekly specials)/gi,
             '<strong><u>$1</u></strong>');
     }
 

@@ -421,6 +421,20 @@
     .week-dishes-text {
         color: var(--ink-muted);
     }
+    /* Weekly Standing Specials Section */
+    .week-day-row.weekly-section {
+        border-top: 1px dashed #dcd4c3;
+        margin-top: 8px;
+        padding-top: 7px;
+        background: rgba(27, 67, 36, 0.02);
+        border-radius: 4px;
+        padding-left: 3px;
+        padding-right: 3px;
+    }
+    .weekly-name {
+        color: var(--bistro-green) !important;
+        font-weight: 800 !important;
+    }
     .dish-cat-title {
         font-family: 'Cinzel', serif;
         font-weight: 700;
@@ -1120,15 +1134,115 @@
     const isWeekday = new Date().getDay() >= 1 && new Date().getDay() <= 5;
     let displayView = isWeekday ? 'today' : 'week';
 
+    const DAY_SV_TO_EN = {
+        'MÅNDAG': 'Monday', 'TISDAG': 'Tuesday', 'ONSDAG': 'Wednesday', 'TORSDAG': 'Thursday', 'FREDAG': 'Friday', 'LÖRDAG': 'Saturday', 'SÖNDAG': 'Sunday',
+        'Måndag': 'Monday', 'Tisdag': 'Tuesday', 'Onsdag': 'Wednesday', 'Torsdag': 'Thursday', 'Fredag': 'Friday', 'Lördag': 'Saturday', 'Söndag': 'Sunday'
+    };
+    const DAY_EN_TO_SV = {
+        'MONDAY': 'Måndag', 'TUESDAY': 'Tisdag', 'WEDNESDAY': 'Onsdag', 'THURSDAY': 'Torsdag', 'FRIDAY': 'Fredag', 'SATURDAY': 'Lördag', 'SUNDAY': 'Söndag',
+        'Monday': 'Måndag', 'Tuesday': 'Tisdag', 'Wednesday': 'Onsdag', 'Thursday': 'Torsdag', 'Friday': 'Fredag', 'Saturday': 'Lördag', 'Sunday': 'Söndag'
+    };
+
+    function extractWeeklySection(text) {
+        if (!text) return { daysText: '', weeklyText: '' };
+        
+        const dayRegex = /(?:^|\n)\s*(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)\b/gi;
+        const dayMatches = [];
+        let m;
+        while ((m = dayRegex.exec(text)) !== null) {
+            dayMatches.push({ day: m[1], index: m.index, end: m.index + m[0].length });
+        }
+        
+        if (dayMatches.length === 0) {
+            return { daysText: text, weeklyText: '' };
+        }
+        
+        const lastDayEnd = dayMatches[dayMatches.length - 1].end;
+        const afterDays = text.slice(lastDayEnd);
+        
+        // Look for weekly headers or standing category headers (KÖTT, FISK, etc.)
+        const weeklyHeaderRegex = /(?:^|\n)\s*(?:LUNCH\s+V\d+|VECKANS(?:\s+[A-ZÅÄÖa-z]+)*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY(?:\s+[A-ZÅÄÖa-z]+)*|KÖTT|FISK|PASTA|SALLAD|BURGARE)\b/i;
+        const wMatch = weeklyHeaderRegex.exec(afterDays);
+        
+        if (wMatch) {
+            const weeklyStart = lastDayEnd + wMatch.index;
+            const daysText = text.slice(0, weeklyStart).trim();
+            let weeklyRaw = text.slice(weeklyStart).trim();
+            weeklyRaw = weeklyRaw.replace(/^(?:LUNCH\s+V\d+|VECKANS(?:\s+[A-ZÅÄÖa-z]+)*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY(?:\s+[A-ZÅÄÖa-z]+)*)\s*/i, '').trim();
+            return { daysText, weeklyText: weeklyRaw };
+        }
+        
+        // Also check if weekly header appeared before the days
+        const firstDayIndex = dayMatches[0].index;
+        const beforeDays = text.slice(0, firstDayIndex);
+        const topMatch = weeklyHeaderRegex.exec(beforeDays);
+        if (topMatch) {
+            let weeklyRaw = beforeDays.slice(topMatch.index).trim();
+            weeklyRaw = weeklyRaw.replace(/^(?:LUNCH\s+V\d+|VECKANS(?:\s+[A-ZÅÄÖa-z]+)*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY(?:\s+[A-ZÅÄÖa-z]+)*)\s*/i, '').trim();
+            const daysText = text.slice(firstDayIndex).trim();
+            return { daysText, weeklyText: weeklyRaw };
+        }
+        
+        return { daysText: text, weeklyText: '' };
+    }
+
+    function formatWeeklyDishes(weeklyText) {
+        if (!weeklyText) return '';
+        const lines = weeklyText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        const catPattern = /^(KÖTT|FISK|PASTA|SALLAD|BURGARE|VEGETARISKT|VEGAN|MEAT|FISH|SALAD|BURGER)$/i;
+        
+        const parts = [];
+        let currentCat = null;
+        let currentLines = [];
+        
+        for (let i = 0; i < lines.length; i++) {
+            const l = lines[i].replace(/^[❖•\-\*]\s*/, '').trim();
+            const catMatch = catPattern.exec(l);
+            if (catMatch) {
+                if (currentCat || currentLines.length > 0) {
+                    const dishStr = currentLines.join(' ');
+                    const label = currentCat ? (currentCat.toUpperCase() + ': ') : '';
+                    parts.push(label + dishStr);
+                    currentLines = [];
+                }
+                currentCat = catMatch[1];
+            } else {
+                currentLines.push(l);
+            }
+        }
+        
+        if (currentCat || currentLines.length > 0) {
+            const dishStr = currentLines.join(' ');
+            const label = currentCat ? (currentCat.toUpperCase() + ': ') : '';
+            parts.push(label + dishStr);
+        }
+        
+        let joined = parts.length > 0 ? parts.join(' / ') : lines.map(l => l.replace(/^[❖•\-\*]\s*/, '').trim()).join(' / ');
+        
+        if (currentLang === 'en') {
+            joined = translateCulinaryText(joined);
+            joined = joined.replace(/\bKÖTT:/gi, 'MEAT:')
+                           .replace(/\bFISK:/gi, 'FISH:')
+                           .replace(/\bPASTA:/gi, 'PASTA:')
+                           .replace(/\bSALLAD:/gi, 'SALAD:')
+                           .replace(/\bBURGARE:/gi, 'BURGER:')
+                           .replace(/\bVEGETARISKT:/gi, 'VEGETARIAN:');
+        }
+        return joined;
+    }
+
     function extractToday(text) {
         if (!text) return text;
+        const { daysText, weeklyText } = extractWeeklySection(text);
+        const target = daysText || text;
+
         const idx   = new Date().getDay();
         const todaySv = WEEKDAYS[idx === 0 ? 6 : idx - 1];
         const todayEn = WEEKDAYS_EN[idx === 0 ? 6 : idx - 1];
         const allDays = [...WEEKDAYS, ...WEEKDAYS_EN];
         const targetDays = [todaySv, todayEn];
 
-        const lines = text.split('\n');
+        const lines = target.split('\n');
         let start = -1, end = lines.length;
         for (let i = 0; i < lines.length; i++) {
             const l = lines[i].trim();
@@ -1141,7 +1255,13 @@
                 }
             }
         }
-        return start === -1 ? text : lines.slice(start, end).join('\n').trim();
+        let todayText = start === -1 ? target : lines.slice(start, end).join('\n').trim();
+        if (weeklyText) {
+            const weeklyLabel = currentLang === 'en' ? 'Weekly specials:' : 'Veckans:';
+            const formatted = formatWeeklyDishes(weeklyText);
+            todayText += `\n\n${weeklyLabel}\n${formatted}`;
+        }
+        return todayText;
     }
 
     function setDisplayView(mode) {
@@ -1173,7 +1293,10 @@
 
     function renderViews() {
         const menus = getVisibleMenus();
-        const menuText = m => displayView === 'today' ? extractToday(m.menu || '') : (m.menu || '');
+        const menuText = m => {
+            const raw = (currentLang === 'en' && m.menu_en) ? m.menu_en : (m.menu || '');
+            return displayView === 'today' ? extractToday(raw) : raw;
+        };
 
         // Cards view is managed per-card by loadMenus; re-render only on view/pref toggle
         if (allMenus.length > 0) {
@@ -1323,7 +1446,6 @@
                 </div>
             </div>`;
         const activeText = (currentLang === 'en' && menu.menu_en) ? menu.menu_en : (menu.menu || '');
-        const text = displayView === 'today' ? extractToday(activeText) : activeText;
         const incText = I18N[currentLang]?.includes || 'Salladsbuffé, måltidsdryck & kaffe';
         return `
             <div class="lab-card ${menu.success ? 'lab-success' : 'lab-failed'}" id="disp-card-${escapeHtml(u.name).replace(/\s/g,'_')}">
@@ -1333,7 +1455,7 @@
                         <div class="lab-card-domain"><a href="${escapeHtml(menu.url)}" target="_blank" onclick="event.stopPropagation()">${domain}</a></div>
                     </div>
                 </div>
-                <div class="lab-card-content">${formatMenuContent(text)}</div>
+                <div class="lab-card-content">${formatMenuContent(activeText, displayView)}</div>
                 <footer class="lab-card-footer">
                     <span class="lab-includes-text">${incText}</span>
                     <a href="${escapeHtml(menu.url)}" target="_blank" rel="noopener noreferrer" class="lab-website-link" onclick="event.stopPropagation()">
@@ -1431,24 +1553,19 @@
         return lines.slice(0, 3).join(' • ');
     }
 
-    const DAY_SV_TO_EN = {
-        'MÅNDAG': 'Monday', 'TISDAG': 'Tuesday', 'ONSDAG': 'Wednesday', 'TORSDAG': 'Thursday', 'FREDAG': 'Friday', 'LÖRDAG': 'Saturday', 'SÖNDAG': 'Sunday',
-        'Måndag': 'Monday', 'Tisdag': 'Tuesday', 'Onsdag': 'Wednesday', 'Torsdag': 'Thursday', 'Fredag': 'Friday', 'Lördag': 'Saturday', 'Söndag': 'Sunday'
-    };
-    const DAY_EN_TO_SV = {
-        'MONDAY': 'Måndag', 'TUESDAY': 'Tisdag', 'WEDNESDAY': 'Onsdag', 'THURSDAY': 'Torsdag', 'FRIDAY': 'Fredag', 'SATURDAY': 'Lördag', 'SUNDAY': 'Söndag',
-        'Monday': 'Måndag', 'Tuesday': 'Tisdag', 'Wednesday': 'Onsdag', 'Thursday': 'Torsdag', 'Friday': 'Fredag', 'Saturday': 'Lördag', 'Sunday': 'Söndag'
-    };
-
-    function formatMenuContent(text) {
+    function formatMenuContent(text, viewMode) {
         if (!text) {
             const emptyMsg = I18N[currentLang]?.noMenu || 'Ingen meny tillgänglig';
             return `<span style="color:var(--ink-light);font-style:italic;">${emptyMsg}</span>`;
         }
-        
-        const cleaned = text.trim();
+
+        const mode = viewMode || displayView || 'week';
+        const { daysText, weeklyText } = extractWeeklySection(text.trim());
+        const cleaned = daysText || text.trim();
+
+        let html = '';
         const dayPattern = /\b(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)\b/i;
-        
+
         if (dayPattern.test(cleaned)) {
             const daysRegex = /(?:^|\n)\s*(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)\s*[:.]?/gi;
             const matches = [];
@@ -1456,22 +1573,34 @@
             while ((match = daysRegex.exec(cleaned)) !== null) {
                 matches.push({ day: match[1], index: match.index, length: match[0].length });
             }
-            
+
             if (matches.length > 0) {
-                let html = '';
-                for (let i = 0; i < matches.length; i++) {
-                    const current = matches[i];
-                    const next = matches[i + 1];
+                let targetMatches = matches;
+                if (mode === 'today') {
+                    const idx = new Date().getDay();
+                    const todaySv = WEEKDAYS[idx === 0 ? 6 : idx - 1].toUpperCase();
+                    const todayEn = WEEKDAYS_EN[idx === 0 ? 6 : idx - 1].toUpperCase();
+                    const todayMatch = matches.find(m => {
+                        const d = m.day.toUpperCase();
+                        return d === todaySv || d === todayEn;
+                    });
+                    targetMatches = todayMatch ? [todayMatch] : [matches[0]];
+                }
+
+                for (let i = 0; i < targetMatches.length; i++) {
+                    const current = targetMatches[i];
+                    const fullIdx = matches.indexOf(current);
+                    const next = matches[fullIdx + 1];
                     const contentStart = current.index + current.length;
                     const contentEnd = next ? next.index : cleaned.length;
                     let dayContent = cleaned.slice(contentStart, contentEnd).trim();
-                    
+
                     dayContent = dayContent
                         .split('\n')
                         .map(l => l.replace(/^[❖•\-\*]\s*/, '').trim())
                         .filter(l => l.length > 0)
                         .join(' / ');
-                    
+
                     if (dayContent.length === 0) {
                         dayContent = currentLang === 'en' ? "See restaurant's website" : 'Se restaurangens webbplats';
                     }
@@ -1495,22 +1624,33 @@
                         </div>
                     `;
                 }
-                return html;
             }
+        } else {
+            const lines = cleaned.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            html = lines.map(line => {
+                let cleanLine = line.replace(/^[❖•\-\*]\s*/, '');
+                if (currentLang === 'en') cleanLine = translateCulinaryText(cleanLine);
+                return `
+                    <div class="week-day-row">
+                        <span class="week-dishes-text">${linkify(escapeHtml(cleanLine))}</span>
+                    </div>
+                `;
+            }).join('');
         }
-        
-        const lines = cleaned.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-        return lines.map(line => {
-            let cleanLine = line.replace(/^[❖•\-\*]\s*/, '');
-            if (currentLang === 'en') {
-                cleanLine = translateCulinaryText(cleanLine);
-            }
-            return `
-                <div class="week-day-row">
-                    <span class="week-dishes-text">${linkify(escapeHtml(cleanLine))}</span>
+
+        // ALWAYS append Veckans section if present, in both 'today' and 'week' modes!
+        if (weeklyText) {
+            const formattedWeekly = formatWeeklyDishes(weeklyText);
+            const weeklyLabel = currentLang === 'en' ? 'Weekly specials:' : 'Veckans:';
+            html += `
+                <div class="week-day-row weekly-section">
+                    <strong class="week-day-name weekly-name">${weeklyLabel}</strong>
+                    <span class="week-dishes-text">${linkify(escapeHtml(formattedWeekly))}</span>
                 </div>
             `;
-        }).join('');
+        }
+
+        return html;
     }
 
     function linkify(html) {
@@ -1527,9 +1667,9 @@
     }
 
     function highlightWeekdays(html) {
-        let res = html.replace(/(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag|MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG)/gi,
+        let res = html.replace(/(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag|MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY|Veckans|Weekly specials):?/gi,
             '<span class="weekday-badge">$1</span>');
-        res = res.replace(/(KÖTT|FISK|PASTA|SALLAD|BURGARE|VEGETARISKT|VEGAN|Dagens Kött|Dagens Fisk|Dagens Vegetariska|Dagens Asiatisk):/gi,
+        res = res.replace(/(KÖTT|FISK|PASTA|SALLAD|BURGARE|VEGETARISKT|VEGAN|MEAT|FISH|SALAD|BURGER|Dagens Kött|Dagens Fisk|Dagens Vegetariska|Dagens Asiatisk):/gi,
             '<strong class="dish-cat-title">$1:</strong>');
         return res;
     }
