@@ -421,26 +421,83 @@
     .week-dishes-text {
         color: var(--ink-muted);
     }
-    /* Weekly Standing Specials Section */
-    .week-day-row.weekly-section {
-        border-top: 1px dashed #dcd4c3;
-        margin-top: 8px;
-        padding-top: 7px;
-        background: rgba(27, 67, 36, 0.02);
-        border-radius: 4px;
-        padding-left: 3px;
-        padding-right: 3px;
+    /* Weekly Standing Specials Section (Gazetten Divided Format) */
+    .weekly-section-container {
+        border-top: 1.5px dashed var(--paper-border);
+        margin-top: 14px;
+        padding-top: 10px;
     }
-    .weekly-name {
-        color: var(--bistro-green) !important;
-        font-weight: 800 !important;
+    .weekly-section-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
     }
-    .dish-cat-title {
+    .weekly-section-title {
         font-family: 'Cinzel', serif;
-        font-weight: 700;
-        font-size: 11px;
+        font-weight: 800;
+        font-size: 11.5px;
+        color: var(--bistro-green);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .weekly-category-group {
+        margin-bottom: 12px;
+    }
+    .weekly-category-group:last-child {
+        margin-bottom: 0;
+    }
+    .weekly-cat-header {
+        font-family: 'Cinzel', serif;
+        font-weight: 800;
+        font-size: 13.5px;
         color: var(--ink-black);
-        margin-right: 4px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        margin-top: 8px;
+        margin-bottom: 4px;
+    }
+    .weekly-dish-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .weekly-dish-item {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        font-size: 12.5px;
+        line-height: 1.45;
+        color: var(--ink-dark);
+    }
+    .weekly-bullet {
+        font-size: 11px;
+        color: var(--ink-muted);
+        flex-shrink: 0;
+    }
+    .weekly-dish-name {
+        font-weight: 700;
+        color: #23201b;
+    }
+    .weekly-price-tag {
+        text-align: right;
+        font-weight: 800;
+        font-size: 12.5px;
+        color: var(--ink-black);
+        margin-top: 2px;
+        margin-bottom: 4px;
+        letter-spacing: 0.2px;
+    }
+    .weekly-note-text {
+        margin-top: 14px;
+        padding-top: 10px;
+        border-top: 1px dotted #dfd8c8;
+        font-family: 'Playfair Display', Georgia, serif;
+        font-size: 12px;
+        font-weight: 700;
+        font-style: normal;
+        color: #726857;
+        line-height: 1.5;
     }
 
     /* Card Footer */
@@ -1144,9 +1201,16 @@
     };
 
     function extractWeeklySection(text) {
-        if (!text) return { daysText: '', weeklyText: '' };
+        if (!text) return { daysText: '', weeklyText: '', noteText: '' };
         
-        const dayRegex = /(?:^|\n)\s*(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)\b/gi;
+        // Extract disclaimer note text if present (e.g. "Lunch serveras vardagar klockan 11–15...")
+        let noteText = '';
+        const noteMatch = /(Lunch serveras vardagar[^\n\r.]+.*?(?:\.|$)|Vi reserverar oss för[^\n\r.]+.*?(?:\.|$))/i.exec(text);
+        if (noteMatch) {
+            noteText = noteMatch[0].trim();
+        }
+
+        const dayRegex = /(?:^|\n|\b)\s*(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)\b/gi;
         const dayMatches = [];
         let m;
         while ((m = dayRegex.exec(text)) !== null) {
@@ -1154,22 +1218,23 @@
         }
         
         if (dayMatches.length === 0) {
-            return { daysText: text, weeklyText: '' };
+            return { daysText: text, weeklyText: '', noteText };
         }
         
         const lastDayEnd = dayMatches[dayMatches.length - 1].end;
         const afterDays = text.slice(lastDayEnd);
         
         // Look for weekly headers or standing category headers (KÖTT, FISK, etc.)
-        const weeklyHeaderRegex = /(?:^|\n)\s*(?:LUNCH\s+V\d+|VECKANS(?:\s+[A-ZÅÄÖa-z]+)*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY(?:\s+[A-ZÅÄÖa-z]+)*|KÖTT|FISK|PASTA|SALLAD|BURGARE)\b/i;
+        const weeklyHeaderRegex = /(?:^|\n|\b)\s*(?:LUNCH\s*V\d+)?\s*(KÖTT|FISK|PASTA|SALLAD|BURGARE|VECKANS|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY)/i;
         const wMatch = weeklyHeaderRegex.exec(afterDays);
         
         if (wMatch) {
             const weeklyStart = lastDayEnd + wMatch.index;
-            const daysText = text.slice(0, weeklyStart).trim();
+            let daysText = text.slice(0, weeklyStart).trim();
+            if (noteText) daysText = daysText.replace(noteText, '').trim();
             let weeklyRaw = text.slice(weeklyStart).trim();
-            weeklyRaw = weeklyRaw.replace(/^(?:LUNCH\s+V\d+|VECKANS(?:\s+[A-ZÅÄÖa-z]+)*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY(?:\s+[A-ZÅÄÖa-z]+)*)\s*/i, '').trim();
-            return { daysText, weeklyText: weeklyRaw };
+            weeklyRaw = weeklyRaw.replace(/^(?:LUNCH\s*V\d+|VECKANS(?:\s+[A-ZÅÄÖa-z]+)*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY(?:\s+[A-ZÅÄÖa-z]+)*)\s*/i, '').trim();
+            return { daysText, weeklyText: weeklyRaw, noteText };
         }
         
         // Also check if weekly header appeared before the days
@@ -1178,62 +1243,103 @@
         const topMatch = weeklyHeaderRegex.exec(beforeDays);
         if (topMatch) {
             let weeklyRaw = beforeDays.slice(topMatch.index).trim();
-            weeklyRaw = weeklyRaw.replace(/^(?:LUNCH\s+V\d+|VECKANS(?:\s+[A-ZÅÄÖa-z]+)*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY(?:\s+[A-ZÅÄÖa-z]+)*)\s*/i, '').trim();
-            const daysText = text.slice(firstDayIndex).trim();
-            return { daysText, weeklyText: weeklyRaw };
+            weeklyRaw = weeklyRaw.replace(/^(?:LUNCH\s*V\d+|VECKANS(?:\s+[A-ZÅÄÖa-z]+)*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY(?:\s+[A-ZÅÄÖa-z]+)*)\s*/i, '').trim();
+            let daysText = text.slice(firstDayIndex).trim();
+            if (noteText) daysText = daysText.replace(noteText, '').trim();
+            return { daysText, weeklyText: weeklyRaw, noteText };
         }
         
-        return { daysText: text, weeklyText: '' };
+        return { daysText: text, weeklyText: '', noteText };
     }
 
-    function formatWeeklyDishes(weeklyText) {
+    function formatWeeklyDishes(weeklyText, noteText, isHtml = true) {
         if (!weeklyText) return '';
-        const lines = weeklyText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-        const catPattern = /^(KÖTT|FISK|PASTA|SALLAD|BURGARE|VEGETARISKT|VEGAN|MEAT|FISH|SALAD|BURGER)$/i;
+        let cleaned = weeklyText.replace(/^(?:LUNCH\s*V\d+|VECKANS(?:\s+[A-ZÅÄÖa-z]+)*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY(?:\s+[A-ZÅÄÖa-z]+)*)\s*/i, '').trim();
         
-        const parts = [];
-        let currentCat = null;
-        let currentLines = [];
+        const catNames = ['KÖTT', 'FISK', 'PASTA', 'SALLAD', 'BURGARE', 'VEGETARISKT', 'VEGAN', 'MEAT', 'FISH', 'SALAD', 'BURGER'];
+        const catRegex = new RegExp('\\b(' + catNames.join('|') + ')\\b', 'gi');
         
-        for (let i = 0; i < lines.length; i++) {
-            const l = lines[i].replace(/^[❖•\-\*]\s*/, '').trim();
-            const catMatch = catPattern.exec(l);
-            if (catMatch) {
-                if (currentCat || currentLines.length > 0) {
-                    const dishStr = currentLines.join(' ');
-                    const label = currentCat ? (currentCat.toUpperCase() + ': ') : '';
-                    parts.push(label + dishStr);
-                    currentLines = [];
-                }
-                currentCat = catMatch[1];
-            } else {
-                currentLines.push(l);
+        const matches = [];
+        let m;
+        while ((m = catRegex.exec(cleaned)) !== null) {
+            matches.push({ cat: m[1].toUpperCase(), index: m.index, end: m.index + m[0].length });
+        }
+        
+        const CAT_TRANSLATIONS = {
+            'KÖTT': 'MEAT', 'FISK': 'FISH', 'PASTA': 'PASTA', 'SALLAD': 'SALAD', 'BURGARE': 'BURGER', 'VEGETARISKT': 'VEGETARIAN', 'VEGAN': 'VEGAN'
+        };
+
+        if (matches.length === 0) {
+            let plain = cleaned;
+            if (currentLang === 'en') plain = translateCulinaryText(plain);
+            return isHtml ? `<div class="weekly-plain">${linkify(escapeHtml(plain))}</div>` : plain;
+        }
+        
+        if (!isHtml) {
+            const parts = [];
+            for (let i = 0; i < matches.length; i++) {
+                const cur = matches[i];
+                const next = matches[i + 1];
+                let content = cleaned.slice(cur.end, next ? next.index : cleaned.length).trim();
+                let catName = currentLang === 'en' ? (CAT_TRANSLATIONS[cur.cat] || cur.cat) : cur.cat;
+                if (currentLang === 'en') content = translateCulinaryText(content);
+                parts.push(catName + ': ' + content);
             }
+            return parts.join('\n');
+        }
+
+        let html = '<div class="weekly-items-grid">';
+        for (let i = 0; i < matches.length; i++) {
+            const cur = matches[i];
+            const next = matches[i + 1];
+            const content = cleaned.slice(cur.end, next ? next.index : cleaned.length).trim();
+            
+            let price = '';
+            let dishContent = content;
+            const priceMatch = content.match(/(\d+\s*kr(?:\s*\/\s*\d+\s*kr)?)\s*$/i);
+            if (priceMatch) {
+                price = priceMatch[1].trim();
+                dishContent = content.slice(0, priceMatch.index).trim();
+            }
+            
+            const rawItems = dishContent.split(/(?:[❖•]|\n+)\s*/).map(s => s.trim()).filter(Boolean);
+            const dishes = rawItems.length > 0 ? rawItems : [dishContent];
+            
+            let displayCat = cur.cat;
+            if (currentLang === 'en') {
+                displayCat = CAT_TRANSLATIONS[cur.cat] || cur.cat;
+            }
+            
+            html += `
+                <div class="weekly-category-group">
+                    <div class="weekly-cat-header">${displayCat}</div>
+                    <div class="weekly-dish-list">
+                        ${dishes.map(d => {
+                            let translatedDish = currentLang === 'en' ? translateCulinaryText(d) : d;
+                            return `
+                                <div class="weekly-dish-item">
+                                    <span class="weekly-bullet">&#10070;</span>
+                                    <span class="weekly-dish-name">${linkify(escapeHtml(translatedDish))}</span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                    ${price ? `<div class="weekly-price-tag">${escapeHtml(price)}</div>` : ''}
+                </div>
+            `;
         }
         
-        if (currentCat || currentLines.length > 0) {
-            const dishStr = currentLines.join(' ');
-            const label = currentCat ? (currentCat.toUpperCase() + ': ') : '';
-            parts.push(label + dishStr);
+        if (noteText) {
+            let displayNote = currentLang === 'en' ? translateCulinaryText(noteText) : noteText;
+            html += `<div class="weekly-note-text">${escapeHtml(displayNote)}</div>`;
         }
-        
-        let joined = parts.length > 0 ? parts.join(' / ') : lines.map(l => l.replace(/^[❖•\-\*]\s*/, '').trim()).join(' / ');
-        
-        if (currentLang === 'en') {
-            joined = translateCulinaryText(joined);
-            joined = joined.replace(/\bKÖTT:/gi, 'MEAT:')
-                           .replace(/\bFISK:/gi, 'FISH:')
-                           .replace(/\bPASTA:/gi, 'PASTA:')
-                           .replace(/\bSALLAD:/gi, 'SALAD:')
-                           .replace(/\bBURGARE:/gi, 'BURGER:')
-                           .replace(/\bVEGETARISKT:/gi, 'VEGETARIAN:');
-        }
-        return joined;
+        html += '</div>';
+        return html;
     }
 
     function extractToday(text) {
         if (!text) return text;
-        const { daysText, weeklyText } = extractWeeklySection(text);
+        const { daysText, weeklyText, noteText } = extractWeeklySection(text);
         const target = daysText || text;
 
         const idx   = new Date().getDay();
@@ -1258,7 +1364,7 @@
         let todayText = start === -1 ? target : lines.slice(start, end).join('\n').trim();
         if (weeklyText) {
             const weeklyLabel = currentLang === 'en' ? 'Weekly specials:' : 'Veckans:';
-            const formatted = formatWeeklyDishes(weeklyText);
+            const formatted = formatWeeklyDishes(weeklyText, noteText, false);
             todayText += `\n\n${weeklyLabel}\n${formatted}`;
         }
         return todayText;
@@ -1560,7 +1666,7 @@
         }
 
         const mode = viewMode || displayView || 'week';
-        const { daysText, weeklyText } = extractWeeklySection(text.trim());
+        const { daysText, weeklyText, noteText } = extractWeeklySection(text.trim());
         const cleaned = daysText || text.trim();
 
         let html = '';
@@ -1640,12 +1746,14 @@
 
         // ALWAYS append Veckans section if present, in both 'today' and 'week' modes!
         if (weeklyText) {
-            const formattedWeekly = formatWeeklyDishes(weeklyText);
-            const weeklyLabel = currentLang === 'en' ? 'Weekly specials:' : 'Veckans:';
+            const formattedWeekly = formatWeeklyDishes(weeklyText, noteText, true);
+            const weeklyLabel = currentLang === 'en' ? 'Weekly specials' : 'Veckans';
             html += `
-                <div class="week-day-row weekly-section">
-                    <strong class="week-day-name weekly-name">${weeklyLabel}</strong>
-                    <span class="week-dishes-text">${linkify(escapeHtml(formattedWeekly))}</span>
+                <div class="weekly-section-container">
+                    <div class="weekly-section-header">
+                        <span class="weekly-section-title">${weeklyLabel}</span>
+                    </div>
+                    ${formattedWeekly}
                 </div>
             `;
         }
