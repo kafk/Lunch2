@@ -2384,10 +2384,46 @@
         return text;
     }
 
-    const ROW_CATEGORY_RE = /^(Vegetariskt|Vegetarisk|Vego|Fisk|Kött|Streetfood|Pasta|Sallad|Burgare|Veckans\s+\S+):?$/;
+    const ROW_CATEGORY_RE = /^(Vegetariskt|Vegetarisk|Vego|Fisk|Kött|Streetfood|Pasta|Sallad|Burgare|Soppa|Veckans\s+\S+):?$/i;
     const ROW_NOTE_RE = /^(pris:|i priset ingår|fler rätter|lunchen serveras|salladsbuffé|kuponghäfte|en låglaktos)/i;
 
-    // En rätt per rad: kategorirad ("Fisk:") blir etikett, fortsättningsrader (gemen, efter komma, efter "med") slås ihop
+    function detectDishCategory(text) {
+        if (!text) return '';
+        const t = text.toLowerCase();
+        // 1. Fisk & Skaldjur
+        if (/\b(fisk|lax|torsk|sej|spätta|rödspätta|kolja|abborre|gös|sill|strömming|tonfisk|hälleflundra|makrill|räkor|kräftor|musslor|skaldjur|fiskgratäng|fisksoppa|fiskfilé|fiskbiff|fiskburgare|panerad fisk|havets|havskatt|fiskcurry)\b/i.test(t)) {
+            return currentLang === 'en' ? 'Fish' : 'Fisk';
+        }
+        // 2. Burgare
+        if (/\b(burgare|burger|hamburgare)\b/i.test(t)) {
+            if (/halloumi|veg|bön/i.test(t)) return currentLang === 'en' ? 'Vegetarian' : 'Vegetariskt';
+            return currentLang === 'en' ? 'Burger' : 'Burgare';
+        }
+        // 3. Kött & Fågel
+        if (/\b(kött|biff|oxfilé|ryggbiff|entrecôte|entrecote|högrev|kalv|fläsk|fläskfilé|fläskkarré|kotlett|sidfläsk|karré|bacon|kyckling|kycklingfilé|kalkon|anka|lamm|färs|köttfärs|köttbullar|pannbiff|wallenbergare|schnitzel|korv|falukorv|isterband|chorizo|bratwurst|skinka|raggmunk|pyttipanna|pytt i panna|kebab|gyros|lasagne|kalops|rostbiff|revben|revbensspjäll)\b/i.test(t)) {
+            return currentLang === 'en' ? 'Meat' : 'Kött';
+        }
+        // 4. Pasta
+        if (/\b(pasta|spaghetti|penne|tagliatelle|rigatoni|lasagne|fettuccine|linguine|tortellini|ravioli)\b/i.test(t)) {
+            return 'Pasta';
+        }
+        // 5. Sallad
+        if (/\b(sallad|caesarsallad|räksallad|kycklingsallad|grekisk sallad)\b/i.test(t)) {
+            return currentLang === 'en' ? 'Salad' : 'Sallad';
+        }
+        // 6. Soppa
+        if (/\b(soppa|ärtsoppa|gulaschsoppa|linssoppa|tomatsoppa)\b/i.test(t)) {
+            return currentLang === 'en' ? 'Soup' : 'Soppa';
+        }
+        // 7. Vego & Vegan
+        if (/\b(vegetarisk|vegetariskt|vego|vegan|vegansk|halloumi|falafel|tofu|quorn|soyafärs|linser|kikärtor|bönbiff)\b/i.test(t)) {
+            if (/vegan|vegansk/i.test(t)) return 'Vegan';
+            return currentLang === 'en' ? 'Vegetarian' : 'Vegetariskt';
+        }
+        return '';
+    }
+
+    // En rätt per rad: kategorirad ("Fisk:") blir etikett, fortsättningsrader slås ihop
     function buildDishRows(lines) {
         const rows = [];
         const notes = [];
@@ -2397,14 +2433,30 @@
             if (inNotes || ROW_NOTE_RE.test(l)) { inNotes = true; notes.push(l); return; }
             if (/^\d{1,2}\/\d{1,2}$/.test(l)) return;
             if (ROW_CATEGORY_RE.test(l)) { label = l.replace(/:$/, ''); return; }
+            
+            // Kolla om raden börjar med kategori direkt: t.ex. "Fisk: Stekt lax..."
+            const inlineCatMatch = /^(Vegetariskt|Vegetarisk|Vego|Fisk|Kött|Streetfood|Pasta|Sallad|Burgare|Soppa|Meat|Fish|Vegetarian|Vegan|Salad|Burger|Soup)\s*:\s*(.+)$/i.exec(l);
+            if (inlineCatMatch) {
+                rows.push({ label: inlineCatMatch[1], text: inlineCatMatch[2] });
+                label = '';
+                return;
+            }
+
             const prev = rows[rows.length - 1];
             const cont = prev && !label && (/^[a-zåäö]/.test(l) || /,$/.test(prev.text) || /\bmed$/i.test(prev.text));
             if (cont) prev.text += ' ' + l;
-            else { rows.push({ label, text: l }); label = ''; }
+            else { 
+                const detectedCat = label || detectDishCategory(l);
+                rows.push({ label: detectedCat, text: l }); 
+                label = ''; 
+            }
         });
         rows.forEach(r => {
             const pm = /^(.*\S)\s+(\d{2,3}[.:]-?)$/.exec(r.text);
             if (pm) { r.text = pm[1]; r.price = pm[2]; }
+            if (!r.label) {
+                r.label = detectDishCategory(r.text);
+            }
         });
         return { rows, notes };
     }
@@ -2619,12 +2671,17 @@
                             <div class="week-day-row">
                                 ${showDayLabel ? `<strong class="week-day-name">${dayDisplay}:</strong>` : ''}
                                 <div style="margin-top: 3px; display: flex; flex-direction: column; gap: 5px;">
-                                    ${bistroBlocks.map(b => `
-                                        <div>
-                                            <strong style="color: var(--ink-black);">${linkify(escapeHtml(tr(b[0])))}</strong>
-                                            ${b.length > 1 ? `<div class="week-dishes-text">${linkify(escapeHtml(tr(b.slice(1).join(' '))))}</div>` : ''}
-                                        </div>
-                                    `).join('')}
+                                    ${bistroBlocks.map(b => {
+                                        const title = tr(b[0]);
+                                        const desc = b.length > 1 ? tr(b.slice(1).join(' ')) : '';
+                                        const cat = detectDishCategory(title + ' ' + desc);
+                                        return `
+                                            <div>
+                                                ${cat ? `<strong class="category-label">${cat}:</strong> ` : ''}<strong style="color: var(--ink-black);">${linkify(escapeHtml(title))}</strong>
+                                                ${desc ? `<div class="week-dishes-text">${linkify(escapeHtml(desc))}</div>` : ''}
+                                            </div>
+                                        `;
+                                    }).join('')}
                                 </div>
                             </div>
                         `;
@@ -2657,9 +2714,10 @@
                 html = lines.map(line => {
                     let cleanLine = line.replace(/^[❖•\-\*]\s*/, '');
                     if (currentLang === 'en') cleanLine = translateCulinaryText(cleanLine);
+                    const cat = detectDishCategory(cleanLine);
                     return `
                         <div class="week-day-row">
-                            <span class="week-dishes-text">${linkify(escapeHtml(cleanLine))}</span>
+                            <span class="week-dishes-text">${cat ? `<strong class="category-label">${cat}:</strong> ` : ''}${linkify(escapeHtml(cleanLine))}</span>
                         </div>
                     `;
                 }).join('');

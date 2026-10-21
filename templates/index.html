@@ -959,6 +959,35 @@
         return results;
     }
 
+    function detectDishCategory(text) {
+        if (!text) return '';
+        const t = text.toLowerCase();
+        if (/\b(fisk|lax|torsk|sej|spätta|rödspätta|kolja|abborre|gös|sill|strömming|tonfisk|hälleflundra|makrill|räkor|kräftor|musslor|skaldjur|fiskgratäng|fisksoppa|fiskfilé|fiskbiff|fiskburgare|panerad fisk|havets|havskatt|fiskcurry)\b/i.test(t)) {
+            return currentLang === 'en' ? 'Fish' : 'Fisk';
+        }
+        if (/\b(burgare|burger|hamburgare)\b/i.test(t)) {
+            if (/halloumi|veg|bön/i.test(t)) return currentLang === 'en' ? 'Vegetarian' : 'Vegetariskt';
+            return currentLang === 'en' ? 'Burger' : 'Burgare';
+        }
+        if (/\b(kött|biff|oxfilé|ryggbiff|entrecôte|entrecote|högrev|kalv|fläsk|fläskfilé|fläskkarré|kotlett|sidfläsk|karré|bacon|kyckling|kycklingfilé|kalkon|anka|lamm|färs|köttfärs|köttbullar|pannbiff|wallenbergare|schnitzel|korv|falukorv|isterband|chorizo|bratwurst|skinka|raggmunk|pyttipanna|pytt i panna|kebab|gyros|lasagne|kalops|rostbiff|revben|revbensspjäll)\b/i.test(t)) {
+            return currentLang === 'en' ? 'Meat' : 'Kött';
+        }
+        if (/\b(pasta|spaghetti|penne|tagliatelle|rigatoni|lasagne|fettuccine|linguine|tortellini|ravioli)\b/i.test(t)) {
+            return 'Pasta';
+        }
+        if (/\b(sallad|caesarsallad|räksallad|kycklingsallad|grekisk sallad)\b/i.test(t)) {
+            return currentLang === 'en' ? 'Salad' : 'Sallad';
+        }
+        if (/\b(soppa|ärtsoppa|gulaschsoppa|linssoppa|tomatsoppa)\b/i.test(t)) {
+            return currentLang === 'en' ? 'Soup' : 'Soppa';
+        }
+        if (/\b(vegetarisk|vegetariskt|vego|vegan|vegansk|halloumi|falafel|tofu|quorn|soyafärs|linser|kikärtor|bönbiff)\b/i.test(t)) {
+            if (/vegan|vegansk/i.test(t)) return 'Vegan';
+            return currentLang === 'en' ? 'Vegetarian' : 'Vegetariskt';
+        }
+        return '';
+    }
+
     function extractToday(text, restaurantName) {
         if (!text) return text;
         const isTildas = restaurantName && /tilda/i.test(restaurantName);
@@ -1006,34 +1035,46 @@
             todayText = lines.slice(start, end).join('\n').trim();
         }
 
-                if (isTheGrill || isZata) {
-            const catRegex = /(?:^|\n)\s*(KÖTT|FISK|VEGETARISKT|VEGAN|SALLAD|PASTA|BURGARE|VEGO|MEAT|FISH|STREETFOOD)\s*:\s*/gi;
-            const catMatches = [];
-            let cm;
-            while ((cm = catRegex.exec(todayText)) !== null) {
-                catMatches.push({ cat: cm[1].toUpperCase(), index: cm.index, end: cm.index + cm[0].length });
+        const catRegex = /(?:^|\n)\s*(KÖTT|FISK|VEGETARISKT|VEGAN|SALLAD|PASTA|BURGARE|VEGO|MEAT|FISH|STREETFOOD)\s*:\s*/gi;
+        const catMatches = [];
+        let cm;
+        while ((cm = catRegex.exec(todayText)) !== null) {
+            catMatches.push({ cat: cm[1].toUpperCase(), index: cm.index, end: cm.index + cm[0].length });
+        }
+        if (catMatches.length > 0) {
+            const CAT_LABELS_SV = { 'KÖTT': 'Kött', 'MEAT': 'Kött', 'FISK': 'Fisk', 'FISH': 'Fisk', 'VEGETARISKT': 'Vegetariskt', 'VEGAN': 'Vegan', 'VEGO': 'Vego', 'SALLAD': 'Sallad', 'PASTA': 'Pasta', 'BURGARE': 'Burgare', 'STREETFOOD': 'Streetfood' };
+            const CAT_LABELS_EN = { 'KÖTT': 'Meat', 'MEAT': 'Meat', 'FISK': 'Fish', 'FISH': 'Fish', 'VEGETARISKT': 'Vegetarian', 'VEGAN': 'Vegan', 'VEGO': 'Vego', 'SALLAD': 'Salad', 'PASTA': 'Pasta', 'BURGARE': 'Burger', 'STREETFOOD': 'Streetfood' };
+            const items = [];
+            for (let j = 0; j < catMatches.length; j++) {
+                const cCur = catMatches[j];
+                const cNext = catMatches[j + 1];
+                let dish = todayText.slice(cCur.end, cNext ? cNext.index : todayText.length).trim();
+                dish = dish.replace(/\s+/g, ' ').trim();
+                const label = currentLang === 'en' ? (CAT_LABELS_EN[cCur.cat] || cCur.cat) : (CAT_LABELS_SV[cCur.cat] || cCur.cat);
+                items.push(`${label}: ${dish}`);
             }
-            if (catMatches.length > 0) {
-                const CAT_LABELS_SV = { 'KÖTT': 'Kött', 'MEAT': 'Kött', 'FISK': 'Fisk', 'FISH': 'Fisk', 'VEGETARISKT': 'Vegetariskt', 'VEGAN': 'Vegan', 'VEGO': 'Vego', 'SALLAD': 'Sallad', 'PASTA': 'Pasta', 'BURGARE': 'Burgare', 'STREETFOOD': 'Streetfood' };
-                const CAT_LABELS_EN = { 'KÖTT': 'Meat', 'MEAT': 'Meat', 'FISK': 'Fish', 'FISH': 'Fish', 'VEGETARISKT': 'Vegetarian', 'VEGAN': 'Vegan', 'VEGO': 'Vego', 'SALLAD': 'Salad', 'PASTA': 'Pasta', 'BURGARE': 'Burger', 'STREETFOOD': 'Streetfood' };
-                const items = [];
-                for (let j = 0; j < catMatches.length; j++) {
-                    const cCur = catMatches[j];
-                    const cNext = catMatches[j + 1];
-                    let dish = todayText.slice(cCur.end, cNext ? cNext.index : todayText.length).trim();
-                    dish = dish.replace(/\s+/g, ' ').trim();
-                    const label = currentLang === 'en' ? (CAT_LABELS_EN[cCur.cat] || cCur.cat) : (CAT_LABELS_SV[cCur.cat] || cCur.cat);
-                    items.push(`${label}: ${dish}`);
+            const dayHeader = todayText.slice(0, catMatches[0].index).trim();
+            todayText = (dayHeader ? dayHeader + '\n' : '') + items.join('\n');
+        } else if (!isTheGrill && !isZata) {
+            // Auto-detect category for lines if no explicit category tag is present
+            const subLines = todayText.split('\n');
+            const newSubLines = [];
+            for (let sl of subLines) {
+                const trimSl = sl.trim().replace(/^[❖•\-\*]\s*/, '');
+                const dCat = detectDishCategory(trimSl);
+                if (dCat && !/^(Måndag|Tisdag|Onsdag|Torsdag|Fredag|Lördag|Söndag|Monday|Tuesday|Wednesday|Thursday|Friday)/i.test(trimSl)) {
+                    newSubLines.push(`${dCat}: ${trimSl}`);
+                } else {
+                    newSubLines.push(sl);
                 }
-                const dayHeader = todayText.slice(0, catMatches[0].index).trim();
-                todayText = (dayHeader ? dayHeader + '\n' : '') + items.join('\n');
             }
-            if (isTheGrill) {
-                const grillFootnote = currentLang === 'en'
-                    ? 'During lunch we also serve:\nKoobideh, Joojeh and Adana, vegan Koobideh as well as a veggie grill.'
-                    : 'Under lunchen serveras även:\nKoobideh, Joojeh och Adana, vegansk Koobideh samt en veggiegrill.';
-                todayText += `\n\n${grillFootnote}`;
-            }
+            todayText = newSubLines.join('\n');
+        }
+        if (isTheGrill) {
+            const grillFootnote = currentLang === 'en'
+                ? 'During lunch we also serve:\nKoobideh, Joojeh and Adana, vegan Koobideh as well as a veggie grill.'
+                : 'Under lunchen serveras även:\nKoobideh, Joojeh och Adana, vegansk Koobideh samt en veggiegrill.';
+            todayText += `\n\n${grillFootnote}`;
         }
 
         if (weeklyText) {
