@@ -671,6 +671,91 @@
         return out.filter(l => l.trim().length > 0).join('\n');
     }
 
+    const GC_SWEDISH_DISH_WORDS = new Set([
+        'och', 'med', 'samt', 'serveras', 'kokt', 'stekt', 'ugnsbakad', 'rostad', 'rostade',
+        'potatis', 'sås', 'fläsk', 'kött', 'fisk', 'morötter', 'ärtor', 'bönor', 'kål',
+        'alt', 'eller', 'nyslaget', 'nattbakad', 'svamp', 'gratäng', 'gryta', 'till', 'smör',
+        'lingon', 'pannkakor', 'sylt', 'grädde', 'soppa', 'färsk', 'het', 'klyftpotatis',
+        'biff', 'dragon', 'råstekt', 'persiljestekt', 'gräslök', 'kolja', 'jordärtskocka',
+        'sesamtopping', 'ångat', 'soja-lime', 'syrlig', 'sötsyrlig', 'sötsalt', 'vetenudlar',
+        'vitlök', 'kycklinggryta', 'kokosmjölk', 'vitvinssås', 'nygräddade', 'rårörda', 'saltgurka',
+        'morotssallad', 'fläskkarré', 'potatisgratäng', 'fiskburgare', 'briochebröd', 'vitlöksdressing',
+        'örter', 'dagens', 'veckans', 'smaksatt', 'persilja', 'kapriscreme', 'pepparrotscréme',
+        'grönpepparbiff', 'viltskavsgryta', 'kikärtsgryta', 'stekost', 'fetaostbiffar',
+        'ärtbakad', 'kryddbakad', 'tempurafriterad', 'persiljeslungade', 'getostkräm'
+    ]);
+
+    const GC_ENGLISH_DISH_WORDS = new Set([
+        'with', 'and', 'served', 'is', 'sauce', 'fried', 'baked', 'roasted', 'steamed',
+        'salad', 'cream', 'creme', 'soup', 'or', 'potato', 'potatoes', 'beans', 'peas',
+        'pork', 'chicken', 'cod', 'salmon', 'cheese', 'stew', 'patties', 'mashed', 'slow',
+        'cooked', 'bread', 'cabbage', 'herbs', 'herb', 'rice', 'peanuts', 'pickled', 'onion',
+        'onions', 'garlic', 'french', 'fries', 'sweet', 'sour', 'stir-fried', 'vegetables',
+        'noodles', 'blackened', 'chickpea', 'southern', 'smoked', 'game', 'salted', 'brined',
+        'cucumber', 'whipped', 'lingonberries', 'savoy', 'wedge', 'peppercorn', 'haddock',
+        'pan', 'cakes', 'spicy', 'jam', 'caramelized', 'green', 'white', 'wine', 'goat',
+        'truffle', 'seeds', 'arugula', 'sun-dried', 'deep', 'parsley', 'haricot', 'verts',
+        'horseradish', 'dijon-tarragon', 'tarragon', 'jasmin', 'panko', 'schnitzel',
+        'tofu', 'curry', 'yogurt', 'dressing', 'gratin', 'burger', 'burgers',
+        'greek', 'tzatziki', 'peppers', 'tartar', 'lemon'
+    ]);
+
+    function isGCRestaurant(name, text, url) {
+        if (name && /(^|\b)(gc|grand\s*central|spirafood|spira)(\b|$)/i.test(name)) return true;
+        if (url && /(^|\b|\/)(gc|grand-central|spirafood)(\b|\/|$)/i.test(url)) return true;
+        if (text && /volvo-lunchmeny|spirafood/i.test(text)) return true;
+        return false;
+    }
+
+    function detectGCLineLang(line) {
+        if (/[åäöÅÄÖ]/.test(line)) return 'sv';
+        const words = (line.toLowerCase().match(/[a-zA-ZåäöÅÄÖ\-]+/g) || []);
+        let svScore = 0;
+        let enScore = 0;
+        for (const w of words) {
+            if (GC_SWEDISH_DISH_WORDS.has(w)) svScore++;
+            if (GC_ENGLISH_DISH_WORDS.has(w)) enScore++;
+        }
+        if (svScore > enScore) return 'sv';
+        if (enScore > svScore) return 'en';
+        if (words.some(w => ['with', 'and', 'served', 'is', 'the', 'of'].includes(w))) return 'en';
+        if (words.some(w => ['och', 'med', 'samt', 'serveras', 'av', 'på'].includes(w))) return 'sv';
+        return 'sv';
+    }
+
+    function filterGCText(text, lang) {
+        if (!text) return text;
+        const lines = text.split('\n');
+        const out = [];
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) {
+                out.push('');
+                continue;
+            }
+
+            const dayMatch = /^(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)\b/i.exec(line);
+            if (dayMatch) {
+                let dayName = line;
+                const rawUpper = dayMatch[1].toUpperCase();
+                if (lang === 'en') {
+                    if (DAY_SV_TO_EN[rawUpper]) dayName = line.replace(new RegExp('^' + rawUpper + '\\b', 'i'), DAY_SV_TO_EN[rawUpper]);
+                } else {
+                    if (DAY_EN_TO_SV[rawUpper]) dayName = line.replace(new RegExp('^' + rawUpper + '\\b', 'i'), DAY_EN_TO_SV[rawUpper]);
+                }
+                out.push(dayName);
+                continue;
+            }
+
+            const lineLang = detectGCLineLang(line);
+            if (lineLang === lang) {
+                out.push(line);
+            }
+        }
+        return out.filter(l => l.trim().length > 0).join('\n');
+    }
+
     function extractWeeklySection(text, restaurantName) {
         if (!text) return { daysText: '', weeklyText: '', noteText: '' };
         const isTheGrill = restaurantName && /the\s*grill/i.test(restaurantName);
@@ -868,10 +953,13 @@
         const isTildas = restaurantName && /tilda/i.test(restaurantName);
         const isTheGrill = restaurantName && /the\s*grill/i.test(restaurantName);
         const isZata = isZataRestaurant(restaurantName, text);
+        const isGC = isGCRestaurant(restaurantName, text);
         const { daysText, weeklyText, noteText } = extractWeeklySection(text, restaurantName);
         let target = daysText || text;
         if (isZata) {
             target = filterZataText(target, currentLang);
+        } else if (isGC) {
+            target = filterGCText(target, currentLang);
         }
 
         const dayIdx = new Date().getDay(); // 0=Sun
@@ -935,7 +1023,6 @@
                     : 'Under lunchen serveras även:\nKoobideh, Joojeh och Adana, vegansk Koobideh samt en veggiegrill.';
                 todayText += `\n\n${grillFootnote}`;
             }
-        }`;
         }
 
         if (weeklyText) {
@@ -965,10 +1052,13 @@
         if (!text) return text;
         const isTildas = restaurantName && /tilda/i.test(restaurantName);
         const isZata = isZataRestaurant(restaurantName, text);
+        const isGC = isGCRestaurant(restaurantName, text);
         const { daysText, weeklyText, noteText } = extractWeeklySection(text, restaurantName);
         let target = daysText || text;
         if (isZata) {
             target = filterZataText(target, currentLang);
+        } else if (isGC) {
+            target = filterGCText(target, currentLang);
         }
         const numItems = parseNumberedList(target);
         let out = target;
@@ -1016,6 +1106,8 @@
         let raw = (currentLang === 'en' && menu.menu_en) ? menu.menu_en : menu.menu;
         if (isZataRestaurant(menu.name, raw, menu.url)) {
             raw = filterZataText(raw, currentLang);
+        } else if (isGCRestaurant(menu.name, raw, menu.url)) {
+            raw = filterGCText(raw, currentLang);
         }
         return currentView === 'today' ? extractToday(raw, menu.name) : formatWeekMenu(raw, menu.name);
     }

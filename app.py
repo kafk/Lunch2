@@ -1262,6 +1262,166 @@ def scrape_zata(url, name, session, lang='sv'):
         return None
 
 
+SWEDISH_DISH_WORDS = {
+    'och', 'med', 'samt', 'serveras', 'kokt', 'stekt', 'ugnsbakad', 'rostad', 'rostade',
+    'potatis', 'sås', 'fläsk', 'kött', 'fisk', 'morötter', 'ärtor', 'bönor', 'kål',
+    'alt', 'eller', 'nyslaget', 'nattbakad', 'svamp', 'gratäng', 'gryta', 'till', 'smör',
+    'lingon', 'pannkakor', 'sylt', 'grädde', 'soppa', 'färsk', 'het', 'klyftpotatis',
+    'biff', 'dragon', 'råstekt', 'persiljestekt', 'gräslök', 'kolja', 'jordärtskocka',
+    'sesamtopping', 'ångat', 'soja-lime', 'syrlig', 'sötsyrlig', 'sötsalt', 'vetenudlar',
+    'vitlök', 'kycklinggryta', 'kokosmjölk', 'vitvinssås', 'nygräddade', 'rårörda', 'saltgurka',
+    'morotssallad', 'fläskkarré', 'potatisgratäng', 'fiskburgare', 'briochebröd', 'vitlöksdressing',
+    'örter', 'dagens', 'veckans', 'smaksatt', 'persilja', 'kapriscreme', 'pepparrotscréme',
+    'grönpepparbiff', 'viltskavsgryta', 'kikärtsgryta', 'stekost', 'fetaostbiffar',
+    'ärtbakad', 'kryddbakad', 'tempurafriterad', 'persiljeslungade', 'getostkräm'
+}
+
+ENGLISH_DISH_WORDS = {
+    'with', 'and', 'served', 'is', 'sauce', 'fried', 'baked', 'roasted', 'steamed',
+    'salad', 'cream', 'creme', 'soup', 'or', 'potato', 'potatoes', 'beans', 'peas',
+    'pork', 'chicken', 'cod', 'salmon', 'cheese', 'stew', 'patties', 'mashed', 'slow',
+    'cooked', 'bread', 'cabbage', 'herbs', 'herb', 'rice', 'peanuts', 'pickled', 'onion',
+    'onions', 'garlic', 'french', 'fries', 'sweet', 'sour', 'stir-fried', 'vegetables',
+    'noodles', 'blackened', 'chickpea', 'southern', 'smoked', 'game', 'salted', 'brined',
+    'cucumber', 'whipped', 'lingonberries', 'savoy', 'wedge', 'peppercorn', 'haddock',
+    'pan', 'cakes', 'spicy', 'jam', 'caramelized', 'green', 'white', 'wine', 'goat',
+    'truffle', 'seeds', 'arugula', 'sun-dried', 'deep', 'parsley', 'haricot', 'verts',
+    'horseradish', 'dijon-tarragon', 'tarragon', 'jasmin', 'panko', 'schnitzel',
+    'tofu', 'curry', 'yogurt', 'dressing', 'gratin', 'burger', 'burgers',
+    'greek', 'tzatziki', 'peppers', 'tartar', 'lemon'
+}
+
+
+def detect_gc_line_lang(line):
+    """Klassificera en enskild rad i GC-menyn som svenska ('sv') eller engelska ('en')."""
+    if re.search(r'[åäöÅÄÖ]', line):
+        return 'sv'
+    words = set(re.findall(r'[a-zA-ZåäöÅÄÖ\-]+', line.lower()))
+    sv_score = len(words & SWEDISH_DISH_WORDS)
+    en_score = len(words & ENGLISH_DISH_WORDS)
+    if sv_score > en_score:
+        return 'sv'
+    if en_score > sv_score:
+        return 'en'
+    if any(w in words for w in ['with', 'and', 'served', 'is', 'the', 'of']):
+        return 'en'
+    if any(w in words for w in ['och', 'med', 'samt', 'serveras', 'av', 'på']):
+        return 'sv'
+    return 'sv'
+
+
+def filter_gc_menu(text, lang='sv'):
+    """Filtrera tvåspråkig meny för Grand Central (GC) så att endast valt språk visas."""
+    if not text:
+        return text
+    lines = text.split('\n')
+    out = []
+    day_map_sv_en = {'MÅNDAG': 'Monday', 'TISDAG': 'Tuesday', 'ONSDAG': 'Wednesday', 'TORSDAG': 'Thursday', 'FREDAG': 'Friday', 'LÖRDAG': 'Saturday', 'SÖNDAG': 'Sunday'}
+    day_map_en_sv = {'MONDAY': 'Måndag', 'TUESDAY': 'Tisdag', 'WEDNESDAY': 'Onsdag', 'THURSDAY': 'Torsdag', 'FRIDAY': 'Fredag', 'SATURDAY': 'Lördag', 'SUNDAY': 'Söndag'}
+
+    for line in lines:
+        s_line = line.strip()
+        if not s_line:
+            out.append('')
+            continue
+
+        m_day = re.match(r'^(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)\b', s_line, re.I)
+        if m_day:
+            raw_day = m_day.group(1).upper()
+            if lang == 'en':
+                out_day = day_map_sv_en.get(raw_day, s_line)
+                day_line = re.sub(rf'^{raw_day}\b', out_day, s_line, flags=re.I)
+            else:
+                out_day = day_map_en_sv.get(raw_day, s_line)
+                day_line = re.sub(rf'^{raw_day}\b', out_day, s_line, flags=re.I)
+            out.append(day_line)
+            continue
+
+        line_lang = detect_gc_line_lang(s_line)
+        if line_lang == lang:
+            out.append(s_line)
+
+    res = '\n'.join(out)
+    res = re.sub(r'\n{3,}', '\n\n', res)
+    return res.strip()
+
+
+def scrape_gc(url, name, session, lang='sv'):
+    """Custom scraper för Grand Central (GC) på Spirafood Volvo."""
+    try:
+        target_url = url or "https://spirafood.se/volvo-lunchmeny"
+        response = session.get(target_url, timeout=12)
+        response.raise_for_status()
+        if response.encoding == 'ISO-8859-1':
+            response.encoding = response.apparent_encoding
+        soup = BeautifulSoup(response.text, 'lxml')
+
+        day_map_sv_en = {
+            'Måndag': 'Monday',
+            'Tisdag': 'Tuesday',
+            'Onsdag': 'Wednesday',
+            'Torsdag': 'Thursday',
+            'Fredag': 'Friday'
+        }
+
+        days_sv = []
+        days_en = []
+
+        # Spirafood renderar lunchmenyn i <h6>-taggar (en per veckodag)
+        for h in soup.find_all('h6'):
+            for br in h.find_all('br'):
+                br.replace_with('\n')
+            text = h.get_text('\n', strip=True)
+            lines = [l.strip() for l in text.split('\n') if l.strip()]
+            if not lines:
+                continue
+            day_line = lines[0]
+            matched_day = None
+            for sv_d in day_map_sv_en:
+                if sv_d.lower() in day_line.lower():
+                    matched_day = sv_d
+                    break
+            if not matched_day:
+                continue
+
+            sv_dishes = []
+            en_dishes = []
+            for l in lines[1:]:
+                if detect_gc_line_lang(l) == 'en':
+                    en_dishes.append(l)
+                else:
+                    sv_dishes.append(l)
+
+            if sv_dishes:
+                days_sv.append(f'{matched_day}\n' + '\n'.join(sv_dishes))
+            if en_dishes:
+                days_en.append(f'{day_map_sv_en[matched_day]}\n' + '\n'.join(en_dishes))
+
+        menu_sv = '\n\n'.join(days_sv)
+        menu_en = '\n\n'.join(days_en)
+
+        if not menu_sv and not menu_en:
+            raw_text = soup.get_text('\n', strip=True)
+            menu_sv = filter_gc_menu(raw_text, 'sv')
+            menu_en = filter_gc_menu(raw_text, 'en')
+
+        chosen_menu = menu_en if lang == 'en' else menu_sv
+
+        return {
+            'name': name,
+            'url': url,
+            'menu': chosen_menu,
+            'menu_sv': menu_sv,
+            'menu_en': menu_en,
+            'success': True,
+            'source': 'HTML (Grand Central GC)',
+            'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+        }
+    except Exception as e:
+        print(f"GC scraping error: {e}")
+        return None
+
+
 
 def scrape_roots(url, name, session):
     """Custom scraper för rootsfoodmarket.se (Wix-sida).
@@ -1588,6 +1748,15 @@ def enrich_menu_languages(result, lang='sv'):
             result['lang'] = lang
             result['menu'] = result['menu_en'] if lang == 'en' else result['menu_sv']
             return result
+        # Om det är Grand Central (GC) / Spirafood
+        r_name = result.get('name', '')
+        r_url = result.get('url', '')
+        if 'spirafood' in r_url.lower() or 'grand-central' in r_url.lower() or re.search(r'\b(gc|grand\s*central)\b', r_name, re.I) or re.search(r'\b(gc|grand\s*central)\b', r_url, re.I):
+            result['menu_sv'] = filter_gc_menu(menu_text, 'sv')
+            result['menu_en'] = filter_gc_menu(menu_text, 'en')
+            result['lang'] = lang
+            result['menu'] = result['menu_en'] if lang == 'en' else result['menu_sv']
+            return result
         det = detect_language(menu_text)
         result['detected_lang'] = det
         if det == 'sv':
@@ -1670,6 +1839,12 @@ def _scrape_url_raw(url, name, lang='sv'):
         # SPECIAL: Restaurang Z:äta – Mashie / Matilda webbapp
         if 'mashie' in url.lower() or 'matildaplatform' in url.lower() or 'zata' in url.lower() or 'zäta' in url.lower() or 'zata' in name.lower() or 'zäta' in name.lower():
             result = scrape_zata(url, name, session, lang=lang)
+            if result:
+                return result
+
+        # SPECIAL: Grand Central (GC) – Spirafood Volvo tvåspråkig meny
+        if 'spirafood' in url.lower() or 'grand-central' in url.lower() or re.search(r'\b(gc|grand\s*central)\b', name, re.I) or re.search(r'\b(gc|grand\s*central)\b', url, re.I):
+            result = scrape_gc(url, name, session, lang=lang)
             if result:
                 return result
 

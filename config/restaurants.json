@@ -110,5 +110,18 @@
       "type": "custom",
       "handler": "zata"
     }
+  },
+  {
+    "id": "gc",
+    "name": "Grand Central (GC)",
+    "url": "https://spirafood.se/volvo-lunchmeny",
+    "enabled": true,
+    "fetcher": {
+      "type": "http"
+    },
+    "extractor": {
+      "type": "custom",
+      "handler": "gc"
+    }
   }
 ]
