@@ -2287,7 +2287,7 @@
         return text;
     }
 
-    const ROW_CATEGORY_RE = /^(Vegetariskt|Vegetarisk|Vego|Fisk|Kött|Streetfood|Pasta|Sallad|Burgare|Veckans\s+\S+):?$/i;
+    const ROW_CATEGORY_RE = /^(Vegetariskt|Vegetarisk|Vego|Fisk|Kött|Streetfood|Pasta|Sallad|Burgare|Veckans\s+\S+):?$/;
     const ROW_NOTE_RE = /^(pris:|i priset ingår|fler rätter|lunchen serveras|salladsbuffé|kuponghäfte|en låglaktos)/i;
 
     // En rätt per rad: kategorirad ("Fisk:") blir etikett, fortsättningsrader (gemen, efter komma, efter "med") slås ihop
@@ -2341,7 +2341,7 @@
 
     function renderDayRows(dayRaw, restaurantName) {
         const tr = s => currentLang === 'en' ? translateCulinaryText(s) : s;
-        const lines = dayRaw.split('\n').map(l => l.replace(/\u00a0/g, ' ').replace(/[\u200b-\u200d\ufeff]/g, '').replace(/^[❖•\-\*]\s*/, '').trim()).filter(Boolean);
+        const lines = dayRaw.split('\n').map(l => l.replace(/\u00a0/g, ' ').replace(/[\u200b-\u200d\ufeff]/g, '').trim().replace(/^[❖•\-\*]\s*/, '').trim()).filter(Boolean);
         if (lines.length === 0) return `<span class="week-dishes-text">${currentLang === 'en' ? "See restaurant's website" : 'Se restaurangens webbplats'}</span>`;
 
         const isKoop = /kooperativet/i.test(restaurantName || '');
@@ -2610,7 +2610,7 @@
                 const tr = s => currentLang === 'en' ? translateCulinaryText(s) : s;
                 html += `
                     <div class="week-day-row">
-                        <strong class="week-day-name">${currentLang === 'en' ? 'Weekly' : 'Veckans'}:</strong>
+                        ${/^Veckans/i.test(wk.rows[0].label) ? '' : `<strong class="week-day-name">${currentLang === 'en' ? 'Weekly' : 'Veckans'}:</strong>`}
                         <div style="margin-top: 3px; display: flex; flex-direction: column; gap: 4px;">
                             ${wk.rows.map(r => `
                                 <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px;">
