@@ -6,6 +6,7 @@ import os
 import re
 import hashlib
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from io import BytesIO
 import base64
@@ -2733,13 +2734,23 @@ def get_menus():
 
     # Scrape fresh data
     urls = load_urls()
-    menus = []
+    enabled = [u for u in urls if u.get('enabled', True)]
 
-    for url_data in urls:
-        # Endast scrapa aktiverade restauranger
-        if url_data.get('enabled', True):
-            result = scrape_url(url_data['url'], url_data['name'], lang=lang)
-            menus.append(result)
+    def scrape_safe(url_data):
+        try:
+            return scrape_url(url_data['url'], url_data['name'], lang=lang)
+        except Exception as e:
+            return {
+                'name': url_data['name'],
+                'url': url_data['url'],
+                'menu': f'Kunde inte hämta sidan: {e}',
+                'success': False,
+                'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+            }
+
+    # map behåller ordningen så att korten ligger kvar i samma sekvens som urls
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        menus = list(pool.map(scrape_safe, enabled))
 
     # Save to cache
     save_menus_to_cache(menus)

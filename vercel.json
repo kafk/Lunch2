@@ -10,5 +10,11 @@
       "src": "/(.*)",
       "dest": "app.py"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/menus?refresh=true",
+      "schedule": "0 5 * * 1-5"
+    }
   ]
 }
