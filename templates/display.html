@@ -2230,6 +2230,12 @@
                         .map(b => b.split('\n').map(l => l.replace(/^[❖•\-\*]\s*/, '').trim()).filter(Boolean))
                         .filter(b => b.length > 0);
 
+                    // GC: en rätt per rad; sista är vegetarisk, näst sista fisk, övriga kött
+                    const gcLines = !isGC ? [] : dayRaw
+                        .split('\n')
+                        .map(l => l.replace(/^[❖•\-\*]\s*/, '').trim())
+                        .filter(Boolean);
+
                     if ((isTheGrill || isZata) && catMatches.length > 0) {
                         const catItems = [];
                         const CAT_LABELS_SV = { 'KÖTT': 'Kött', 'MEAT': 'Kött', 'FISK': 'Fisk', 'FISH': 'Fisk', 'VEGETARISKT': 'Vegetariskt', 'VEGAN': 'Vegan', 'VEGO': 'Vego', 'SALLAD': 'Sallad', 'PASTA': 'Pasta', 'BURGARE': 'Burgare', 'STREETFOOD': 'Streetfood' };
@@ -2253,6 +2259,26 @@
                                         <div>
                                             <strong style="font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700; color: var(--ink-black); margin-right: 5px;">${c.label}:</strong>
                                             <span class="week-dishes-text">${linkify(escapeHtml(c.dish))}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `;
+                    } else if (isGC && gcLines.length >= 2) {
+                        const labelled = gcLines.length >= 3;
+                        const gcLabel = i2 => {
+                            const fromEnd = gcLines.length - 1 - i2;
+                            const sv = fromEnd === 0 ? 'Vegetariskt' : fromEnd === 1 ? 'Fisk' : 'Kött';
+                            const en = fromEnd === 0 ? 'Vegetarian' : fromEnd === 1 ? 'Fish' : 'Meat';
+                            return currentLang === 'en' ? en : sv;
+                        };
+                        html += `
+                            <div class="week-day-row">
+                                <strong class="week-day-name">${dayDisplay}:</strong>
+                                <div style="margin-top: 3px; display: flex; flex-direction: column; gap: 4px;">
+                                    ${gcLines.map((line, i2) => `
+                                        <div>
+                                            ${labelled ? `<strong style="color: var(--ink-black);">${gcLabel(i2)}:</strong> ` : ''}<span class="week-dishes-text">${linkify(escapeHtml(line))}</span>
                                         </div>
                                     `).join('')}
                                 </div>
