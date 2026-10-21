@@ -97,5 +97,18 @@
       "type": "custom",
       "handler": "nordic_taste_lab"
     }
+  },
+  {
+    "id": "zata",
+    "name": "Restaurang Zäta",
+    "url": "https://compass.mashie.matildaplatform.com/public/app/restaurang+z%C3%A4ta/c2b83349?country=se",
+    "enabled": true,
+    "fetcher": {
+      "type": "http"
+    },
+    "extractor": {
+      "type": "custom",
+      "handler": "zata"
+    }
   }
 ]

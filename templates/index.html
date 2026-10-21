@@ -582,6 +582,95 @@
     const WEEKDAYS = ['Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag','Söndag'];
     const WEEKDAYS_EN = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 
+    function isZataRestaurant(name, text, url) {
+        if (name && /z[äa]ta/i.test(name)) return true;
+        if (url && /z[äa]ta|mashie|matildaplatform/i.test(url)) return true;
+        if (text && /vego\s+(?:sv|en)/i.test(text)) return true;
+        return false;
+    }
+
+    function filterZataText(text, lang) {
+        if (!text) return text;
+        const lines = text.split('\n');
+        const out = [];
+        const enCats = ['vego en', 'fish', 'meat', 'streetfood en', 'vegetarian'];
+        const svCats = ['vego sv', 'fisk', 'kött', 'streetfood sv', 'vegetariskt'];
+
+        let i = 0;
+        while (i < lines.length) {
+            const line = lines[i].trim();
+            if (!line) {
+                out.push('');
+                i++;
+                continue;
+            }
+
+            const dayMatch = /^(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)\b/i.exec(line);
+            if (dayMatch) {
+                let dayName = line;
+                const rawUpper = dayMatch[1].toUpperCase();
+                const dayMapSvEn = { 'MÅNDAG': 'Monday', 'TISDAG': 'Tuesday', 'ONSDAG': 'Wednesday', 'TORSDAG': 'Thursday', 'FREDAG': 'Friday', 'LÖRDAG': 'Saturday', 'SÖNDAG': 'Sunday' };
+                const dayMapEnSv = { 'MONDAY': 'Måndag', 'TUESDAY': 'Tisdag', 'WEDNESDAY': 'Onsdag', 'THURSDAY': 'Torsdag', 'FRIDAY': 'Fredag', 'SATURDAY': 'Lördag', 'SUNDAY': 'Söndag' };
+                if (lang === 'en') {
+                    if (dayMapSvEn[rawUpper]) dayName = line.replace(new RegExp(`^${rawUpper}\\b`, 'i'), dayMapSvEn[rawUpper]);
+                } else {
+                    if (dayMapEnSv[rawUpper]) dayName = line.replace(new RegExp(`^${rawUpper}\\b`, 'i'), dayMapEnSv[rawUpper]);
+                }
+                out.push(dayName);
+                i++;
+                continue;
+            }
+
+            const mCat = /^(Vego\s+Sv|Vego\s+En|Fisk|Fish|Kött|Meat|Streetfood\s+Sv|Streetfood\s+En|[A-Za-zÅÄÖåäö\- ]+\s+(?:Sv|En))\s*[:.]?$/i.exec(line);
+            if (mCat) {
+                const cat = mCat[1].trim();
+                let dish = '';
+                if (i + 1 < lines.length) {
+                    const nextLine = lines[i + 1].trim();
+                    if (!/^(Vego\s+Sv|Vego\s+En|Fisk|Fish|Kött|Meat|Streetfood|Måndag|Tisdag|Onsdag|Torsdag|Fredag|Monday|Tuesday|Wednesday|Thursday|Friday)\b/i.test(nextLine)) {
+                        dish = nextLine;
+                        i++;
+                    }
+                }
+
+                const cLow = cat.toLowerCase();
+                const isEn = enCats.includes(cLow) || cLow.endsWith(' en');
+                let cleanLabel = cat.replace(/\s+(sv|en)$/i, '').trim();
+                if (cleanLabel.toLowerCase() === 'vego') cleanLabel = 'Vego';
+
+                if (lang === 'en' && isEn) {
+                    out.push(`${cleanLabel}: ${dish}`);
+                } else if (lang === 'sv' && !isEn) {
+                    out.push(`${cleanLabel}: ${dish}`);
+                }
+                i++;
+                continue;
+            }
+
+            const mInline = /^(Vego\s+Sv|Vego\s+En|Fisk|Fish|Kött|Meat|Streetfood\s+Sv|Streetfood\s+En|[A-Za-zÅÄÖåäö\- ]+\s+(?:Sv|En))\s*:\s*(.+)$/i.exec(line);
+            if (mInline) {
+                const cat = mInline[1].trim();
+                const dish = mInline[2].trim();
+                const cLow = cat.toLowerCase();
+                const isEn = enCats.includes(cLow) || cLow.endsWith(' en');
+                let cleanLabel = cat.replace(/\s+(sv|en)$/i, '').trim();
+                if (cleanLabel.toLowerCase() === 'vego') cleanLabel = 'Vego';
+
+                if (lang === 'en' && isEn) {
+                    out.push(`${cleanLabel}: ${dish}`);
+                } else if (lang === 'sv' && !isEn) {
+                    out.push(`${cleanLabel}: ${dish}`);
+                }
+                i++;
+                continue;
+            }
+
+            out.push(line);
+            i++;
+        }
+        return out.filter(l => l.trim().length > 0).join('\n');
+    }
+
     function extractWeeklySection(text, restaurantName) {
         if (!text) return { daysText: '', weeklyText: '', noteText: '' };
         const isTheGrill = restaurantName && /the\s*grill/i.test(restaurantName);
@@ -778,8 +867,12 @@
         if (!text) return text;
         const isTildas = restaurantName && /tilda/i.test(restaurantName);
         const isTheGrill = restaurantName && /the\s*grill/i.test(restaurantName);
+        const isZata = isZataRestaurant(restaurantName, text);
         const { daysText, weeklyText, noteText } = extractWeeklySection(text, restaurantName);
-        const target = daysText || text;
+        let target = daysText || text;
+        if (isZata) {
+            target = filterZataText(target, currentLang);
+        }
 
         const dayIdx = new Date().getDay(); // 0=Sun
         const todaySv = WEEKDAYS[dayIdx === 0 ? 6 : dayIdx - 1];
@@ -814,16 +907,16 @@
             todayText = lines.slice(start, end).join('\n').trim();
         }
 
-        if (isTheGrill) {
-            const catRegex = /(?:^|\n)\s*(KÖTT|FISK|VEGETARISKT|VEGAN|SALLAD|PASTA|BURGARE)\s*:\s*/gi;
+                if (isTheGrill || isZata) {
+            const catRegex = /(?:^|\n)\s*(KÖTT|FISK|VEGETARISKT|VEGAN|SALLAD|PASTA|BURGARE|VEGO|MEAT|FISH|STREETFOOD)\s*:\s*/gi;
             const catMatches = [];
             let cm;
             while ((cm = catRegex.exec(todayText)) !== null) {
                 catMatches.push({ cat: cm[1].toUpperCase(), index: cm.index, end: cm.index + cm[0].length });
             }
             if (catMatches.length > 0) {
-                const CAT_LABELS_SV = { 'KÖTT': 'Kött', 'FISK': 'Fisk', 'VEGETARISKT': 'Vegetariskt', 'VEGAN': 'Vegan', 'SALLAD': 'Sallad', 'PASTA': 'Pasta', 'BURGARE': 'Burgare' };
-                const CAT_LABELS_EN = { 'KÖTT': 'Meat', 'FISK': 'Fish', 'VEGETARISKT': 'Vegetarian', 'VEGAN': 'Vegan', 'SALLAD': 'Salad', 'PASTA': 'Pasta', 'BURGARE': 'Burger' };
+                const CAT_LABELS_SV = { 'KÖTT': 'Kött', 'MEAT': 'Kött', 'FISK': 'Fisk', 'FISH': 'Fisk', 'VEGETARISKT': 'Vegetariskt', 'VEGAN': 'Vegan', 'VEGO': 'Vego', 'SALLAD': 'Sallad', 'PASTA': 'Pasta', 'BURGARE': 'Burgare', 'STREETFOOD': 'Streetfood' };
+                const CAT_LABELS_EN = { 'KÖTT': 'Meat', 'MEAT': 'Meat', 'FISK': 'Fish', 'FISH': 'Fish', 'VEGETARISKT': 'Vegetarian', 'VEGAN': 'Vegan', 'VEGO': 'Vego', 'SALLAD': 'Salad', 'PASTA': 'Pasta', 'BURGARE': 'Burger', 'STREETFOOD': 'Streetfood' };
                 const items = [];
                 for (let j = 0; j < catMatches.length; j++) {
                     const cCur = catMatches[j];
@@ -836,10 +929,13 @@
                 const dayHeader = todayText.slice(0, catMatches[0].index).trim();
                 todayText = (dayHeader ? dayHeader + '\n' : '') + items.join('\n');
             }
-            const grillFootnote = currentLang === 'en'
-                ? 'During lunch we also serve:\nKoobideh, Joojeh and Adana, vegan Koobideh as well as a veggie grill.'
-                : 'Under lunchen serveras även:\nKoobideh, Joojeh och Adana, vegansk Koobideh samt en veggiegrill.';
-            todayText += `\n\n${grillFootnote}`;
+            if (isTheGrill) {
+                const grillFootnote = currentLang === 'en'
+                    ? 'During lunch we also serve:\nKoobideh, Joojeh and Adana, vegan Koobideh as well as a veggie grill.'
+                    : 'Under lunchen serveras även:\nKoobideh, Joojeh och Adana, vegansk Koobideh samt en veggiegrill.';
+                todayText += `\n\n${grillFootnote}`;
+            }
+        }`;
         }
 
         if (weeklyText) {
@@ -868,8 +964,12 @@
     function formatWeekMenu(text, restaurantName) {
         if (!text) return text;
         const isTildas = restaurantName && /tilda/i.test(restaurantName);
+        const isZata = isZataRestaurant(restaurantName, text);
         const { daysText, weeklyText, noteText } = extractWeeklySection(text, restaurantName);
-        const target = daysText || text;
+        let target = daysText || text;
+        if (isZata) {
+            target = filterZataText(target, currentLang);
+        }
         const numItems = parseNumberedList(target);
         let out = target;
         if (numItems && numItems.length > 0) {
@@ -913,7 +1013,10 @@
 
     function menuText(menu) {
         if (!menu.success) return menu.menu || '';
-        const raw = (currentLang === 'en' && menu.menu_en) ? menu.menu_en : menu.menu;
+        let raw = (currentLang === 'en' && menu.menu_en) ? menu.menu_en : menu.menu;
+        if (isZataRestaurant(menu.name, raw, menu.url)) {
+            raw = filterZataText(raw, currentLang);
+        }
         return currentView === 'today' ? extractToday(raw, menu.name) : formatWeekMenu(raw, menu.name);
     }
 

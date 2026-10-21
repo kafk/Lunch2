@@ -1106,6 +1106,163 @@ def scrape_bistrot(url, name, session):
     return None
 
 
+def filter_zata_menu(text, lang='sv'):
+    """Filtrera tvåspråkig meny för Zäta så att bara valt språk visas."""
+    if not text:
+        return text
+    lines = text.split('\n')
+    out = []
+    en_cats = {'vego en', 'fish', 'meat', 'streetfood en', 'vegetarian'}
+    sv_cats = {'vego sv', 'fisk', 'kött', 'streetfood sv', 'vegetariskt'}
+
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        if not line:
+            out.append('')
+            i += 1
+            continue
+
+        # Veckodagsrubrik
+        m_day = re.match(r'^(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|LÖRDAG|SÖNDAG|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)\b', line, re.I)
+        if m_day:
+            day_name = line
+            day_map_sv_en = {'MÅNDAG': 'Monday', 'TISDAG': 'Tuesday', 'ONSDAG': 'Wednesday', 'TORSDAG': 'Thursday', 'FREDAG': 'Friday', 'LÖRDAG': 'Saturday', 'SÖNDAG': 'Sunday'}
+            day_map_en_sv = {'MONDAY': 'Måndag', 'TUESDAY': 'Tisdag', 'WEDNESDAY': 'Onsdag', 'THURSDAY': 'Torsdag', 'FRIDAY': 'Fredag', 'SATURDAY': 'Lördag', 'SUNDAY': 'Söndag'}
+            if lang == 'en':
+                for sv_d, en_d in day_map_sv_en.items():
+                    if re.match(rf'^{sv_d}\b', day_name, re.I):
+                        day_name = re.sub(rf'^{sv_d}\b', en_d, day_name, flags=re.I)
+                        break
+            else:
+                for en_d, sv_d in day_map_en_sv.items():
+                    if re.match(rf'^{en_d}\b', day_name, re.I):
+                        day_name = re.sub(rf'^{en_d}\b', sv_d, day_name, flags=re.I)
+                        break
+            out.append(day_name)
+            i += 1
+            continue
+
+        # Fristående kategorirubrik (t.ex. "Vego Sv", "Fish", "Kött")
+        m_cat = re.match(r'^(Vego\s+Sv|Vego\s+En|Fisk|Fish|Kött|Meat|Streetfood\s+Sv|Streetfood\s+En|[A-Za-zÅÄÖåäö\- ]+\s+(?:Sv|En))\s*[:.]?$', line, re.I)
+        if m_cat:
+            cat = m_cat.group(1).strip()
+            dish = ''
+            if i + 1 < len(lines):
+                next_l = lines[i + 1].strip()
+                if not re.match(r'^(Vego\s+Sv|Vego\s+En|Fisk|Fish|Kött|Meat|Streetfood|Måndag|Tisdag|Onsdag|Torsdag|Fredag|Monday|Tuesday|Wednesday|Thursday|Friday)\b', next_l, re.I):
+                    dish = next_l
+                    i += 1
+
+            c_low = cat.lower()
+            is_en = c_low in en_cats or c_low.endswith(' en')
+            clean_label = re.sub(r'\s+(sv|en)$', '', cat, flags=re.I).strip()
+            if clean_label.lower() == 'vego':
+                clean_label = 'Vego'
+
+            if lang == 'en' and is_en:
+                out.append(f'{clean_label}: {dish}')
+            elif lang == 'sv' and not is_en:
+                out.append(f'{clean_label}: {dish}')
+            i += 1
+            continue
+
+        # Inbäddad kategori (t.ex. "Vego Sv: ...", "Fish: ...")
+        m_inline = re.match(r'^(Vego\s+Sv|Vego\s+En|Fisk|Fish|Kött|Meat|Streetfood\s+Sv|Streetfood\s+En|[A-Za-zÅÄÖåäö\- ]+\s+(?:Sv|En))\s*:\s*(.+)$', line, re.I)
+        if m_inline:
+            cat = m_inline.group(1).strip()
+            dish = m_inline.group(2).strip()
+            c_low = cat.lower()
+            is_en = c_low in en_cats or c_low.endswith(' en')
+            clean_label = re.sub(r'\s+(sv|en)$', '', cat, flags=re.I).strip()
+            if clean_label.lower() == 'vego':
+                clean_label = 'Vego'
+
+            if lang == 'en' and is_en:
+                out.append(f'{clean_label}: {dish}')
+            elif lang == 'sv' and not is_en:
+                out.append(f'{clean_label}: {dish}')
+            i += 1
+            continue
+
+        out.append(line)
+        i += 1
+
+    return '\n'.join([l for l in out if l.strip()])
+
+
+def scrape_zata(url, name, session, lang='sv'):
+    """Custom scraper för Restaurang Z:äta (Compass Group / Mashie)."""
+    try:
+        mashie_url = url
+        if 'compass-group.se' in url.lower() or 'mashie' not in url.lower():
+            mashie_url = "https://compass.mashie.matildaplatform.com/public/app/restaurang+z%C3%A4ta/c2b83349?country=se"
+
+        response = session.get(mashie_url, timeout=12)
+        response.raise_for_status()
+        if response.encoding == 'ISO-8859-1':
+            response.encoding = response.apparent_encoding
+        soup = BeautifulSoup(response.text, 'lxml')
+
+        panels = soup.find_all(class_='panel')
+        # Panel 0 är dagens meny i toppen, panel 1-5 är veckans dagar
+        week_panels = panels[1:6] if len(panels) >= 6 else panels
+        days_sv = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag']
+        days_en = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+        sv_sec = []
+        en_sec = []
+
+        for idx, p in enumerate(week_panels):
+            d_sv = days_sv[idx] if idx < len(days_sv) else f'Dag {idx+1}'
+            d_en = days_en[idx] if idx < len(days_en) else f'Day {idx+1}'
+            items_sv = []
+            items_en = []
+            for it in p.find_all(class_='list-group-item'):
+                alt = it.find(class_='app-alternative-name')
+                dish = it.find(class_='app-daymenu-name')
+                if not alt or not dish:
+                    continue
+                cat = alt.get_text(strip=True)
+                txt = dish.get_text(strip=True)
+                cat_lower = cat.lower()
+
+                if cat_lower.endswith(' sv'):
+                    lbl = cat[:-3].strip()
+                    items_sv.append(f'{lbl}: {txt}')
+                elif cat_lower.endswith(' en'):
+                    lbl = cat[:-3].strip()
+                    items_en.append(f'{lbl}: {txt}')
+                elif cat_lower in ['fisk', 'kött', 'vegetariskt', 'dagens']:
+                    items_sv.append(f'{cat}: {txt}')
+                elif cat_lower in ['fish', 'meat', 'vegetarian', 'today']:
+                    items_en.append(f'{cat}: {txt}')
+                else:
+                    items_sv.append(f'{cat}: {txt}')
+
+            sv_sec.append(f'{d_sv}\n' + '\n'.join(items_sv))
+            en_sec.append(f'{d_en}\n' + '\n'.join(items_en))
+
+        menu_sv = '\n\n'.join(sv_sec)
+        menu_en = '\n\n'.join(en_sec)
+
+        chosen_menu = menu_en if lang == 'en' else menu_sv
+
+        return {
+            'name': name,
+            'url': url,
+            'menu': chosen_menu,
+            'menu_sv': menu_sv,
+            'menu_en': menu_en,
+            'success': True,
+            'source': 'Mashie (Z:äta)',
+            'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+        }
+    except Exception as e:
+        print(f"Zäta scraping error: {e}")
+        return None
+
+
+
 def scrape_roots(url, name, session):
     """Custom scraper för rootsfoodmarket.se (Wix-sida).
 
@@ -1419,6 +1576,18 @@ def enrich_menu_languages(result, lang='sv'):
         return result
     menu_text = result.get('menu', '')
     if result.get('success') and menu_text:
+        # Om scrapern redan tillhandahållit separerad menu_sv och menu_en (t.ex. Zäta)
+        if result.get('menu_sv') and result.get('menu_en'):
+            result['lang'] = lang
+            result['menu'] = result['menu_en'] if lang == 'en' else result['menu_sv']
+            return result
+        # Om texten innehåller tvåspråkiga rader (Vego Sv / Vego En etc.)
+        if re.search(r'vego\s+(?:sv|en)', menu_text, re.I):
+            result['menu_sv'] = filter_zata_menu(menu_text, 'sv')
+            result['menu_en'] = filter_zata_menu(menu_text, 'en')
+            result['lang'] = lang
+            result['menu'] = result['menu_en'] if lang == 'en' else result['menu_sv']
+            return result
         det = detect_language(menu_text)
         result['detected_lang'] = det
         if det == 'sv':
@@ -1495,6 +1664,12 @@ def _scrape_url_raw(url, name, lang='sv'):
         # SPECIAL: Bistrot Lindholmen – FDM-meny
         if 'bistrot.se' in url.lower() or 'bistro' in name.lower():
             result = scrape_bistrot(url, name, session)
+            if result:
+                return result
+
+        # SPECIAL: Restaurang Z:äta – Mashie / Matilda webbapp
+        if 'mashie' in url.lower() or 'matildaplatform' in url.lower() or 'zata' in url.lower() or 'zäta' in url.lower() or 'zata' in name.lower() or 'zäta' in name.lower():
+            result = scrape_zata(url, name, session, lang=lang)
             if result:
                 return result
 
