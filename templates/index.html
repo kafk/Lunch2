@@ -1196,6 +1196,8 @@
         if (/sankt\s*j/i.test(name)) {
             const c = t.search(/Inez\s*&\s*Ernst/i);
             if (c > 0) t = t.slice(0, c);
+            // "Veckans vegetariska\nBakad…" tappade sin första rad i veckotolkningen
+            t = t.replace(/Veckans\s+Extrarätter\s*\n\s*Veckans\s+vegetariska\s*\n/i, 'Veckans\nVegetariskt: ');
         }
         if (/lunchlabbet/i.test(name)) {
             t = t.split('\n').filter(l => !/tel:|mail:|flygplatsväg/i.test(l)).join('\n');
