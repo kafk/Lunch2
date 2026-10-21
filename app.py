@@ -2379,17 +2379,41 @@ def admin_clear_cache():
     return jsonify({'success': True, 'message': '✓ Ingen Firestore-cache att rensa (kör lokalt).'})
 
 
+CACHE_MENU_KEYS = ('name', 'url', 'menu', 'menu_sv', 'menu_en', 'success', 'source', 'scraped_at', 'lang', 'detected_lang')
+
+
 @app.route('/api/admin/lab/publish', methods=['POST'])
 def lab_publish():
-    """Publicera admin-testade menyer som ny cache — användarna ser dessa exakta resultat."""
+    """Publicera testade menyer. Slås ihop med befintlig cache så att en ofullständig lista inte raderar restauranger."""
     data = request.get_json(silent=True) or {}
-    menus = data.get('menus', [])
-    if not menus:
+    incoming = data.get('menus', [])
+    if not isinstance(incoming, list) or not incoming:
         return jsonify({'error': 'Inga menyer att publicera — kör "Testa alla" först.'}), 400
-    save_menus_to_cache(menus)
+
+    configured = load_urls()
+    known = {u['name']: u['url'] for u in configured}
+    existing = (get_cached_menus() or {}).get('menus', [])
+    merged = {m.get('name'): m for m in existing if m.get('name') in known}
+
+    accepted = 0
+    for m in incoming:
+        if not isinstance(m, dict) or m.get('name') not in known:
+            continue
+        clean = {k: m[k] for k in CACHE_MENU_KEYS if k in m}
+        clean['url'] = known[m['name']]  # URL kommer alltid från konfigurationen, aldrig från klienten
+        for k in ('menu', 'menu_sv', 'menu_en'):
+            if k in clean:
+                clean[k] = str(clean[k])[:20000]
+        merged[m['name']] = clean
+        accepted += 1
+
+    if not accepted:
+        return jsonify({'error': 'Inga giltiga restauranger i publiceringen.'}), 400
+
+    save_menus_to_cache([merged[u['name']] for u in configured if u['name'] in merged])
     return jsonify({
         'success': True,
-        'message': f'{len(menus)} menyer publicerade — användarna ser nu testresultaten.',
+        'message': f'{accepted} menyer publicerade — användarna ser nu testresultaten.',
         'published_at': swedish_now().isoformat()
     })
 

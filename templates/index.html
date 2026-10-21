@@ -786,7 +786,7 @@
             cleaned = cleaned.replace(noteText, '').trim();
         }
 
-        if (isTheGrill) {
+        if (isTheGrill || /kooperativet/i.test(restaurantName || '')) {
             return { daysText: cleaned, weeklyText: '', noteText };
         }
 
@@ -797,7 +797,9 @@
             dayMatches.push({ day: m[1], index: m.index, end: m.index + m[0].length });
         }
         
-        const weeklyHeaderRegex = /(?:^|\n)\s*(?:LUNCH\s*V\d+[^\n]*)?(?:(VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*|(?:KÖTT|FISK|PASTA|SALLAD|BURGARE)\s*[:/]|KÖTT\s+[/❖])|LUNCH\s*V\d+)/i;
+        const weeklyHeaderRegex = (/roots|z[äa]ta/i.test(restaurantName || '') || isZataRestaurant(restaurantName, text))
+            ? /(?:^|\n)\s*(?:LUNCH\s*V\d+[^\n]*)?(?:(VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*)|LUNCH\s*V\d+)/i
+            : /(?:^|\n)\s*(?:LUNCH\s*V\d+[^\n]*)?(?:(VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*|(?:KÖTT|FISK|PASTA|SALLAD|BURGARE)\s*[:/]|KÖTT\s+[/❖])|LUNCH\s*V\d+)/i;
         
         if (dayMatches.length === 0) {
             const wMatch = weeklyHeaderRegex.exec(cleaned);
@@ -1188,9 +1190,39 @@
         return parts.join('\n\n');
     }
 
+    // Rensa bort sådant som inte är meny och slå ihop rader som hör till samma rätt
+    function tidyLines(raw, name) {
+        let t = raw || '';
+        if (/sankt\s*j/i.test(name)) {
+            const c = t.search(/Inez\s*&\s*Ernst/i);
+            if (c > 0) t = t.slice(0, c);
+        }
+        if (/lunchlabbet/i.test(name)) {
+            t = t.split('\n').filter(l => !/tel:|mail:|flygplatsväg/i.test(l)).join('\n');
+        }
+        if (/lunchlabbet|mat\s*&\s*potatis|roots/i.test(name)) {
+            const isRoots = /roots/i.test(name);
+            const out = [];
+            let label = '';
+            t.split('\n').map(l => l.replace(/\u00a0/g, ' ').replace(/[\u200b-\u200d\ufeff]/g, '').trim()).forEach(l => {
+                if (!l) { out.push(''); return; }
+                if (isRoots && /^(Vegetariskt|Vegetarisk|Vego|Fisk|Kött|Streetfood|Pasta|Sallad|Burgare):?$/i.test(l)) { label = l.replace(/:$/, '') + ': '; return; }
+                let pi = out.length - 1;
+                while (pi >= 0 && out[pi] === '') pi--;
+                const prev = pi >= 0 ? out[pi] : null;
+                const cont = prev !== null && !label && (/^[a-zåäö]/.test(l) || /,$/.test(prev) || /\bmed$/i.test(prev));
+                if (cont) { out.length = pi + 1; out[pi] = prev + ' ' + l; }
+                else { out.push(label + l); label = ''; }
+            });
+            t = out.join('\n');
+        }
+        return t;
+    }
+
     function menuText(menu) {
         if (!menu.success) return menu.menu || '';
         let raw = (currentLang === 'en' && menu.menu_en) ? menu.menu_en : menu.menu;
+        raw = tidyLines(raw, menu.name || '');
         if (/albatross/i.test(menu.name || '')) {
             const t = albatrossText(raw, currentView);
             if (t) return t;
