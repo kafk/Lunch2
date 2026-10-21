@@ -6,7 +6,7 @@
     <title>{% block title %}Lunch Monitor{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,900;1,400&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;0,9..144,800;1,9..144,400&family=Playfair+Display:ital,wght@0,600;0,700;0,900;1,400&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-paper: #fcfaf4;
@@ -21,6 +21,13 @@
             --accent-red: #c23829;
             --shadow-subtle: 0 2px 8px rgba(42, 39, 34, 0.04);
             --shadow-card: 0 4px 14px rgba(42, 39, 34, 0.07);
+
+            /* Standard Typography: Fraunces & Mellan (Comfort Size) */
+            --font-heading: 'Fraunces', serif;
+            --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            --size-restaurant: 17.5px;
+            --size-dish-title: 14px;
+            --size-dish-desc: 12.5px;
         }
 
         * {
@@ -446,9 +453,9 @@
         }
 
         .card-title {
-            font-family: 'Cinzel', serif;
-            font-size: 16px;
-            font-weight: 800;
+            font-family: var(--font-heading, 'Fraunces', serif);
+            font-size: 17.5px;
+            font-weight: 700;
             color: var(--ink-black);
             letter-spacing: 0.3px;
         }
