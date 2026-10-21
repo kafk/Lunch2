@@ -582,6 +582,15 @@
     const WEEKDAYS = ['Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag','Söndag'];
     const WEEKDAYS_EN = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 
+    const DAY_SV_TO_EN = {
+        'MÅNDAG': 'Monday', 'TISDAG': 'Tuesday', 'ONSDAG': 'Wednesday', 'TORSDAG': 'Thursday', 'FREDAG': 'Friday', 'LÖRDAG': 'Saturday', 'SÖNDAG': 'Sunday',
+        'Måndag': 'Monday', 'Tisdag': 'Tuesday', 'Onsdag': 'Wednesday', 'Torsdag': 'Thursday', 'Fredag': 'Friday', 'Lördag': 'Saturday', 'Söndag': 'Sunday'
+    };
+    const DAY_EN_TO_SV = {
+        'MONDAY': 'Måndag', 'TUESDAY': 'Tisdag', 'WEDNESDAY': 'Onsdag', 'THURSDAY': 'Torsdag', 'FRIDAY': 'Fredag', 'SATURDAY': 'Lördag', 'SUNDAY': 'Söndag',
+        'Monday': 'Måndag', 'Tuesday': 'Tisdag', 'Wednesday': 'Onsdag', 'Thursday': 'Torsdag', 'Friday': 'Fredag', 'Saturday': 'Lördag', 'Sunday': 'Söndag'
+    };
+
     function isZataRestaurant(name, text, url) {
         if (name && /z[äa]ta/i.test(name)) return true;
         if (url && /z[äa]ta|mashie|matildaplatform/i.test(url)) return true;
