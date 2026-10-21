@@ -2175,7 +2175,7 @@
                 const idx = dayNames.findIndex(d => d.toLowerCase() === m[2].toLowerCase()) % 7;
                 (days[idx] = days[idx] || []).push({ title: `${m[1]} ${m[3]}`, desc });
             } else {
-                weekly.push({ title: b[0].replace(/^Veckans\s+/i, ''), desc });
+                weekly.push({ title: b[0], desc });
             }
         });
 
@@ -2206,7 +2206,6 @@
         if (weekly.length) {
             html += `
             <div class="week-day-row">
-                <strong class="week-day-name">${currentLang === 'en' ? 'Weekly' : 'Veckans'}:</strong>
                 ${rows(weekly)}
             </div>`;
         }

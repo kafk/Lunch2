@@ -1138,7 +1138,10 @@
         }
         const fmt = items => items.map(it => it.title + (it.desc ? '\n' + it.desc : '')).join('\n\n');
         const parts = order.map(i => `${currentLang === 'en' ? WEEKDAYS_EN[i] : WEEKDAYS[i]}\n${fmt(days[i])}`);
-        if (weekly.length) parts.push(`${currentLang === 'en' ? 'Weekly specials' : 'Veckans'}\n${fmt(weekly)}`);
+        if (weekly.length) {
+            const hasLabel = /^veckans|^weekly/i.test(weekly[0].title);
+            parts.push((hasLabel ? '' : `${currentLang === 'en' ? 'Weekly specials' : 'Veckans'}\n`) + fmt(weekly));
+        }
         return parts.join('\n\n');
     }
 
