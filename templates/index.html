@@ -1145,9 +1145,56 @@
         return parts.join('\n\n');
     }
 
+    // Albatross: dagsrubrik + en rätt per rad med pris; pris på egen rad slås ihop, notiser flyttas sist
+    function albatrossText(raw, view) {
+        const dayNames = [...WEEKDAYS, ...WEEKDAYS_EN];
+        const dayRe = new RegExp('^(' + dayNames.join('|') + ')$', 'i');
+        const days = {};
+        const notes = [];
+        let cur = null, last = null, priceNote = -1;
+        (raw || '').split('\n').map(l => l.replace(/\u00a0/g, ' ').trim()).filter(Boolean).forEach(line => {
+            const dm = dayRe.exec(line);
+            if (dm) {
+                cur = dayNames.findIndex(d => d.toLowerCase() === dm[1].toLowerCase()) % 7;
+                days[cur] = days[cur] || [];
+                last = null;
+                return;
+            }
+            if (/^\d{2,3}:?-?$/.test(line)) {
+                if (last && !last.price) last.price = line.replace(/\D/g, '') + ':-';
+                return;
+            }
+            if (/^(fler rätter kommer|i priset ingår|lunchen serveras|sallad, smör)/i.test(line)) {
+                if (/^i priset ingår/i.test(line)) { notes.push(line); priceNote = notes.length - 1; }
+                else if (/^sallad, smör/i.test(line) && priceNote >= 0) { notes[priceNote] += ' ' + line; }
+                else notes.push(line);
+                last = null;
+                return;
+            }
+            if (cur === null) return;
+            const pm = /^(.*?)\s+(\d{2,3}):-?\s*$/.exec(line);
+            last = pm ? { text: pm[1], price: pm[2] + ':-' } : { text: line, price: '' };
+            days[cur].push(last);
+        });
+        let order = Object.keys(days).map(Number).filter(i => days[i].length).sort((a, b) => a - b);
+        if (order.length === 0) return '';
+        if (view === 'today') {
+            const t = new Date().getDay();
+            const todayIdx = t === 0 ? 6 : t - 1;
+            order = days[todayIdx] && days[todayIdx].length ? [todayIdx] : [order[0]];
+        }
+        const parts = order.map(i => `${currentLang === 'en' ? WEEKDAYS_EN[i] : WEEKDAYS[i]}\n` + days[i].map(d => d.text + (d.price ? ' ' + d.price : '')).join('\n'));
+        if (notes.length) parts.push(notes.join('\n'));
+        return parts.join('\n\n');
+    }
+
     function menuText(menu) {
         if (!menu.success) return menu.menu || '';
         let raw = (currentLang === 'en' && menu.menu_en) ? menu.menu_en : menu.menu;
+        if (/albatross/i.test(menu.name || '')) {
+            const t = albatrossText(raw, currentView);
+            if (t) return t;
+        }
         if (/tsukihana/i.test(menu.name || '')) {
             const t = tsukihanaText(raw, currentView);
             if (t) return t;
