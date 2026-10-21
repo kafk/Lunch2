@@ -2150,6 +2150,7 @@
         const mode = viewMode || displayView || 'week';
         const isTildas = restaurantName && /tilda/i.test(restaurantName);
         const isTheGrill = restaurantName && /the\s*grill/i.test(restaurantName);
+        const isBistro = restaurantName && /bistro/i.test(restaurantName);
         const isZata = isZataRestaurant(restaurantName, text);
         const isGC = isGCRestaurant(restaurantName, text);
         const { daysText, weeklyText, noteText } = extractWeeklySection(text.trim(), restaurantName);
@@ -2207,6 +2208,12 @@
                         catMatches.push({ cat: cm[1].toUpperCase(), index: cm.index, end: cm.index + cm[0].length });
                     }
 
+                    // Bistro: varje tomradsseparerat block är en rätt (rubrik + tillbehör)
+                    const bistroBlocks = !isBistro ? [] : dayRaw
+                        .split(/\n\s*\n/)
+                        .map(b => b.split('\n').map(l => l.replace(/^[❖•\-\*]\s*/, '').trim()).filter(Boolean))
+                        .filter(b => b.length > 0);
+
                     if ((isTheGrill || isZata) && catMatches.length > 0) {
                         const catItems = [];
                         const CAT_LABELS_SV = { 'KÖTT': 'Kött', 'MEAT': 'Kött', 'FISK': 'Fisk', 'FISH': 'Fisk', 'VEGETARISKT': 'Vegetariskt', 'VEGAN': 'Vegan', 'VEGO': 'Vego', 'SALLAD': 'Sallad', 'PASTA': 'Pasta', 'BURGARE': 'Burgare', 'STREETFOOD': 'Streetfood' };
@@ -2230,6 +2237,21 @@
                                         <div>
                                             <strong style="font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700; color: var(--ink-black); margin-right: 5px;">${c.label}:</strong>
                                             <span class="week-dishes-text">${linkify(escapeHtml(c.dish))}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `;
+                    } else if (isBistro && bistroBlocks.some(b => b.length > 1)) {
+                        const tr = s => currentLang === 'en' ? translateCulinaryText(s) : s;
+                        html += `
+                            <div class="week-day-row">
+                                <strong class="week-day-name">${dayDisplay}:</strong>
+                                <div style="margin-top: 3px; display: flex; flex-direction: column; gap: 5px;">
+                                    ${bistroBlocks.map(b => `
+                                        <div>
+                                            <strong style="color: var(--ink-black);">${linkify(escapeHtml(tr(b[0])))}</strong>
+                                            ${b.length > 1 ? `<div class="week-dishes-text">${linkify(escapeHtml(tr(b.slice(1).join(' '))))}</div>` : ''}
                                         </div>
                                     `).join('')}
                                 </div>
