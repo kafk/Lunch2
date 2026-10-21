@@ -542,6 +542,28 @@
         flex: 1;
         min-width: 0;
     }
+    .lab-card-title-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .lab-card-day-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 7px;
+        border-radius: 4px;
+        font-family: 'Cinzel', serif;
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        background: #f4efe4;
+        color: var(--bistro-green);
+        border: 1px solid #dfd7c5;
+        line-height: 1.3;
+        white-space: nowrap;
+        vertical-align: middle;
+    }
     .lab-card-title-group:hover .lab-card-name {
         color: var(--bistro-green);
     }
@@ -2038,11 +2060,21 @@
                 </svg>
             </button>
         `;
+        const dayIdx = (() => {
+            const idx = new Date().getDay();
+            return idx === 0 ? 6 : idx - 1;
+        })();
+        const todayDayName = currentLang === 'en' ? WEEKDAYS_EN[dayIdx] : WEEKDAYS[dayIdx];
+        const dayBadge = displayView === 'today' ? `<span class="lab-card-day-badge">${escapeHtml(todayDayName)}</span>` : '';
+
         if (!menu) return `
             <div class="lab-card lab-testing" id="disp-card-${escapeHtml(u.name).replace(/\s/g,'_')}">
                 <div class="lab-card-header">
                     <div class="lab-card-title-group">
-                        <div class="lab-card-name">${escapeHtml(u.name)}</div>
+                        <div class="lab-card-title-row">
+                            <div class="lab-card-name">${escapeHtml(u.name)}</div>
+                            ${dayBadge}
+                        </div>
                         <div class="lab-card-domain"><a href="${escapeHtml(u.url)}" target="_blank" onclick="event.stopPropagation()">${domain}</a></div>
                     </div>
                     ${heartBtn}
@@ -2061,7 +2093,10 @@
             <div class="lab-card ${menu.success ? 'lab-success' : 'lab-failed'}" id="disp-card-${escapeHtml(u.name).replace(/\s/g,'_')}">
                 <div class="lab-card-header">
                     <div class="lab-card-title-group" onclick='openRestaurantModalByName(${JSON.stringify(menu.name)}, event)'>
-                        <div class="lab-card-name">${escapeHtml(menu.name)}</div>
+                        <div class="lab-card-title-row">
+                            <div class="lab-card-name">${escapeHtml(menu.name)}</div>
+                            ${dayBadge}
+                        </div>
                         <div class="lab-card-domain"><a href="${escapeHtml(menu.url)}" target="_blank" onclick="event.stopPropagation()">${domain}</a></div>
                     </div>
                     ${heartBtn}
@@ -2192,9 +2227,10 @@
                 `).join('')}
             </div>`;
 
+        const showDayLabel = mode !== 'today';
         let html = order.map(i => `
             <div class="week-day-row">
-                <strong class="week-day-name">${currentLang === 'en' ? WEEKDAYS_EN[i] : WEEKDAYS[i]}:</strong>
+                ${showDayLabel ? `<strong class="week-day-name">${currentLang === 'en' ? WEEKDAYS_EN[i] : WEEKDAYS[i]}:</strong>` : ''}
                 ${rows(days[i])}
             </div>
         `).join('');
@@ -2251,9 +2287,10 @@
             const todayIdx = t === 0 ? 6 : t - 1;
             order = days[todayIdx] && days[todayIdx].length ? [todayIdx] : [order[0]];
         }
+        const showDayLabel = mode !== 'today';
         let html = order.map(i => `
             <div class="week-day-row">
-                <strong class="week-day-name">${currentLang === 'en' ? WEEKDAYS_EN[i] : WEEKDAYS[i]}:</strong>
+                ${showDayLabel ? `<strong class="week-day-name">${currentLang === 'en' ? WEEKDAYS_EN[i] : WEEKDAYS[i]}:</strong>` : ''}
                 <div style="margin-top: 3px; display: flex; flex-direction: column; gap: 4px;">
                     ${days[i].map(d => `
                         <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px;">
@@ -2480,9 +2517,10 @@
                             catItems.push({ label, dish });
                         }
 
+                        const showDayLabel = mode !== 'today';
                         html += `
                             <div class="week-day-row">
-                                <strong class="week-day-name">${dayDisplay}:</strong>
+                                ${showDayLabel ? `<strong class="week-day-name">${dayDisplay}:</strong>` : ''}
                                 <div style="margin-top: 3px; display: flex; flex-direction: column; gap: 3px;">
                                     ${catItems.map(c => `
                                         <div>
@@ -2501,9 +2539,10 @@
                             const en = fromEnd === 0 ? 'Vegetarian' : fromEnd === 1 ? 'Fish' : 'Meat';
                             return currentLang === 'en' ? en : sv;
                         };
+                        const showDayLabel = mode !== 'today';
                         html += `
                             <div class="week-day-row">
-                                <strong class="week-day-name">${dayDisplay}:</strong>
+                                ${showDayLabel ? `<strong class="week-day-name">${dayDisplay}:</strong>` : ''}
                                 <div style="margin-top: 3px; display: flex; flex-direction: column; gap: 4px;">
                                     ${gcLines.map((line, i2) => `
                                         <div>
@@ -2515,9 +2554,10 @@
                         `;
                     } else if (isBistro && bistroBlocks.some(b => b.length > 1)) {
                         const tr = s => currentLang === 'en' ? translateCulinaryText(s) : s;
+                        const showDayLabel = mode !== 'today';
                         html += `
                             <div class="week-day-row">
-                                <strong class="week-day-name">${dayDisplay}:</strong>
+                                ${showDayLabel ? `<strong class="week-day-name">${dayDisplay}:</strong>` : ''}
                                 <div style="margin-top: 3px; display: flex; flex-direction: column; gap: 5px;">
                                     ${bistroBlocks.map(b => `
                                         <div>
@@ -2529,9 +2569,10 @@
                             </div>
                         `;
                     } else {
+                        const showDayLabel = mode !== 'today';
                         html += `
                             <div class="week-day-row">
-                                <strong class="week-day-name">${dayDisplay}:</strong>
+                                ${showDayLabel ? `<strong class="week-day-name">${dayDisplay}:</strong>` : ''}
                                 ${renderDayRows(dayRaw, restaurantName)}
                             </div>
                         `;
