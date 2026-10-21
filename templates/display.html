@@ -2157,6 +2157,62 @@
         return lines.slice(0, 3).join(' • ');
     }
 
+    // Tsukihana: block = rubrikrad ("Dagens Kött Onsdag 120 kr") + beskrivning, blocken är tomradsseparerade
+    function formatTsukihana(text, mode) {
+        const tr = s => currentLang === 'en' ? translateCulinaryText(s) : s;
+        const dayNames = [...WEEKDAYS, ...WEEKDAYS_EN];
+        const dayRe = new RegExp('^(.*?)\\s+(' + dayNames.join('|') + ')\\s*(\\d+\\s*kr)\\s*$', 'i');
+        const blocks = text.trim().split(/\n\s*\n/)
+            .map(b => b.split('\n').map(l => l.replace(/^[❖•\-\*]\s*/, '').trim()).filter(Boolean))
+            .filter(b => b.length > 0);
+
+        const days = {};
+        const weekly = [];
+        blocks.forEach(b => {
+            const m = dayRe.exec(b[0]);
+            const desc = b.slice(1).join(' ');
+            if (m) {
+                const idx = dayNames.findIndex(d => d.toLowerCase() === m[2].toLowerCase()) % 7;
+                (days[idx] = days[idx] || []).push({ title: `${m[1]} ${m[3]}`, desc });
+            } else {
+                weekly.push({ title: b[0].replace(/^Veckans\s+/i, ''), desc });
+            }
+        });
+
+        let order = Object.keys(days).map(Number).sort((a, b) => a - b);
+        if (order.length === 0 && weekly.length === 0) return '';
+        if (mode === 'today' && order.length) {
+            const t = new Date().getDay();
+            const todayIdx = t === 0 ? 6 : t - 1;
+            order = days[todayIdx] ? [todayIdx] : [order[0]];
+        }
+
+        const rows = items => `
+            <div style="margin-top: 3px; display: flex; flex-direction: column; gap: 5px;">
+                ${items.map(it => `
+                    <div>
+                        <strong style="color: var(--ink-black);">${linkify(escapeHtml(tr(it.title)))}</strong>
+                        ${it.desc ? `<div class="week-dishes-text">${linkify(escapeHtml(tr(it.desc)))}</div>` : ''}
+                    </div>
+                `).join('')}
+            </div>`;
+
+        let html = order.map(i => `
+            <div class="week-day-row">
+                <strong class="week-day-name">${currentLang === 'en' ? WEEKDAYS_EN[i] : WEEKDAYS[i]}:</strong>
+                ${rows(days[i])}
+            </div>
+        `).join('');
+        if (weekly.length) {
+            html += `
+            <div class="week-day-row">
+                <strong class="week-day-name">${currentLang === 'en' ? 'Weekly' : 'Veckans'}:</strong>
+                ${rows(weekly)}
+            </div>`;
+        }
+        return html;
+    }
+
     function formatMenuContent(text, viewMode, restaurantName) {
         if (!text) {
             const emptyMsg = I18N[currentLang]?.noMenu || 'Ingen meny tillgänglig';
@@ -2164,6 +2220,10 @@
         }
 
         const mode = viewMode || displayView || 'week';
+        if (restaurantName && /tsukihana/i.test(restaurantName)) {
+            const tsukiHtml = formatTsukihana(text, mode);
+            if (tsukiHtml) return tsukiHtml;
+        }
         const isTildas = restaurantName && /tilda/i.test(restaurantName);
         const isTheGrill = restaurantName && /the\s*grill/i.test(restaurantName);
         const isBistro = restaurantName && /bistro/i.test(restaurantName);

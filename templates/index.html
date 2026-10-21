@@ -1110,9 +1110,45 @@
         if (cachedMenus.length) renderCards(cachedMenus);
     }
 
+    // Tsukihana: block = rubrikrad ("Dagens Kött Onsdag 120 kr") + beskrivning, blocken är tomradsseparerade
+    function tsukihanaText(raw, view) {
+        const dayNames = [...WEEKDAYS, ...WEEKDAYS_EN];
+        const dayRe = new RegExp('^(.*?)\\s+(' + dayNames.join('|') + ')\\s*(\\d+\\s*kr)\\s*$', 'i');
+        const blocks = (raw || '').trim().split(/\n\s*\n/)
+            .map(b => b.split('\n').map(l => l.trim()).filter(Boolean))
+            .filter(b => b.length > 0);
+        const days = {};
+        const weekly = [];
+        blocks.forEach(b => {
+            const m = dayRe.exec(b[0]);
+            const desc = b.slice(1).join(' ');
+            if (m) {
+                const idx = dayNames.findIndex(d => d.toLowerCase() === m[2].toLowerCase()) % 7;
+                (days[idx] = days[idx] || []).push({ title: `${m[1]} ${m[3]}`, desc });
+            } else {
+                weekly.push({ title: b[0], desc });
+            }
+        });
+        let order = Object.keys(days).map(Number).sort((a, b) => a - b);
+        if (order.length === 0 && weekly.length === 0) return '';
+        if (view === 'today' && order.length) {
+            const t = new Date().getDay();
+            const todayIdx = t === 0 ? 6 : t - 1;
+            order = days[todayIdx] ? [todayIdx] : [order[0]];
+        }
+        const fmt = items => items.map(it => it.title + (it.desc ? '\n' + it.desc : '')).join('\n\n');
+        const parts = order.map(i => `${currentLang === 'en' ? WEEKDAYS_EN[i] : WEEKDAYS[i]}\n${fmt(days[i])}`);
+        if (weekly.length) parts.push(`${currentLang === 'en' ? 'Weekly specials' : 'Veckans'}\n${fmt(weekly)}`);
+        return parts.join('\n\n');
+    }
+
     function menuText(menu) {
         if (!menu.success) return menu.menu || '';
         let raw = (currentLang === 'en' && menu.menu_en) ? menu.menu_en : menu.menu;
+        if (/tsukihana/i.test(menu.name || '')) {
+            const t = tsukihanaText(raw, currentView);
+            if (t) return t;
+        }
         if (isZataRestaurant(menu.name, raw, menu.url)) {
             raw = filterZataText(raw, currentLang);
         } else if (isGCRestaurant(menu.name, raw, menu.url)) {
