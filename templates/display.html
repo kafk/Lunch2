@@ -2279,12 +2279,17 @@
 
         const rows = items => `
             <div style="margin-top: 3px; display: flex; flex-direction: column; gap: 5px;">
-                ${items.map(it => `
-                    <div>
-                        <strong style="color: var(--ink-black);">${linkify(escapeHtml(tr(it.title)))}</strong>
-                        ${it.desc ? `<div class="week-dishes-text">${linkify(escapeHtml(tr(it.desc)))}</div>` : ''}
-                    </div>
-                `).join('')}
+                ${items.map(it => {
+                    const title = tr(it.title);
+                    const desc = it.desc ? tr(it.desc) : '';
+                    const cat = detectDishCategory(it.title + ' ' + (it.desc || ''));
+                    return `
+                        <div>
+                            ${cat ? `<strong class="category-label">${cat}:</strong> ` : ''}<strong style="color: var(--ink-black);">${linkify(escapeHtml(title))}</strong>
+                            ${desc ? `<div class="week-dishes-text">${linkify(escapeHtml(desc))}</div>` : ''}
+                        </div>
+                    `;
+                }).join('')}
             </div>`;
 
         const showDayLabel = mode !== 'today';
@@ -2352,12 +2357,16 @@
             <div class="week-day-row">
                 ${showDayLabel ? `<strong class="week-day-name">${currentLang === 'en' ? WEEKDAYS_EN[i] : WEEKDAYS[i]}:</strong>` : ''}
                 <div style="margin-top: 3px; display: flex; flex-direction: column; gap: 4px;">
-                    ${days[i].map(d => `
-                        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px;">
-                            <span class="week-dishes-text">${linkify(escapeHtml(tr(d.text)))}</span>
-                            ${d.price ? `<strong style="white-space: nowrap; color: var(--ink-black);">${d.price}</strong>` : ''}
-                        </div>
-                    `).join('')}
+                    ${days[i].map(d => {
+                        const trText = tr(d.text);
+                        const cat = detectDishCategory(d.text);
+                        return `
+                            <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px;">
+                                <span class="week-dishes-text">${cat ? `<strong class="category-label">${cat}:</strong> ` : ''}${linkify(escapeHtml(trText))}</span>
+                                ${d.price ? `<strong style="white-space: nowrap; color: var(--ink-black); font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 13.5px;">${d.price}</strong>` : ''}
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
             </div>
         `).join('');
@@ -2390,33 +2399,45 @@
     function detectDishCategory(text) {
         if (!text) return '';
         const t = text.toLowerCase();
-        // 1. Fisk & Skaldjur
-        if (/\b(fisk|lax|torsk|sej|spätta|rödspätta|kolja|abborre|gös|sill|strömming|tonfisk|hälleflundra|makrill|räkor|kräftor|musslor|skaldjur|fiskgratäng|fisksoppa|fiskfilé|fiskbiff|fiskburgare|panerad fisk|havets|havskatt|fiskcurry)\b/i.test(t)) {
+        
+        // 1. Kyckling / Fågel (egen kategori)
+        if (/\b(kyckling|kycklingfilé|kycklingbiff|kycklingspett|kycklinggryta|höna|kalkon|anka|fågel|chicken)\b/i.test(t) || /kyckling/i.test(t)) {
+            return currentLang === 'en' ? 'Chicken' : 'Kyckling';
+        }
+
+        // 2. Pasta (egen kategori)
+        if (/\b(pasta|spaghetti|penne|tagliatelle|rigatoni|lasagne|lasagnette|fettuccine|linguine|tortellini|ravioli|gnocchi|fusilli|makaroner)\b/i.test(t) || /pasta/i.test(t)) {
+            return 'Pasta';
+        }
+
+        // 3. Fisk & Skaldjur
+        if (/\b(fisk|lax|torsk|sej|spätta|rödspätta|kolja|abborre|gös|sill|strömming|tonfisk|hälleflundra|makrill|räkor|räka|kräftor|musslor|skaldjur|fiskgratäng|fisksoppa|fiskfilé|fiskbiff|fiskburgare|panerad fisk|havets|havskatt|fiskcurry|fish)\b/i.test(t) || /(lax|torsk|räk)/i.test(t)) {
             return currentLang === 'en' ? 'Fish' : 'Fisk';
         }
-        // 2. Burgare
+
+        // 4. Burgare
         if (/\b(burgare|burger|hamburgare)\b/i.test(t)) {
             if (/halloumi|veg|bön/i.test(t)) return currentLang === 'en' ? 'Vegetarian' : 'Vegetariskt';
             return currentLang === 'en' ? 'Burger' : 'Burgare';
         }
-        // 3. Kött & Fågel
-        if (/\b(kött|biff|oxfilé|ryggbiff|entrecôte|entrecote|högrev|kalv|fläsk|fläskfilé|fläskkarré|kotlett|sidfläsk|karré|bacon|kyckling|kycklingfilé|kalkon|anka|lamm|färs|köttfärs|köttbullar|pannbiff|wallenbergare|schnitzel|korv|falukorv|isterband|chorizo|bratwurst|skinka|raggmunk|pyttipanna|pytt i panna|kebab|gyros|lasagne|kalops|rostbiff|revben|revbensspjäll)\b/i.test(t)) {
+
+        // 5. Kött (Nöt, Fläsk, Lamm, Färs, Korv m.m.)
+        if (/\b(kött|biff|biffar|kalvfärs|oxfilé|ryggbiff|entrecôte|entrecote|högrev|kalv|fläsk|fläskfilé|fläskkarré|kotlett|sidfläsk|karré|bacon|lamm|färs|köttfärs|köttbullar|pannbiff|wallenbergare|schnitzel|korv|korvstroganoff|stroganoff|falukorv|isterband|chorizo|bratwurst|skinka|raggmunk|pyttipanna|pytt i panna|kebab|gyros|kalops|rostbiff|revben|revbensspjäll|meat|beef|pork)\b/i.test(t) || /(kalvfärs|fläskfilé|biffar|kebab|stroganoff)/i.test(t)) {
             return currentLang === 'en' ? 'Meat' : 'Kött';
         }
-        // 4. Pasta
-        if (/\b(pasta|spaghetti|penne|tagliatelle|rigatoni|lasagne|fettuccine|linguine|tortellini|ravioli)\b/i.test(t)) {
-            return 'Pasta';
-        }
-        // 5. Sallad
-        if (/\b(sallad|caesarsallad|räksallad|kycklingsallad|grekisk sallad)\b/i.test(t)) {
+
+        // 6. Sallad
+        if (/\b(sallad|caesarsallad|räksallad|kycklingsallad|grekisk sallad|salad)\b/i.test(t)) {
             return currentLang === 'en' ? 'Salad' : 'Sallad';
         }
-        // 6. Soppa
-        if (/\b(soppa|ärtsoppa|gulaschsoppa|linssoppa|tomatsoppa)\b/i.test(t)) {
+
+        // 7. Soppa
+        if (/\b(soppa|ärtsoppa|gulaschsoppa|linssoppa|tomatsoppa|soup)\b/i.test(t)) {
             return currentLang === 'en' ? 'Soup' : 'Soppa';
         }
-        // 7. Vego & Vegan
-        if (/\b(vegetarisk|vegetariskt|vego|vegan|vegansk|halloumi|falafel|tofu|quorn|soyafärs|linser|kikärtor|bönbiff)\b/i.test(t)) {
+
+        // 8. Vego & Vegan
+        if (/\b(vegetarisk|vegetariskt|vego|vegan|vegansk|halloumi|falafel|tofu|quorn|soyafärs|linser|kikärtor|bönbiff|vegetarian)\b/i.test(t)) {
             if (/vegan|vegansk/i.test(t)) return 'Vegan';
             return currentLang === 'en' ? 'Vegetarian' : 'Vegetariskt';
         }
@@ -2702,10 +2723,10 @@
                 html = numberedItems.map(item => {
                     let cleanText = item.text;
                     if (currentLang === 'en') cleanText = translateCulinaryText(cleanText);
+                    const cat = detectDishCategory(item.text);
                     return `
                         <div class="week-day-row">
-                            <strong class="category-label">${item.num}.</strong>
-                            <span class="week-dishes-text">${linkify(escapeHtml(cleanText))}</span>
+                            <span class="week-dishes-text">${cat ? `<strong class="category-label">${cat}:</strong> ` : `<strong class="category-label">${item.num}.</strong> `}${linkify(escapeHtml(cleanText))}</span>
                         </div>
                     `;
                 }).join('');

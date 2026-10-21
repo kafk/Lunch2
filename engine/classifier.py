@@ -18,11 +18,12 @@ import sqlite3
 from typing import Dict, List, Optional, Tuple
 
 ALLOWED_CATEGORIES = [
-    "Kött",
+    "Kyckling",
+    "Pasta",
     "Fisk",
+    "Kött",
     "Vegetariskt",
     "Vegan",
-    "Pasta",
     "Sallad",
     "Burgare",
     "Soppa",
@@ -137,49 +138,59 @@ class DishClassifier:
         """Fast culinary keyword classifier for standard Swedish lunch ingredients."""
         t = dish_text.lower()
         
-        # 1. Fisk & Skaldjur
+        # 1. Kyckling / Fågel (egen kategori)
+        chicken_keywords = [
+            'kyckling', 'kycklingfilé', 'kycklingbiff', 'kycklingspett', 'kycklinggryta',
+            'höna', 'kalkon', 'anka', 'fågel', 'chicken'
+        ]
+        if any(re.search(rf'\b{re.escape(k)}', t) for k in chicken_keywords) or 'kyckling' in t:
+            return "Kyckling"
+
+        # 2. Pasta (egen kategori)
+        pasta_keywords = [
+            'pasta', 'spaghetti', 'penne', 'tagliatelle', 'rigatoni', 'lasagne', 'lasagnette',
+            'fettuccine', 'linguine', 'tortellini', 'ravioli', 'gnocchi', 'fusilli', 'makaroner'
+        ]
+        if any(re.search(rf'\b{re.escape(k)}', t) for k in pasta_keywords) or 'pasta' in t:
+            return "Pasta"
+
+        # 3. Fisk & Skaldjur
         fish_keywords = [
             'fisk', 'lax', 'torsk', 'sej', 'spätta', 'rödspätta', 'kolja', 'abborre', 'gös',
-            'sill', 'strömming', 'tonfisk', 'hälleflundra', 'makrill', 'räkor', 'kräftor',
+            'sill', 'strömming', 'tonfisk', 'hälleflundra', 'makrill', 'räkor', 'räka', 'kräftor',
             'musslor', 'skaldjur', 'fiskgratäng', 'fisksoppa', 'fiskfilé', 'fiskbiff', 'fiskburgare',
             'fiskbullar', 'panerad fisk', 'havets', 'havskatt', 'fiskcurry'
         ]
-        if any(re.search(rf'\b{re.escape(k)}', t) for k in fish_keywords):
+        if any(re.search(rf'\b{re.escape(k)}', t) for k in fish_keywords) or any(k in t for k in ['lax', 'torsk', 'räk']):
             return "Fisk"
 
-        # 2. Burgare
+        # 4. Burgare
         if re.search(r'\b(burgare|burger|hamburgare)\b', t):
             if any(k in t for k in ['halloumi', 'veg', 'bön']):
                 return "Vegetariskt"
             return "Burgare"
 
-        # 3. Kött & Fågel
+        # 5. Kött & Chark (Nöt, Fläsk, Lamm, Färs, Korv m.m.)
         meat_keywords = [
-            'kött', 'biff', 'oxfilé', 'ryggbiff', 'entrecôte', 'entrecote', 'högrev', 'kalv',
+            'kött', 'biff', 'biffar', 'kalvfärs', 'oxfilé', 'ryggbiff', 'entrecôte', 'entrecote', 'högrev', 'kalv',
             'fläsk', 'fläskfilé', 'fläskkarré', 'kotlett', 'sidfläsk', 'karré', 'bacon',
-            'kyckling', 'kycklingfilé', 'kalkon', 'anka', 'lamm', 'färs', 'köttfärs',
-            'köttbullar', 'pannbiff', 'wallenbergare', 'schnitzel', 'korv', 'falukorv',
-            'isterband', 'chorizo', 'bratwurst', 'skinka', 'raggmunk med stekt fläsk',
-            'pyttipanna', 'pytt i panna', 'kebab', 'gyros', 'lasagne al forno', 'kalops',
+            'lamm', 'färs', 'köttfärs', 'köttbullar', 'pannbiff', 'wallenbergare', 'schnitzel',
+            'korv', 'korvstroganoff', 'stroganoff', 'falukorv', 'isterband', 'chorizo', 'bratwurst',
+            'skinka', 'raggmunk', 'pyttipanna', 'pytt i panna', 'kebab', 'gyros', 'kalops',
             'rostbiff', 'revben', 'revbensspjäll'
         ]
-        if any(re.search(rf'\b{re.escape(k)}', t) for k in meat_keywords):
+        if any(re.search(rf'\b{re.escape(k)}', t) for k in meat_keywords) or any(k in t for k in ['kalvfärs', 'fläskfilé', 'biffar', 'kebab', 'stroganoff']):
             return "Kött"
 
-        # 4. Pasta
-        pasta_keywords = ['pasta', 'spaghetti', 'penne', 'tagliatelle', 'rigatoni', 'lasagne', 'fettuccine', 'linguine', 'tortellini', 'ravioli']
-        if any(re.search(rf'\b{re.escape(k)}', t) for k in pasta_keywords):
-            return "Pasta"
-
-        # 5. Sallad
+        # 6. Sallad
         if re.search(r'\b(sallad|caesarsallad|räksallad|kycklingsallad|grekisk sallad)\b', t):
             return "Sallad"
 
-        # 6. Soppa
+        # 7. Soppa
         if re.search(r'\b(soppa|ärtsoppa|gulaschsoppa|linssoppa|tomatsoppa)\b', t):
             return "Soppa"
 
-        # 7. Vego / Vegan
+        # 8. Vego / Vegan
         vego_keywords = [
             'vegetarisk', 'vegetariskt', 'vego', 'vegan', 'vegansk', 'halloumi',
             'falafel', 'tofu', 'quorn', 'soyafärs', 'linser', 'kikärtor', 'bönbiff'

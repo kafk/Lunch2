@@ -962,26 +962,44 @@
     function detectDishCategory(text) {
         if (!text) return '';
         const t = text.toLowerCase();
-        if (/\b(fisk|lax|torsk|sej|spätta|rödspätta|kolja|abborre|gös|sill|strömming|tonfisk|hälleflundra|makrill|räkor|kräftor|musslor|skaldjur|fiskgratäng|fisksoppa|fiskfilé|fiskbiff|fiskburgare|panerad fisk|havets|havskatt|fiskcurry)\b/i.test(t)) {
+        // 1. Kyckling / Fågel (egen kategori)
+        if (/\b(kyckling|kycklingfilé|kycklingbiff|kycklingspett|kycklinggryta|höna|kalkon|anka|fågel|chicken)\b/i.test(t) || /kyckling/i.test(t)) {
+            return currentLang === 'en' ? 'Chicken' : 'Kyckling';
+        }
+
+        // 2. Pasta (egen kategori)
+        if (/\b(pasta|spaghetti|penne|tagliatelle|rigatoni|lasagne|lasagnette|fettuccine|linguine|tortellini|ravioli|gnocchi|fusilli|makaroner)\b/i.test(t) || /pasta/i.test(t)) {
+            return 'Pasta';
+        }
+
+        // 3. Fisk & Skaldjur
+        if (/\b(fisk|lax|torsk|sej|spätta|rödspätta|kolja|abborre|gös|sill|strömming|tonfisk|hälleflundra|makrill|räkor|räka|kräftor|musslor|skaldjur|fiskgratäng|fisksoppa|fiskfilé|fiskbiff|fiskburgare|panerad fisk|havets|havskatt|fiskcurry|fish)\b/i.test(t) || /(lax|torsk|räk)/i.test(t)) {
             return currentLang === 'en' ? 'Fish' : 'Fisk';
         }
+
+        // 4. Burgare
         if (/\b(burgare|burger|hamburgare)\b/i.test(t)) {
             if (/halloumi|veg|bön/i.test(t)) return currentLang === 'en' ? 'Vegetarian' : 'Vegetariskt';
             return currentLang === 'en' ? 'Burger' : 'Burgare';
         }
-        if (/\b(kött|biff|oxfilé|ryggbiff|entrecôte|entrecote|högrev|kalv|fläsk|fläskfilé|fläskkarré|kotlett|sidfläsk|karré|bacon|kyckling|kycklingfilé|kalkon|anka|lamm|färs|köttfärs|köttbullar|pannbiff|wallenbergare|schnitzel|korv|falukorv|isterband|chorizo|bratwurst|skinka|raggmunk|pyttipanna|pytt i panna|kebab|gyros|lasagne|kalops|rostbiff|revben|revbensspjäll)\b/i.test(t)) {
+
+        // 5. Kött (Nöt, Fläsk, Lamm, Färs, Korv m.m.)
+        if (/\b(kött|biff|biffar|kalvfärs|oxfilé|ryggbiff|entrecôte|entrecote|högrev|kalv|fläsk|fläskfilé|fläskkarré|kotlett|sidfläsk|karré|bacon|lamm|färs|köttfärs|köttbullar|pannbiff|wallenbergare|schnitzel|korv|korvstroganoff|stroganoff|falukorv|isterband|chorizo|bratwurst|skinka|raggmunk|pyttipanna|pytt i panna|kebab|gyros|kalops|rostbiff|revben|revbensspjäll|meat|beef|pork)\b/i.test(t) || /(kalvfärs|fläskfilé|biffar|kebab|stroganoff)/i.test(t)) {
             return currentLang === 'en' ? 'Meat' : 'Kött';
         }
-        if (/\b(pasta|spaghetti|penne|tagliatelle|rigatoni|lasagne|fettuccine|linguine|tortellini|ravioli)\b/i.test(t)) {
-            return 'Pasta';
-        }
-        if (/\b(sallad|caesarsallad|räksallad|kycklingsallad|grekisk sallad)\b/i.test(t)) {
+
+        // 6. Sallad
+        if (/\b(sallad|caesarsallad|räksallad|kycklingsallad|grekisk sallad|salad)\b/i.test(t)) {
             return currentLang === 'en' ? 'Salad' : 'Sallad';
         }
-        if (/\b(soppa|ärtsoppa|gulaschsoppa|linssoppa|tomatsoppa)\b/i.test(t)) {
+
+        // 7. Soppa
+        if (/\b(soppa|ärtsoppa|gulaschsoppa|linssoppa|tomatsoppa|soup)\b/i.test(t)) {
             return currentLang === 'en' ? 'Soup' : 'Soppa';
         }
-        if (/\b(vegetarisk|vegetariskt|vego|vegan|vegansk|halloumi|falafel|tofu|quorn|soyafärs|linser|kikärtor|bönbiff)\b/i.test(t)) {
+
+        // 8. Vego & Vegan
+        if (/\b(vegetarisk|vegetariskt|vego|vegan|vegansk|halloumi|falafel|tofu|quorn|soyafärs|linser|kikärtor|bönbiff|vegetarian)\b/i.test(t)) {
             if (/vegan|vegansk/i.test(t)) return 'Vegan';
             return currentLang === 'en' ? 'Vegetarian' : 'Vegetariskt';
         }
@@ -1027,7 +1045,10 @@
         if (start === -1) {
             const numItems = parseNumberedList(target);
             if (numItems && numItems.length > 0) {
-                todayText = numItems.map(item => `${item.num}. ${item.text}`).join('\n');
+                todayText = numItems.map(item => {
+                    const cat = detectDishCategory(item.text);
+                    return `${cat ? `${cat}: ` : `${item.num}. `}${item.text}`;
+                }).join('\n');
             } else {
                 todayText = target;
             }
@@ -1115,7 +1136,10 @@
         const numItems = parseNumberedList(target);
         let out = target;
         if (numItems && numItems.length > 0) {
-            out = numItems.map(item => `${item.num}. ${item.text}`).join('\n');
+            out = numItems.map(item => {
+                const cat = detectDishCategory(item.text);
+                return `${cat ? `${cat}: ` : `${item.num}. `}${item.text}`;
+            }).join('\n');
         }
         if (weeklyText) {
             if (isTildas) {
@@ -1179,7 +1203,11 @@
             const todayIdx = t === 0 ? 6 : t - 1;
             order = days[todayIdx] ? [todayIdx] : [order[0]];
         }
-        const fmt = items => items.map(it => it.title + (it.desc ? '\n' + it.desc : '')).join('\n\n');
+        const fmt = items => items.map(it => {
+            const cat = detectDishCategory(it.title + ' ' + (it.desc || ''));
+            const prefix = cat ? `${cat}: ` : '';
+            return prefix + it.title + (it.desc ? '\n' + it.desc : '');
+        }).join('\n\n');
         const parts = order.map(i => `${currentLang === 'en' ? WEEKDAYS_EN[i] : WEEKDAYS[i]}\n${fmt(days[i])}`);
         if (weekly.length) {
             const hasLabel = /^veckans|^weekly/i.test(weekly[0].title);
@@ -1226,7 +1254,11 @@
             const todayIdx = t === 0 ? 6 : t - 1;
             order = days[todayIdx] && days[todayIdx].length ? [todayIdx] : [order[0]];
         }
-        const parts = order.map(i => `${currentLang === 'en' ? WEEKDAYS_EN[i] : WEEKDAYS[i]}\n` + days[i].map(d => d.text + (d.price ? ' ' + d.price : '')).join('\n'));
+        const parts = order.map(i => `${currentLang === 'en' ? WEEKDAYS_EN[i] : WEEKDAYS[i]}\n` + days[i].map(d => {
+            const cat = detectDishCategory(d.text);
+            const prefix = cat ? `${cat}: ` : '';
+            return prefix + d.text + (d.price ? ' ' + d.price : '');
+        }).join('\n'));
         if (notes.length) parts.push(notes.join('\n'));
         return parts.join('\n\n');
     }
