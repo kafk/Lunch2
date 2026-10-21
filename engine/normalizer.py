@@ -108,7 +108,7 @@ def normalize_text_to_days(raw_text: str, use_ai: bool = True) -> List[DayMenu]:
     if use_ai:
         ai_result = extract_with_llm(raw_text)
         if ai_result:
-            return ai_result
+            return enrich_dishes_with_categories(ai_result)
 
     # 2. Deterministic rule-based fallback parser
     lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
@@ -158,6 +158,24 @@ def normalize_text_to_days(raw_text: str, use_ai: bool = True) -> List[DayMenu]:
             if dishes:
                 day_menus.append(DayMenu(day=day, dishes=dishes))
 
+    return enrich_dishes_with_categories(day_menus)
+
+from .classifier import classifier
+
+def enrich_dishes_with_categories(day_menus: List[DayMenu]) -> List[DayMenu]:
+    """Enrich all dishes across DayMenus with categories using cache/LLM."""
+    all_dishes = []
+    for d in day_menus:
+        for item in d.dishes:
+            if not item.category and item.dish:
+                all_dishes.append(item.dish)
+    
+    if all_dishes:
+        cats = classifier.classify_batch(all_dishes)
+        for d in day_menus:
+            for item in d.dishes:
+                if not item.category and item.dish in cats:
+                    item.category = cats[item.dish]
     return day_menus
 
 def format_day_menus_to_text(days: List[DayMenu]) -> str:
@@ -167,7 +185,14 @@ def format_day_menus_to_text(days: List[DayMenu]) -> str:
     
     parts = []
     for d in days:
-        day_str = f"{d.day}:\n" + "\n".join(f"- {dish.dish}" for dish in d.dishes)
+        dish_lines = []
+        for dish in d.dishes:
+            clean_dish = re.sub(r'^[❖•\-\*]\s*', '', dish.dish).strip()
+            if dish.category and dish.category != "Övrigt":
+                dish_lines.append(f"{dish.category}: {clean_dish}")
+            else:
+                dish_lines.append(f"- {clean_dish}")
+        day_str = f"{d.day}:\n" + "\n".join(dish_lines)
         parts.append(day_str)
     
     return "\n\n".join(parts)
