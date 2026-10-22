@@ -173,14 +173,15 @@ class DishClassifier:
         # 5. Kött & Chark (Nöt, Fläsk, Lamm, Färs, Korv m.m.)
         meat_keywords = [
             'kött', 'biff', 'biffar', 'kalvfärs', 'oxfilé', 'ryggbiff', 'entrecôte', 'entrecote', 'högrev', 'kalv',
-            'fläsk', 'fläskfilé', 'fläskkarré', 'kotlett', 'sidfläsk', 'karré', 'bacon',
-            'lamm', 'färs', 'köttfärs', 'köttbullar', 'pannbiff', 'wallenbergare', 'schnitzel',
+            'fläsk', 'fläskfilé', 'fläskkarré', 'fläskytterfilé', 'kotlett', 'sidfläsk', 'karré', 'bacon',
+            'lamm', 'färs', 'köttfärs', 'köttbullar', 'kalvköttbullar', 'pannbiff', 'wallenbergare', 'schnitzel',
             'korv', 'korvstroganoff', 'stroganoff', 'falukorv', 'isterband', 'chorizo', 'bratwurst',
             'skinka', 'raggmunk', 'pyttipanna', 'pytt i panna', 'kebab', 'gyros', 'kalops',
             'rostbiff', 'revben', 'revbensspjäll', 'slottstek', 'stek', 'oxstek', 'kassler',
-            'köttfärslimpa', 'kåldolmar', 'fläsklägg', 'viltgryta', 'vilt'
+            'köttfärslimpa', 'kåldolmar', 'kålpudding', 'oxbringa', 'bringa', 'gulasch', 'gulaschgryta',
+            'enchiladas', 'enchilada', 'fläsklägg', 'viltgryta', 'vilt'
         ]
-        if any(re.search(rf'\b{re.escape(k)}', t) for k in meat_keywords) or any(k in t for k in ['kalvfärs', 'fläskfilé', 'biffar', 'kebab', 'stroganoff', 'slottstek']):
+        if any(re.search(rf'\b{re.escape(k)}', t) for k in meat_keywords) or any(k in t for k in ['kalvfärs', 'fläskfilé', 'fläskytterfilé', 'biffar', 'kebab', 'stroganoff', 'slottstek', 'kålpudding', 'oxbringa', 'gulasch', 'enchilada', 'köttbull', 'kalvköttbull']):
             return "Kött"
 
         # 6. Sallad
