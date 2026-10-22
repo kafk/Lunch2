@@ -2227,6 +2227,11 @@
                 return 0;
             });
 
+            // Rendera platshållarkort direkt så att skärmen aldrig är tom under laddning
+            if (menuGrid.innerHTML.trim() === '' || forceRefresh) {
+                menuGrid.innerHTML = visibleUrls.map(u => cardHtml(u, null)).join('');
+            }
+
             // 1. Hämta menyerna från servern (delad cache). Vid "Uppdatera" skrapar servern om allt och sparar komplett cache.
             try {
                 const cacheRes = await fetch('/api/menus?lang=' + encodeURIComponent(currentLang) + (forceRefresh ? '&refresh=true' : ''));
@@ -2240,8 +2245,7 @@
                 }
             } catch (e) {}
 
-            // 2. Render all placeholder cards immediately för live-skrapning
-            menuGrid.innerHTML = visibleUrls.map(u => cardHtml(u, null)).join('');
+            // 2. Om servercachen inte svarade: fortsätt med individuell live-skrapning
 
             // Fetch each restaurant individually and update its card as it arrives
             await Promise.all(visibleUrls.map(async u => {
