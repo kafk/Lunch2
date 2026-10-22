@@ -1626,11 +1626,12 @@ def fetch_menu_via_gemini(url, reasons=None):
         'Format: en rad med veckodagens namn (Måndag, Tisdag ...) följt av en rätt per rad, tom rad mellan dagar. '
         'Ta med pris/inkluderat-rad sist om den finns. Hittar du ingen meny, svara exakt INGEN_MENY.'
     )
-    for model in ('gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'):
+    payload = {'contents': [{'parts': [{'text': prompt}]}], 'tools': [{'url_context': {}}]}
+    for model in ('gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite'):
         try:
             resp = requests.post(
                 f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
-                params={'key': key.strip()}, json=payload, timeout=7)
+                params={'key': key.strip()}, json=payload, timeout=8)
         except Exception as e:
             reasons.append(f'Gemini {model}: {type(e).__name__}')
             continue
@@ -1667,8 +1668,14 @@ def scrape_kvartersmenyn(url, name, session):
         rest_id = re.search(r'/rest/(\d+)', url)
         if rest_id:
             candidates.append(f'https://www.kvartersmenyn.se/index.php/rest/{rest_id.group(1)}')
-        elif m and 'ferrariskok' in m.group(1):
-            candidates.append('https://www.kvartersmenyn.se/index.php/rest/16447')
+        elif m:
+            sub = m.group(1).lower()
+            if 'ferrariskok' in sub:
+                candidates.append('https://www.kvartersmenyn.se/index.php/rest/16447')
+            elif 'arya' in sub:
+                candidates.append('https://www.kvartersmenyn.se/index.php/rest/15855')
+            elif 'saras' in sub:
+                candidates.append('https://www.kvartersmenyn.se/index.php/rest/16722')
         candidates.append(url)
 
         meny = None
@@ -2957,10 +2964,29 @@ def get_menus():
     urls = load_urls()
     enabled = [u for u in urls if u.get('enabled', True)]
 
+    # Hämta tidigare cache som fallback om enskilda sajter tillfälligt blockeras
+    cached_doc = get_cached_menus()
+    cached_map = {}
+    if cached_doc and isinstance(cached_doc.get('menus'), list):
+        for m in cached_doc['menus']:
+            if m.get('success') and m.get('menu') and not m.get('menu', '').startswith('Kunde inte'):
+                if m.get('name'):
+                    cached_map[m['name']] = m
+                if m.get('url'):
+                    cached_map[m['url']] = m
+
     def scrape_safe(url_data):
         try:
-            return scrape_url(url_data['url'], url_data['name'], lang=lang)
+            res = scrape_url(url_data['url'], url_data['name'], lang=lang)
+            if not res.get('success') or not res.get('menu') or res.get('menu', '').startswith('Kunde inte'):
+                fallback = cached_map.get(url_data['name']) or cached_map.get(url_data['url'])
+                if fallback:
+                    return dict(fallback)
+            return res
         except Exception as e:
+            fallback = cached_map.get(url_data['name']) or cached_map.get(url_data['url'])
+            if fallback:
+                return dict(fallback)
             return {
                 'name': url_data['name'],
                 'url': url_data['url'],
