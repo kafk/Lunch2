@@ -2514,11 +2514,15 @@
                 label = ''; 
             }
         });
+        const catPrefixStripRe = /^(?:[A-Z]\s*:\s*)?(Vegetariskt|Vegetarisk|Vego|Fisk|Kött|Streetfood|Pasta|Sallad|Burgare|Soppa|Kyckling|Meat|Fish|Vegetarian|Vegan|Salad|Burger|Soup)\s*:\s*/i;
         rows.forEach(r => {
             const pm = /^(.*\S)\s+(\d{2,3}[.:]-?)$/.exec(r.text);
             if (pm) { r.text = pm[1]; r.price = pm[2]; }
             if (!r.label) {
                 r.label = detectDishCategory(r.text);
+            }
+            if (r.label && catPrefixStripRe.test(r.text)) {
+                r.text = r.text.replace(catPrefixStripRe, '');
             }
         });
         return { rows, notes };
@@ -2765,10 +2769,11 @@
                 }
             }
         } else {
+            const catPrefixStripRe = /^(?:[A-Z]\s*:\s*)?(Vegetariskt|Vegetarisk|Vego|Fisk|Kött|Streetfood|Pasta|Sallad|Burgare|Soppa|Kyckling|Meat|Fish|Vegetarian|Vegan|Salad|Burger|Soup)\s*:\s*/i;
             const numberedItems = parseNumberedList(cleaned);
             if (numberedItems && numberedItems.length > 0) {
                 html = numberedItems.map(item => {
-                    let cleanText = item.text;
+                    let cleanText = item.text.replace(catPrefixStripRe, '');
                     if (currentLang === 'en') cleanText = translateCulinaryText(cleanText);
                     const cat = detectDishCategory(item.text);
                     return `
@@ -2781,8 +2786,9 @@
                 const lines = cleaned.split('\n').map(l => l.trim()).filter(l => l.length > 0);
                 html = lines.map(line => {
                     let cleanLine = line.replace(/^[❖•\-\*]\s*/, '');
-                    if (currentLang === 'en') cleanLine = translateCulinaryText(cleanLine);
                     const cat = detectDishCategory(cleanLine);
+                    cleanLine = cleanLine.replace(catPrefixStripRe, '');
+                    if (currentLang === 'en') cleanLine = translateCulinaryText(cleanLine);
                     return `
                         <div class="week-day-row">
                             <span class="week-dishes-text">${cat ? `<strong class="category-label">${cat}:</strong> ` : ''}${linkify(escapeHtml(cleanLine))}</span>

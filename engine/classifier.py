@@ -15,6 +15,7 @@ import os
 import re
 import json
 import sqlite3
+import time
 from typing import Dict, List, Optional, Tuple
 
 ALLOWED_CATEGORIES = [
@@ -254,8 +255,13 @@ class DishClassifier:
 
         return output
 
+    _circuit_breaker_until = 0
+
     def _call_gemini_classify(self, dishes: List[str]) -> Dict[str, str]:
         """Ask Gemini to categorize dishes."""
+        if time.time() < DishClassifier._circuit_breaker_until:
+            return {}
+
         load_local_env()
         api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
         if not api_key:
@@ -283,7 +289,6 @@ class DishClassifier:
         import requests
 
         models_to_try = [
-            "models/gemini-3.5-flash-lite",
             "models/gemini-3.8-flash",
             "models/gemini-flash-latest"
         ]
@@ -299,7 +304,11 @@ class DishClassifier:
         for model in models_to_try:
             url = f"https://generativelanguage.googleapis.com/v1beta/{model}:generateContent?key={api_key}"
             try:
-                res = requests.post(url, headers=headers, json=payload, timeout=20)
+                res = requests.post(url, headers=headers, json=payload, timeout=4)
+                if res.status_code == 429:
+                    # Rate limited - trip circuit breaker for 10 minutes so other scrapers don't hang
+                    DishClassifier._circuit_breaker_until = time.time() + 600
+                    break
                 if res.status_code == 200:
                     data = res.json()
                     cand = data.get("candidates", [])[0]["content"]["parts"][0]["text"]

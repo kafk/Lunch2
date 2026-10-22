@@ -1626,29 +1626,24 @@ def fetch_menu_via_gemini(url, reasons=None):
         'Format: en rad med veckodagens namn (Måndag, Tisdag ...) följt av en rätt per rad, tom rad mellan dagar. '
         'Ta med pris/inkluderat-rad sist om den finns. Hittar du ingen meny, svara exakt INGEN_MENY.'
     )
-    payload = {'contents': [{'parts': [{'text': prompt}]}], 'tools': [{'url_context': {}}]}
-    for model in ('gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite'):
-        text = None
-        for attempt in range(2):
-            try:
-                resp = requests.post(
-                    f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
-                    params={'key': key.strip()}, json=payload, timeout=30)
-            except Exception as e:
-                print(f'Gemini menu fetch warning ({model}): {e}')
-                reasons.append(f'Gemini {model}: {type(e).__name__}')
-                break
-            if resp.status_code in (429, 503) and attempt == 0:
-                time.sleep(3)  # tillf\u00e4lligt \u00f6verbelastad, f\u00f6rs\u00f6k en g\u00e5ng till
-                continue
-            if resp.status_code != 200:
-                reasons.append(f'Gemini {model}: HTTP {resp.status_code}')
-                break
-            try:
-                parts = resp.json()['candidates'][0]['content']['parts']
-                text = ''.join(p.get('text', '') for p in parts).strip()
-            except (KeyError, IndexError, ValueError):
-                reasons.append(f'Gemini {model}: tomt svar')
+    for model in ('gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'):
+        try:
+            resp = requests.post(
+                f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
+                params={'key': key.strip()}, json=payload, timeout=7)
+        except Exception as e:
+            reasons.append(f'Gemini {model}: {type(e).__name__}')
+            continue
+        if resp.status_code != 200:
+            reasons.append(f'Gemini {model}: HTTP {resp.status_code}')
+            continue
+        try:
+            parts = resp.json()['candidates'][0]['content']['parts']
+            text = ''.join(p.get('text', '') for p in parts).strip()
+        except (KeyError, IndexError, ValueError):
+            reasons.append(f'Gemini {model}: tomt svar')
+            continue
+        if text:
             break
         if text is None:
             continue
@@ -1667,19 +1662,20 @@ def scrape_kvartersmenyn(url, name, session):
     """Custom scraper för kvartersmenyn.se – veckomenyn ligger i div.meny med <strong>-dagrubriker."""
     try:
         # Subdom\u00e4nen blockeras ibland (403) fr\u00e5n serverns IP, s\u00e5 prova \u00e4ven huvuddom\u00e4nens rest-sida
-        candidates = [url]
+        candidates = []
         m = re.match(r'https?://([^.]+)\.kvartersmenyn\.se', url)
         rest_id = re.search(r'/rest/(\d+)', url)
         if rest_id:
             candidates.append(f'https://www.kvartersmenyn.se/index.php/rest/{rest_id.group(1)}')
         elif m and 'ferrariskok' in m.group(1):
             candidates.append('https://www.kvartersmenyn.se/index.php/rest/16447')
+        candidates.append(url)
 
         meny = None
         reasons = []
         for candidate in candidates:
             try:
-                response = session.get(candidate, timeout=10)
+                response = session.get(candidate, timeout=6)
             except requests.RequestException as e:
                 reasons.append(f'{candidate}: {type(e).__name__}')
                 continue
@@ -1745,7 +1741,7 @@ def scrape_nordic_taste_lab(url, name, session):
         for week in candidate_weeks:
             test_url = f"https://www.compass-group.se/contentassets/ce576758e5e44ad59e25f885b130d4ca/svenska-v{week}.png"
             try:
-                res = session.head(test_url, timeout=5)
+                res = session.head(test_url, timeout=3)
                 if res.status_code == 200:
                     image_url = test_url
                     active_week = week
@@ -1762,7 +1758,7 @@ def scrape_nordic_taste_lab(url, name, session):
         
         if gemini_key:
             try:
-                img_res = session.get(image_url, timeout=15)
+                img_res = session.get(image_url, timeout=7)
                 img_b64 = base64.b64encode(img_res.content).decode('utf-8')
                 
                 payload = {
@@ -1779,39 +1775,11 @@ def scrape_nordic_taste_lab(url, name, session):
                     }]
                 }
                 
-                # 1. Fråga Google API efter tillgängliga modeller för nyckeln dynamiskt
-                candidate_models = []
-                try:
-                    models_res = session.get(f"https://generativelanguage.googleapis.com/v1beta/models?key={gemini_key.strip()}", timeout=8)
-                    if models_res.status_code == 200:
-                        m_data = models_res.json()
-                        for m in m_data.get('models', []):
-                            m_name = m.get('name', '').replace('models/', '')
-                            if 'generateContent' in m.get('supportedGenerationMethods', []):
-                                if 'gemini' in m_name:
-                                    candidate_models.append(m_name)
-                except Exception as list_err:
-                    print(f"List models error: {list_err}")
-
-                # Standardfallback om models-list inte svarade
-                if not candidate_models:
-                    candidate_models = [
-                        'gemini-2.0-flash',
-                        'gemini-2.0-flash-exp',
-                        'gemini-1.5-flash-latest',
-                        'gemini-1.5-flash-001',
-                        'gemini-1.5-flash-002',
-                        'gemini-1.5-flash',
-                        'gemini-2.5-flash'
-                    ]
-
-                # Prioritera flash-modeller (snabbast)
-                candidate_models.sort(key=lambda x: (0 if 'flash' in x.lower() else 1))
-                
-                for model in candidate_models[:6]:
+                candidate_models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+                for model in candidate_models:
                     try:
                         gemini_endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={gemini_key.strip()}"
-                        resp = session.post(gemini_endpoint, json=payload, headers={'Content-Type': 'application/json'}, timeout=25)
+                        resp = session.post(gemini_endpoint, json=payload, headers={'Content-Type': 'application/json'}, timeout=8)
                         if resp.status_code == 200:
                             data = resp.json()
                             candidates = data.get('candidates', [])
@@ -2045,6 +2013,14 @@ def _scrape_url_raw(url, name, lang='sv'):
             if result:
                 return result
 
+        # SPECIAL: Saras Husmanskost / Saras Kolgruvegatan
+        if 'sarashusmanskost' in url.lower() or 'kolgruvegatan' in url.lower() or ('saras' in name.lower() and 'husmanskost' in name.lower()):
+            kvarters_url = 'https://www.kvartersmenyn.se/index.php/rest/16722'
+            result = scrape_kvartersmenyn(kvarters_url, name, session)
+            if result and result.get('success'):
+                result['url'] = url
+                return result
+
         # Kolla om URL:en är en direkt PDF-länk
         if url.lower().endswith('.pdf'):
             menu_text = format_menu_text(scrape_pdf(url, headers))
@@ -2057,7 +2033,7 @@ def _scrape_url_raw(url, name, lang='sv'):
                 'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
             }
 
-        response = session.get(url, timeout=10)
+        response = session.get(url, timeout=7)
         response.raise_for_status()
 
         # Försök detektera encoding
@@ -2094,7 +2070,7 @@ def _scrape_url_raw(url, name, lang='sv'):
             menu_iframe = find_menu_iframe(soup, url)
             if menu_iframe:
                 try:
-                    iframe_response = session.get(menu_iframe['url'], timeout=10)
+                    iframe_response = session.get(menu_iframe['url'], timeout=6)
                     iframe_response.raise_for_status()
                     if iframe_response.encoding == 'ISO-8859-1':
                         iframe_response.encoding = iframe_response.apparent_encoding
@@ -2119,7 +2095,7 @@ def _scrape_url_raw(url, name, lang='sv'):
         lunch_page_url = find_lunch_page_link(soup, url)
         if lunch_page_url:
             try:
-                lunch_response = session.get(lunch_page_url, timeout=10)
+                lunch_response = session.get(lunch_page_url, timeout=6)
                 lunch_response.raise_for_status()
                 if lunch_response.encoding == 'ISO-8859-1':
                     lunch_response.encoding = lunch_response.apparent_encoding
@@ -2994,7 +2970,8 @@ def get_menus():
             }
 
     # map behåller ordningen så att korten ligger kvar i samma sekvens som urls
-    with ThreadPoolExecutor(max_workers=8) as pool:
+    workers = min(32, max(len(enabled), 16))
+    with ThreadPoolExecutor(max_workers=workers) as pool:
         menus = list(pool.map(scrape_safe, enabled))
 
     # Save to cache
