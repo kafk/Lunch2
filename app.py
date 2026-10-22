@@ -1859,7 +1859,7 @@ def categorize_menu_text(text, restaurant_name=None):
     if not text or not CLASSIFIER_AVAILABLE or not classifier:
         return text
 
-    if restaurant_name and any(x in restaurant_name.lower() for x in ['tsukihana', 'albatross']):
+    if restaurant_name and any(x in restaurant_name.lower() for x in ['tsukihana', 'albatross', 'nordic']):
         return text
 
     lines = text.split('\n')
