@@ -2958,10 +2958,14 @@ def get_menus():
     lang = request.args.get('lang', 'sv').lower()
 
     def postprocess(menu_list):
-        """Applicera svarstids-transformationer och språkanpassning på en menylist."""
+        """Applicera snabb språkanpassning och formatering utan att göra om klassificeringen."""
         for menu in menu_list:
             if menu.get('success') and menu.get('menu'):
-                enrich_menu_languages(menu, lang=lang)
+                if lang == 'en' and menu.get('menu_en'):
+                    menu['menu'] = menu['menu_en']
+                elif menu.get('menu_sv'):
+                    menu['menu'] = menu['menu_sv']
+                menu['lang'] = lang
                 menu['menu'] = strip_menu_footers(menu['menu'])
                 if today_only:
                     menu['menu'] = extract_today_section(menu['menu'])
