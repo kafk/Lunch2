@@ -1648,6 +1648,9 @@ def fetch_menu_via_gemini(url, reasons=None):
         # Kräv minst två veckodagar så att ett förklarande/felaktigt svar inte publiceras som meny
         days = sum(1 for d in ('Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag') if d in text)
         if 'INGEN_MENY' not in text and days >= 2:
+            # Modellen returnerar ibland bokstavliga "\n" och tomrader mellan varje rätt
+            text = re.sub(r'\n{3,}', '\n\n', text.replace('\\n', '\n'))
+            text = re.sub(r'(?<=\S)\n\n(?=[A-E][:.])', '\n', text)
             return text
         reasons.append(f'Gemini {model}: ingen meny i svaret')
     return ''
@@ -2110,6 +2113,27 @@ def _scrape_url_raw(url, name, lang='sv'):
             'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
         }
     except requests.RequestException as e:
+        status = getattr(getattr(e, 'response', None), 'status_code', None)
+        if status == 403:
+            # Bot-skydd (t.ex. Cloudflare) blockerar oss, men Googles servrar kan ofta hämta sidan
+            reasons = ['direkthämtning: HTTP 403']
+            text = fetch_menu_via_gemini(url, reasons)
+            if text:
+                return {
+                    'name': name,
+                    'url': url,
+                    'menu': text,
+                    'success': True,
+                    'source': 'Gemini (url_context)',
+                    'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+                }
+            return {
+                'name': name,
+                'url': url,
+                'menu': 'Kunde inte hämta menyn. ' + '; '.join(reasons),
+                'success': False,
+                'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+            }
         return {
             'name': name,
             'url': url,
