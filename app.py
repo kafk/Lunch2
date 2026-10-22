@@ -47,6 +47,13 @@ except ImportError:
     def translate_culinary_text(t): return t or ''
     def detect_language(t): return 'sv'
 
+try:
+    from engine.classifier import classifier
+    CLASSIFIER_AVAILABLE = True
+except ImportError:
+    CLASSIFIER_AVAILABLE = False
+    classifier = None
+
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
 
@@ -1844,41 +1851,107 @@ def scrape_nordic_taste_lab(url, name, session):
         return None
 
 
+def categorize_menu_text(text, restaurant_name=None):
+    """
+    Scannar menytexten och säkerställer att rätter får en kategori (Kött:, Fisk:, etc.)
+    om den saknar det, med hjälp av DishClassifier (SQLite-cache + Gemini LLM fallback).
+    """
+    if not text or not CLASSIFIER_AVAILABLE or not classifier:
+        return text
+
+    if restaurant_name and any(x in restaurant_name.lower() for x in ['tsukihana', 'albatross']):
+        return text
+
+    lines = text.split('\n')
+    dishes_to_classify = []
+    line_indices_to_update = []
+
+    cat_prefix_re = re.compile(
+        r'^(?:[A-Z]\s*:\s*)?(vegetariskt|vegetarisk|vego|vegan|vegansk|fisk|kött|streetfood|pasta|sallad|burgare|soppa|kyckling|meat|fish|vegetarian|salad|burger|soup)\s*:\s*',
+        re.I
+    )
+    weekday_re = re.compile(
+        r'^(måndag|tisdag|onsdag|torsdag|fredag|lördag|söndag|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b',
+        re.I
+    )
+    footer_re = re.compile(
+        r'^\s*(inkl\.?|serveras|öppet|lunchbuffé|välkommen|dagens lunch serveras|med reservation|allerg|pris|\d{2,4}\s*(?:kr|:-))\b',
+        re.I
+    )
+
+    for idx, raw_line in enumerate(lines):
+        line = raw_line.strip()
+        if not line or len(line) < 4:
+            continue
+        if weekday_re.match(line):
+            continue
+        if cat_prefix_re.match(line):
+            continue
+        if footer_re.search(line):
+            continue
+        if re.match(r'^[–\-=_*]{3,}$', line):
+            continue
+
+        clean_dish = re.sub(r'^(?:[A-Z]\s*:\s*|\d+[\.)]\s*|[•\-*❖]\s*)', '', line).strip()
+        if len(clean_dish) >= 4:
+            dishes_to_classify.append(clean_dish)
+            line_indices_to_update.append((idx, line, clean_dish))
+
+    if dishes_to_classify:
+        try:
+            classifications = classifier.classify_batch(dishes_to_classify)
+            for idx, orig_line, clean_dish in line_indices_to_update:
+                cat = classifications.get(clean_dish)
+                if cat and cat != "Övrigt":
+                    prefix_match = re.match(r'^([A-Z]\s*:\s*|\d+[\.)]\s*)', orig_line)
+                    if prefix_match:
+                        prefix = prefix_match.group(1).strip()
+                        lines[idx] = f"{prefix} {cat}: {clean_dish}"
+                    else:
+                        lines[idx] = f"{cat}: {clean_dish}"
+        except Exception as e:
+            print(f"categorize_menu_text error: {e}")
+
+    return '\n'.join(lines)
+
+
 def enrich_menu_languages(result, lang='sv'):
-    """Fördela ut och berika skrapad meny med språkinformation (sv/en)."""
+    """Fördela ut och berika skrapad meny med språkinformation (sv/en) samt kategorier."""
     if not result or not isinstance(result, dict):
         return result
     menu_text = result.get('menu', '')
     if result.get('success') and menu_text:
+        r_name = result.get('name', '')
         # Om scrapern redan tillhandahållit separerad menu_sv och menu_en (t.ex. Zäta)
         if result.get('menu_sv') and result.get('menu_en'):
+            result['menu_sv'] = categorize_menu_text(result['menu_sv'], r_name)
             result['lang'] = lang
             result['menu'] = result['menu_en'] if lang == 'en' else result['menu_sv']
             return result
         # Om texten innehåller tvåspråkiga rader (Vego Sv / Vego En etc.)
         if re.search(r'vego\s+(?:sv|en)', menu_text, re.I):
-            result['menu_sv'] = filter_zata_menu(menu_text, 'sv')
+            result['menu_sv'] = categorize_menu_text(filter_zata_menu(menu_text, 'sv'), r_name)
             result['menu_en'] = filter_zata_menu(menu_text, 'en')
             result['lang'] = lang
             result['menu'] = result['menu_en'] if lang == 'en' else result['menu_sv']
             return result
         # Om det är Grand Central (GC) / Spirafood
-        r_name = result.get('name', '')
         r_url = result.get('url', '')
         if 'spirafood' in r_url.lower() or 'grand-central' in r_url.lower() or re.search(r'\b(gc|grand\s*central)\b', r_name, re.I) or re.search(r'\b(gc|grand\s*central)\b', r_url, re.I):
-            result['menu_sv'] = filter_gc_menu(menu_text, 'sv')
+            result['menu_sv'] = categorize_menu_text(filter_gc_menu(menu_text, 'sv'), r_name)
             result['menu_en'] = filter_gc_menu(menu_text, 'en')
             result['lang'] = lang
             result['menu'] = result['menu_en'] if lang == 'en' else result['menu_sv']
             return result
         det = detect_language(menu_text)
         result['detected_lang'] = det
+        categorized_sv = categorize_menu_text(menu_text, r_name)
         if det == 'sv':
-            result['menu_sv'] = menu_text
-            result['menu_en'] = translate_culinary_text(menu_text)
+            result['menu_sv'] = categorized_sv
+            result['menu_en'] = translate_culinary_text(categorized_sv)
         else:
+            result['menu_sv'] = categorized_sv
             result['menu_en'] = menu_text
-            result['menu_sv'] = menu_text
         result['lang'] = lang
         if lang == 'en':
             result['menu'] = result['menu_en']

@@ -177,9 +177,10 @@ class DishClassifier:
             'lamm', 'färs', 'köttfärs', 'köttbullar', 'pannbiff', 'wallenbergare', 'schnitzel',
             'korv', 'korvstroganoff', 'stroganoff', 'falukorv', 'isterband', 'chorizo', 'bratwurst',
             'skinka', 'raggmunk', 'pyttipanna', 'pytt i panna', 'kebab', 'gyros', 'kalops',
-            'rostbiff', 'revben', 'revbensspjäll'
+            'rostbiff', 'revben', 'revbensspjäll', 'slottstek', 'stek', 'oxstek', 'kassler',
+            'köttfärslimpa', 'kåldolmar', 'fläsklägg', 'viltgryta', 'vilt'
         ]
-        if any(re.search(rf'\b{re.escape(k)}', t) for k in meat_keywords) or any(k in t for k in ['kalvfärs', 'fläskfilé', 'biffar', 'kebab', 'stroganoff']):
+        if any(re.search(rf'\b{re.escape(k)}', t) for k in meat_keywords) or any(k in t for k in ['kalvfärs', 'fläskfilé', 'biffar', 'kebab', 'stroganoff', 'slottstek']):
             return "Kött"
 
         # 6. Sallad
@@ -280,7 +281,11 @@ class DishClassifier:
 
         import requests
 
-        models_to_try = ["models/gemini-2.5-flash", "models/gemini-flash-latest", "models/gemini-1.5-flash"]
+        models_to_try = [
+            "models/gemini-3.5-flash-lite",
+            "models/gemini-3.8-flash",
+            "models/gemini-flash-latest"
+        ]
         headers = {"Content-Type": "application/json"}
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],

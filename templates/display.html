@@ -2430,10 +2430,12 @@
 
     function detectDishCategory(text) {
         if (!text) return '';
-        const t = text.toLowerCase();
+        // Rensa bort vanliga prefix som "A:", "B:", "1.", "- "
+        const clean = text.replace(/^(?:[A-Z]\s*:\s*|\d+[\.)]\s*|[•\-*❖]\s*)/, '').trim();
+        const t = clean.toLowerCase();
         
         // 1. Kyckling / Fågel (egen kategori)
-        if (/\b(kyckling|kycklingfilé|kycklingbiff|kycklingspett|kycklinggryta|höna|kalkon|anka|fågel|chicken)\b/i.test(t) || /kyckling/i.test(t)) {
+        if (/\b(kyckling|kycklingfilé|kycklingbiff|kycklingspett|kycklinggryta|höna|kalkon|anka|fågel|chicken|coq au vin)\b/i.test(t) || /kyckling/i.test(t)) {
             return currentLang === 'en' ? 'Chicken' : 'Kyckling';
         }
 
@@ -2443,7 +2445,7 @@
         }
 
         // 3. Fisk & Skaldjur
-        if (/\b(fisk|lax|torsk|sej|spätta|rödspätta|kolja|abborre|gös|sill|strömming|tonfisk|hälleflundra|makrill|räkor|räka|kräftor|musslor|skaldjur|fiskgratäng|fisksoppa|fiskfilé|fiskbiff|fiskburgare|panerad fisk|havets|havskatt|fiskcurry|fish)\b/i.test(t) || /(lax|torsk|räk)/i.test(t)) {
+        if (/\b(fisk|lax|torsk|sej|spätta|rödspätta|kolja|kummel|abborre|gös|sill|strömming|tonfisk|hälleflundra|makrill|räkor|räka|kräftor|musslor|skaldjur|fiskgratäng|fisksoppa|fiskfilé|fiskbiff|fiskburgare|panerad fisk|havets|havskatt|fiskcurry|fish)\b/i.test(t) || /(lax|torsk|räk|makrill|kummel|sej|strömming)/i.test(t)) {
             return currentLang === 'en' ? 'Fish' : 'Fisk';
         }
 
@@ -2453,8 +2455,8 @@
             return currentLang === 'en' ? 'Burger' : 'Burgare';
         }
 
-        // 5. Kött (Nöt, Fläsk, Lamm, Färs, Korv m.m.)
-        if (/\b(kött|biff|biffar|kalvfärs|oxfilé|ryggbiff|entrecôte|entrecote|högrev|kalv|fläsk|fläskfilé|fläskkarré|kotlett|sidfläsk|karré|bacon|lamm|färs|köttfärs|köttbullar|pannbiff|wallenbergare|schnitzel|korv|korvstroganoff|stroganoff|falukorv|isterband|chorizo|bratwurst|skinka|raggmunk|pyttipanna|pytt i panna|kebab|gyros|kalops|rostbiff|revben|revbensspjäll|meat|beef|pork)\b/i.test(t) || /(kalvfärs|fläskfilé|biffar|kebab|stroganoff)/i.test(t)) {
+        // 5. Kött (Nöt, Fläsk, Lamm, Färs, Korv, Stek m.m.)
+        if (/\b(kött|biff|biffar|oxfärs|oxfärsbiff|kalvfärs|oxfilé|ryggbiff|entrecôte|entrecote|högrev|kalv|fläsk|fläskfilé|fläskkarré|kotlett|sidfläsk|karré|bacon|lamm|färs|köttfärs|köttbullar|pannbiff|wallenbergare|schnitzel|fläskschnitzel|korv|korvstroganoff|stroganoff|falukorv|isterband|chorizo|bratwurst|skinka|raggmunk|pyttipanna|pytt i panna|kebab|gyros|kalops|rostbiff|revben|revbensspjäll|slottstek|oxstek|stek|kassler|kåldolmar|fläsklägg|pulled pork|meat|beef|pork)\b/i.test(t) || /(kalvfärs|fläskfilé|biffar|kebab|stroganoff|slottstek|oxfärs|kåldolmar|pyttipanna|fläskschnitzel|pulled pork)/i.test(t)) {
             return currentLang === 'en' ? 'Meat' : 'Kött';
         }
 
@@ -2464,12 +2466,12 @@
         }
 
         // 7. Soppa
-        if (/\b(soppa|ärtsoppa|gulaschsoppa|linssoppa|tomatsoppa|soup)\b/i.test(t)) {
+        if (/\b(soppa|ärtsoppa|gulaschsoppa|linssoppa|tomatsoppa|soup)\b/i.test(t) || /ärtsoppa/i.test(t)) {
             return currentLang === 'en' ? 'Soup' : 'Soppa';
         }
 
         // 8. Vego & Vegan
-        if (/\b(vegetarisk|vegetariskt|vego|vegan|vegansk|halloumi|falafel|tofu|quorn|soyafärs|linser|kikärtor|bönbiff|vegetarian)\b/i.test(t)) {
+        if (/\b(vegetarisk|vegetariskt|vego|vegan|vegansk|halloumi|falafel|tofu|quorn|soyafärs|linser|kikärtor|bönbiff|vegetarian)\b/i.test(t) || /halloumi/i.test(t)) {
             if (/vegan|vegansk/i.test(t)) return 'Vegan';
             return currentLang === 'en' ? 'Vegetarian' : 'Vegetariskt';
         }
@@ -2487,8 +2489,8 @@
             if (/^\d{1,2}\/\d{1,2}$/.test(l)) return;
             if (ROW_CATEGORY_RE.test(l)) { label = l.replace(/:$/, ''); return; }
             
-            // Kolla om raden börjar med kategori direkt: t.ex. "Fisk: Stekt lax..."
-            const inlineCatMatch = /^(Vegetariskt|Vegetarisk|Vego|Fisk|Kött|Streetfood|Pasta|Sallad|Burgare|Soppa|Meat|Fish|Vegetarian|Vegan|Salad|Burger|Soup)\s*:\s*(.+)$/i.exec(l);
+            // Kolla om raden börjar med kategori direkt: t.ex. "Fisk: Stekt lax..." eller "A: Kött: Oxfärsbiff..."
+            const inlineCatMatch = /^(?:[A-Z]\s*:\s*)?(Vegetariskt|Vegetarisk|Vego|Fisk|Kött|Streetfood|Pasta|Sallad|Burgare|Soppa|Kyckling|Meat|Fish|Vegetarian|Vegan|Salad|Burger|Soup)\s*:\s*(.+)$/i.exec(l);
             if (inlineCatMatch) {
                 rows.push({ label: inlineCatMatch[1], text: inlineCatMatch[2] });
                 label = '';
@@ -2500,7 +2502,8 @@
             if (cont) prev.text += ' ' + l;
             else { 
                 const detectedCat = label || detectDishCategory(l);
-                rows.push({ label: detectedCat, text: l }); 
+                const cleanedText = l.replace(/^[A-Z]\s*:\s*/, '');
+                rows.push({ label: detectedCat, text: cleanedText }); 
                 label = ''; 
             }
         });
@@ -2554,12 +2557,17 @@
                 return `<div style="margin-top: 3px; display: flex; flex-direction: column; gap: 6px;">` + secs.map(s => `
                     <div style="display: flex; flex-direction: column; gap: 3px;">
                         ${s.heading ? `<strong style="color: var(--ink-black);">${escapeHtml(headingCase(s.heading))}</strong>` : ''}
-                        ${s.dishes.map(d => `
+                        ${s.dishes.map(d => {
+                            const dTitle = isNordic ? d.title : tr(d.title);
+                            const dText = isNordic ? d.text : tr(d.text);
+                            const cat = (isNordic ? (detectDishCategory(d.title) || detectDishCategory(d.text)) : '');
+                            return `
                             <div>
-                                ${d.title ? `<strong style="font-weight: 600;">${linkify(escapeHtml(isNordic ? d.title : tr(d.title)))}</strong>` : ''}
-                                ${d.text ? `<div class="week-dishes-text">${linkify(escapeHtml(tr(d.text)))}</div>` : ''}
-                            </div>
-                        `).join('')}
+                                ${cat ? `<strong class="category-label">${escapeHtml(cat)}:</strong> ` : ''}
+                                ${d.title ? `<strong style="font-weight: 600;">${linkify(escapeHtml(dTitle))}</strong>` : ''}
+                                ${d.text ? `<div class="week-dishes-text">${linkify(escapeHtml(dText))}</div>` : ''}
+                            </div>`;
+                        }).join('')}
                     </div>
                 `).join('') + `</div>`;
             }
