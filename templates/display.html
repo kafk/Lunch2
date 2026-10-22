@@ -581,6 +581,14 @@
     .lab-card.lab-failed {
         border-color: #fca5a5;
     }
+    .lab-card.is-favorite {
+        border-color: #f1b0a8;
+        box-shadow: 0 2px 10px rgba(194, 56, 41, 0.08);
+    }
+    .lab-card.is-favorite:hover {
+        border-color: #e09489;
+        box-shadow: 0 4px 14px rgba(194, 56, 41, 0.14);
+    }
 
     .spin {
         width: 18px;
@@ -1356,28 +1364,26 @@
             }
             event.preventDefault();
         }
-        if (favorites.includes(name)) {
+        const wasFav = favorites.includes(name);
+        if (wasFav) {
             favorites = favorites.filter(n => n !== name);
         } else {
-            favorites.push(name);
+            // Senast markerad favorit läggs först så den placeras överst bland korten
+            favorites = [name, ...favorites.filter(n => n !== name)];
         }
         localStorage.setItem('lunch_favorites', JSON.stringify(favorites));
         updateFavoritesBadge();
 
-        if (onlyFavorites) {
-            renderViews();
-        } else {
-            document.querySelectorAll('.fav-heart-btn').forEach(btn => {
-                if (btn.getAttribute('data-name') === name) {
-                    const isFav = favorites.includes(name);
-                    btn.classList.toggle('is-fav', isFav);
-                    const svg = btn.querySelector('svg');
-                    if (svg) svg.setAttribute('fill', isFav ? '#c23829' : 'none');
-                    const title = isFav ? (currentLang === 'en' ? 'Remove favorite' : 'Ta bort favorit') : (currentLang === 'en' ? 'Add favorite' : 'Lägg till som favorit');
-                    btn.setAttribute('title', title);
-                    btn.setAttribute('aria-label', title);
-                }
-            });
+        // Rendera om vyerna direkt så att favoriten placeras överst bland korten
+        renderViews();
+
+        // Mjuk scroll till kortet om det precis markerats som favorit
+        if (!wasFav) {
+            const cardId = 'disp-card-' + escapeHtml(name).replace(/\s/g, '_');
+            const targetCard = document.getElementById(cardId);
+            if (targetCard) {
+                targetCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
         }
     }
 
@@ -1945,6 +1951,17 @@
             if (localPrefs[urlEntry.name] !== undefined) return localPrefs[urlEntry.name];
             return true;
         });
+
+        // Placera favoriter överst bland korten, med den senast tillagda favoriten först
+        visibleUrls.sort((a, b) => {
+            const favA = isFavorite(a.name);
+            const favB = isFavorite(b.name);
+            if (favA && !favB) return -1;
+            if (!favA && favB) return 1;
+            if (favA && favB) return favorites.indexOf(a.name) - favorites.indexOf(b.name);
+            return 0;
+        });
+
         const menusByName = new Map(allMenus.map(menu => [menu.name, menu]));
         return visibleUrls.map(urlEntry => menusByName.get(urlEntry.name)).filter(Boolean);
     }
@@ -2128,7 +2145,7 @@
         const dayBadge = displayView === 'today' ? `<span class="lab-card-day-badge">${escapeHtml(todayDayName)}</span>` : '';
 
         if (!menu) return `
-            <div class="lab-card lab-testing" id="disp-card-${escapeHtml(u.name).replace(/\s/g,'_')}">
+            <div class="lab-card lab-testing${isFav ? ' is-favorite' : ''}" id="disp-card-${escapeHtml(u.name).replace(/\s/g,'_')}">
                 <div class="lab-card-header">
                     <div class="lab-card-title-group">
                         <div class="lab-card-name">${escapeHtml(u.name)}</div>
@@ -2150,7 +2167,7 @@
             activeText = filterGCText(activeText, currentLang);
         }
         return `
-            <div class="lab-card ${menu.success ? 'lab-success' : 'lab-failed'}" id="disp-card-${escapeHtml(u.name).replace(/\s/g,'_')}">
+            <div class="lab-card ${menu.success ? 'lab-success' : 'lab-failed'}${isFav ? ' is-favorite' : ''}" id="disp-card-${escapeHtml(u.name).replace(/\s/g,'_')}">
                 <div class="lab-card-header">
                     <div class="lab-card-title-group" data-name="${escapeHtml(menu.name)}" onclick="openRestaurantModalByName(this.getAttribute('data-name'), event)">
                         <div class="lab-card-name">${escapeHtml(menu.name)}</div>
@@ -2190,6 +2207,14 @@
                 if (u.enabled === false) return false;
                 const pref = localPrefs[u.name];
                 return pref !== undefined ? pref : true;
+            });
+            visibleUrls.sort((a, b) => {
+                const favA = isFavorite(a.name);
+                const favB = isFavorite(b.name);
+                if (favA && !favB) return -1;
+                if (!favA && favB) return 1;
+                if (favA && favB) return favorites.indexOf(a.name) - favorites.indexOf(b.name);
+                return 0;
             });
 
             // 1. Hämta menyerna från servern (delad cache). Vid "Uppdatera" skrapar servern om allt och sparar komplett cache.

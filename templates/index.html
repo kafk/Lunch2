@@ -1415,12 +1415,24 @@
 
     function renderCards(menus) {
         const localPrefs = JSON.parse(localStorage.getItem('restaurant_user_preferences') || '{}');
+        const favorites = JSON.parse(localStorage.getItem('lunch_favorites') || '[]');
         const visibleMenus = menus.filter(menu => {
             const urlObj = cachedUrls.find(u => u.name === menu.name);
             if (urlObj && urlObj.enabled === false) return false;
             const pref = localPrefs[menu.name];
             return pref !== false; // If explicitly false, hide. Otherwise show.
         });
+
+        if (favorites.length > 0) {
+            visibleMenus.sort((a, b) => {
+                const favA = favorites.includes(a.name);
+                const favB = favorites.includes(b.name);
+                if (favA && !favB) return -1;
+                if (!favA && favB) return 1;
+                if (favA && favB) return favorites.indexOf(a.name) - favorites.indexOf(b.name);
+                return 0;
+            });
+        }
 
         if (visibleMenus.length === 0) {
             menuContainer.innerHTML = '<div class="info-msg" style="text-align:center;padding:40px;color:#6b7280;">Inga restauranger valda eller tillgängliga.</div>';
@@ -1545,6 +1557,12 @@
         renderCards(cachedMenus);
         updateStats(cachedMenus, cachedUrls, lastUpdatedAt);
     }
+
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'lunch_favorites') {
+            if (cachedMenus.length) renderCards(cachedMenus);
+        }
+    });
 
     applyLanguageUI();
     loadMenus();
