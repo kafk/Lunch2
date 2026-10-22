@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import json
 import os
 import re
+import time
 import hashlib
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -1619,19 +1620,30 @@ def fetch_menu_via_gemini(url, reasons=None):
         'Ta med pris/inkluderat-rad sist om den finns. Hittar du ingen meny, svara exakt INGEN_MENY.'
     )
     payload = {'contents': [{'parts': [{'text': prompt}]}], 'tools': [{'url_context': {}}]}
-    for model in ('gemini-3.8-flash', 'gemini-flash-latest'):
-        try:
-            resp = requests.post(
-                f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
-                params={'key': key.strip()}, json=payload, timeout=45)
+    for model in ('gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite'):
+        text = None
+        for attempt in range(2):
+            try:
+                resp = requests.post(
+                    f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
+                    params={'key': key.strip()}, json=payload, timeout=30)
+            except Exception as e:
+                print(f'Gemini menu fetch warning ({model}): {e}')
+                reasons.append(f'Gemini {model}: {type(e).__name__}')
+                break
+            if resp.status_code in (429, 503) and attempt == 0:
+                time.sleep(3)  # tillf\u00e4lligt \u00f6verbelastad, f\u00f6rs\u00f6k en g\u00e5ng till
+                continue
             if resp.status_code != 200:
                 reasons.append(f'Gemini {model}: HTTP {resp.status_code}')
-                continue
-            parts = resp.json()['candidates'][0]['content']['parts']
-            text = ''.join(p.get('text', '') for p in parts).strip()
-        except Exception as e:
-            print(f'Gemini menu fetch warning ({model}): {e}')
-            reasons.append(f'Gemini {model}: {type(e).__name__}')
+                break
+            try:
+                parts = resp.json()['candidates'][0]['content']['parts']
+                text = ''.join(p.get('text', '') for p in parts).strip()
+            except (KeyError, IndexError, ValueError):
+                reasons.append(f'Gemini {model}: tomt svar')
+            break
+        if text is None:
             continue
         # Kräv minst två veckodagar så att ett förklarande/felaktigt svar inte publiceras som meny
         days = sum(1 for d in ('Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag') if d in text)
