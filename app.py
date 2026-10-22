@@ -1606,6 +1606,39 @@ def scrape_tsukihana(url, name, session):
     return None
 
 
+def scrape_kvartersmenyn(url, name, session):
+    """Custom scraper för kvartersmenyn.se – veckomenyn ligger i div.meny med <strong>-dagrubriker."""
+    try:
+        response = session.get(url, timeout=10)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.content, 'lxml')
+        meny = soup.select_one('div.meny')
+        if not meny:
+            return None
+
+        # Dolda <i>-taggar är allergenkoder/vattenstämplar, inte menytext
+        for hidden in meny.find_all('i'):
+            hidden.decompose()
+        for br in meny.find_all('br'):
+            br.replace_with('\n')
+
+        lines = [re.sub(r'\s+', ' ', l).strip() for l in meny.get_text().split('\n')]
+        text = re.sub(r'\n{3,}', '\n\n', '\n'.join(lines)).strip()
+        if not text:
+            return None
+
+        return {
+            'name': name,
+            'url': url,
+            'menu': text,
+            'success': True,
+            'source': 'HTML (Kvartersmenyn)',
+            'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+        }
+    except Exception:
+        return None
+
+
 def scrape_nordic_taste_lab(url, name, session):
     """Custom scraper för Nordic Taste Lab (Compass Group).
     
@@ -1815,6 +1848,12 @@ def _scrape_url_raw(url, name, lang='sv'):
         # SPECIAL: Nordic Taste Lab – Compass Group bildmeny med veckonummer-probing & OCR
         if 'nordic-taste-lab' in url.lower() or 'ce576758e5e44ad59e25f885b130d4ca' in url.lower():
             result = scrape_nordic_taste_lab(url, name, session)
+            if result:
+                return result
+
+        # SPECIAL: Kvartersmenyn.se-restauranger
+        if 'kvartersmenyn.se' in url.lower():
+            result = scrape_kvartersmenyn(url, name, session)
             if result:
                 return result
 
