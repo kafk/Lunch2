@@ -427,17 +427,23 @@
         box-sizing: border-box;
     }
 
+    .fav-filter-btn:focus,
+    .fav-filter-btn:focus-visible {
+        outline: none;
+        box-shadow: var(--shadow-subtle);
+    }
+
     .fav-filter-btn:hover {
         border-color: #b8ac95;
-        color: #c23829;
+        color: var(--ink-black);
     }
 
     .fav-filter-btn.active {
-        background: #fdf2f2;
-        color: #c23829;
-        border-color: #f1b0a8;
-        font-weight: 700;
-        box-shadow: 0 2px 8px rgba(194, 56, 41, 0.15);
+        background: #ffffff;
+        color: var(--ink-black);
+        border-color: #b8ac95;
+        font-weight: 600;
+        box-shadow: var(--shadow-subtle);
     }
 
     .fav-filter-btn.active svg {
