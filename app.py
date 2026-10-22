@@ -1606,6 +1606,36 @@ def scrape_tsukihana(url, name, session):
     return None
 
 
+def fetch_menu_via_gemini(url):
+    """Låt Gemini hämta sidan från Googles servrar (url_context) när vår egen IP blockeras. Returnerar menytext eller ''."""
+    key = os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY')
+    if not key:
+        return ''
+    prompt = (
+        f'Hämta sidan {url} och kopiera veckans lunchmeny ORDAGRANT, utan att hitta på eller sammanfatta. '
+        'Format: en rad med veckodagens namn (Måndag, Tisdag ...) följt av en rätt per rad, tom rad mellan dagar. '
+        'Ta med pris/inkluderat-rad sist om den finns. Hittar du ingen meny, svara exakt INGEN_MENY.'
+    )
+    payload = {'contents': [{'parts': [{'text': prompt}]}], 'tools': [{'url_context': {}}]}
+    for model in ('gemini-3.8-flash', 'gemini-flash-latest'):
+        try:
+            resp = requests.post(
+                f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
+                params={'key': key.strip()}, json=payload, timeout=45)
+            if resp.status_code != 200:
+                continue
+            parts = resp.json()['candidates'][0]['content']['parts']
+            text = ''.join(p.get('text', '') for p in parts).strip()
+        except Exception as e:
+            print(f'Gemini menu fetch warning ({model}): {e}')
+            continue
+        # Kräv minst två veckodagar så att ett förklarande/felaktigt svar inte publiceras som meny
+        days = sum(1 for d in ('Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag') if d in text)
+        if 'INGEN_MENY' not in text and days >= 2:
+            return text
+    return ''
+
+
 def scrape_kvartersmenyn(url, name, session):
     """Custom scraper för kvartersmenyn.se – veckomenyn ligger i div.meny med <strong>-dagrubriker."""
     try:
@@ -1620,23 +1650,30 @@ def scrape_kvartersmenyn(url, name, session):
 
         meny = None
         for candidate in candidates:
-            response = session.get(candidate, timeout=10)
+            try:
+                response = session.get(candidate, timeout=10)
+            except requests.RequestException:
+                continue
             if response.status_code != 200:
                 continue
             meny = BeautifulSoup(response.content, 'lxml').select_one('div.meny')
             if meny:
                 break
-        if not meny:
-            return None
 
-        # Dolda <i>-taggar är allergenkoder/vattenstämplar, inte menytext
-        for hidden in meny.find_all('i'):
-            hidden.decompose()
-        for br in meny.find_all('br'):
-            br.replace_with('\n')
+        source = 'HTML (Kvartersmenyn)'
+        text = ''
+        if meny:
+            # Dolda <i>-taggar är allergenkoder/vattenstämplar, inte menytext
+            for hidden in meny.find_all('i'):
+                hidden.decompose()
+            for br in meny.find_all('br'):
+                br.replace_with('\n')
+            lines = [re.sub(r'\s+', ' ', l).strip() for l in meny.get_text().split('\n')]
+            text = re.sub(r'\n{3,}', '\n\n', '\n'.join(lines)).strip()
+        else:
+            text = fetch_menu_via_gemini(url)
+            source = 'Gemini (url_context)'
 
-        lines = [re.sub(r'\s+', ' ', l).strip() for l in meny.get_text().split('\n')]
-        text = re.sub(r'\n{3,}', '\n\n', '\n'.join(lines)).strip()
         if not text:
             return None
 
@@ -1645,7 +1682,7 @@ def scrape_kvartersmenyn(url, name, session):
             'url': url,
             'menu': text,
             'success': True,
-            'source': 'HTML (Kvartersmenyn)',
+            'source': source,
             'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
         }
     except Exception:
