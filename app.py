@@ -1859,7 +1859,7 @@ def categorize_menu_text(text, restaurant_name=None):
     if not text or not CLASSIFIER_AVAILABLE or not classifier:
         return text
 
-    if restaurant_name and any(x in restaurant_name.lower() for x in ['tsukihana', 'albatross', 'nordic']):
+    if restaurant_name and any(x in restaurant_name.lower() for x in ['tsukihana', 'albatross', 'nordic', 'tilda', 'the grill', 'zäta', 'zata', 'grand central', 'spirafood', 'roots']):
         return text
 
     lines = text.split('\n')
@@ -1868,6 +1868,10 @@ def categorize_menu_text(text, restaurant_name=None):
 
     cat_prefix_re = re.compile(
         r'^(?:[A-Z]\s*:\s*)?(vegetariskt|vegetarisk|vego|vegan|vegansk|fisk|kött|streetfood|pasta|sallad|burgare|soppa|kyckling|meat|fish|vegetarian|salad|burger|soup)\s*:\s*',
+        re.I
+    )
+    category_header_re = re.compile(
+        r'^(?:kött|fisk|vegetariskt|vegetarisk|vego|vegan|vegansk|streetfood|pasta|sallad|burgare|soppa|kyckling|meat|fish|salad|burger|soup|dagens|lunch|veckans|hela veckan|lunch\s*v\d+):?$',
         re.I
     )
     weekday_re = re.compile(
@@ -1885,7 +1889,7 @@ def categorize_menu_text(text, restaurant_name=None):
             continue
         if weekday_re.match(line):
             continue
-        if cat_prefix_re.match(line):
+        if cat_prefix_re.match(line) or category_header_re.match(line):
             continue
         if footer_re.search(line):
             continue

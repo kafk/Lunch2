@@ -32,6 +32,10 @@ def audit_dishes(force_live=False):
         r'^(?:[A-Z]\s*:\s*)?(vegetariskt|vegetarisk|vego|vegan|vegansk|fisk|kött|streetfood|pasta|sallad|burgare|soppa|kyckling|meat|fish|vegetarian|salad|burger|soup)\s*:\s*',
         re.I
     )
+    category_header_re = re.compile(
+        r'^(?:kött|fisk|vegetariskt|vegetarisk|vego|vegan|vegansk|streetfood|pasta|sallad|burgare|soppa|kyckling|meat|fish|salad|burger|soup|dagens|lunch|veckans|hela veckan|lunch\s*v\d+):?$',
+        re.I
+    )
     weekday_re = re.compile(
         r'^(måndag|tisdag|onsdag|torsdag|fredag|lördag|söndag|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b',
         re.I
@@ -72,7 +76,7 @@ def audit_dishes(force_live=False):
         lines = [l.strip() for l in menu_text.split("\n") if l.strip()]
 
         for line in lines:
-            if weekday_re.match(line) or footer_re.search(line) or re.match(r'^[–\-=_*]{3,}$', line):
+            if weekday_re.match(line) or footer_re.search(line) or re.match(r'^[–\-=_*]{3,}$', line) or category_header_re.match(line):
                 continue
 
             clean_dish = re.sub(r'^(?:[A-Z]\s*:\s*|\d+[\.)]\s*|[•\-*❖]\s*)', '', line).strip()

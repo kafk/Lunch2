@@ -1773,6 +1773,9 @@
             let content = cleaned.slice(cur.end, next ? next.index : cleaned.length).trim();
             content = content.replace(/^[❖•\-\*:\s/]+/, '').replace(/[❖•]+/g, ' / ').replace(/\s+/g, ' ').replace(/\s*\/\s*\/\s*/g, ' / ').trim();
             content = content.replace(/^(?:\/\s*)+/, '').replace(/(?:\/\s*)+$/, '').trim();
+            // Ta bort eventuell dubbel kategorigrund som "Kyckling: Kycklingsallad"
+            content = content.replace(/^(?:[A-Z]\s*:\s*)?(Vegetariskt|Vegetarisk|Vego|Fisk|Kött|Streetfood|Pasta|Sallad|Burgare|Soppa|Kyckling)\s*:\s*/i, '');
+            if (!content || content.length < 2) continue;
 
             if (lang === 'en') {
                 content = translateCulinaryText(content);
