@@ -247,10 +247,10 @@ class DishClassifier:
         for orig in missing:
             cat = llm_results.get(orig)
             if not cat or cat == "Övrigt":
-                # Fallback heuristic
-                cat = self.heuristic_classify(orig) or "Övrigt"
-            self.set_cached(orig, cat, source="gemini" if orig in llm_results else "fallback")
-            output[orig] = cat
+                cat = self.heuristic_classify(orig)
+            if cat and cat != "Övrigt":
+                self.set_cached(orig, cat, source="gemini" if orig in llm_results else "heuristic")
+            output[orig] = cat or "Övrigt"
 
         return output
 
