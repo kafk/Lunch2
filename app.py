@@ -1609,10 +1609,23 @@ def scrape_tsukihana(url, name, session):
 def scrape_kvartersmenyn(url, name, session):
     """Custom scraper för kvartersmenyn.se – veckomenyn ligger i div.meny med <strong>-dagrubriker."""
     try:
-        response = session.get(url, timeout=10)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.content, 'lxml')
-        meny = soup.select_one('div.meny')
+        # Subdom\u00e4nen blockeras ibland (403) fr\u00e5n serverns IP, s\u00e5 prova \u00e4ven huvuddom\u00e4nens rest-sida
+        candidates = [url]
+        m = re.match(r'https?://([^.]+)\.kvartersmenyn\.se', url)
+        rest_id = re.search(r'/rest/(\d+)', url)
+        if rest_id:
+            candidates.append(f'https://www.kvartersmenyn.se/index.php/rest/{rest_id.group(1)}')
+        elif m and 'ferrariskok' in m.group(1):
+            candidates.append('https://www.kvartersmenyn.se/index.php/rest/16447')
+
+        meny = None
+        for candidate in candidates:
+            response = session.get(candidate, timeout=10)
+            if response.status_code != 200:
+                continue
+            meny = BeautifulSoup(response.content, 'lxml').select_one('div.meny')
+            if meny:
+                break
         if not meny:
             return None
 
