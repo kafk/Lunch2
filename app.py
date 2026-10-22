@@ -1682,15 +1682,28 @@ def scrape_kvartersmenyn(url, name, session):
         if rest_id:
             candidates.append(f'https://www.kvartersmenyn.se/index.php/mobile_site/rest/{rest_id}')
             candidates.append(f'https://www.kvartersmenyn.se/index.php/rest/{rest_id}')
-        candidates.append(url)
-
         text = ''
         reasons = []
+        headers_list = [
+            {'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'},
+            {'User-Agent': 'Twitterbot/1.0'},
+            {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'}
+        ]
         for candidate in candidates:
-            try:
-                response = session.get(candidate, timeout=6)
-            except requests.RequestException as e:
-                reasons.append(f'{candidate}: {type(e).__name__}')
+            response = None
+            for h in headers_list:
+                try:
+                    res = session.get(candidate, headers=h, timeout=6)
+                    if res.status_code == 200:
+                        response = res
+                        break
+                    elif res.status_code != 403:
+                        response = res
+                        break
+                except requests.RequestException:
+                    pass
+            if not response:
+                reasons.append(f'{candidate}: timeout/fel')
                 continue
             if response.status_code != 200:
                 reasons.append(f'{candidate}: HTTP {response.status_code}')
@@ -3017,8 +3030,18 @@ def get_menus():
     with ThreadPoolExecutor(max_workers=workers) as pool:
         menus = list(pool.map(scrape_safe, enabled))
 
-    # Save to cache
-    save_menus_to_cache(menus)
+    # Save to cache - merge with previous successful menus so temporary failures don't wipe out good data
+    if cached_doc and isinstance(cached_doc.get('menus'), list):
+        merged = []
+        fallback_lookup = {m.get('name'): m for m in cached_doc['menus'] if m.get('success') and not m.get('menu', '').startswith('Kunde inte')}
+        for m in menus:
+            if (not m.get('success') or m.get('menu', '').startswith('Kunde inte')) and m.get('name') in fallback_lookup:
+                merged.append(fallback_lookup[m.get('name')])
+            else:
+                merged.append(m)
+        save_menus_to_cache(merged)
+    else:
+        save_menus_to_cache(menus)
 
     postprocess(menus)
 
