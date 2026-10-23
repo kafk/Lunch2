@@ -1791,8 +1791,19 @@ def scrape_nordic_taste_lab(url, name, session):
         debug_status = "Ingen GEMINI_API_KEY hittades i miljövariabler" if not gemini_key else "Key laddad"
         
         if gemini_key:
+            cache_key = f'img-v{active_week}'
+            cached_text = None if _BYPASS_WEEKLY_CACHE.get() else _weekly_get(image_url, cache_key)
+            if cached_text:
+                return {
+                    'name': name,
+                    'url': url,
+                    'menu': cached_text,
+                    'success': True,
+                    'source': f'AI Bild OCR (cache, v{active_week})',
+                    'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+                }
             try:
-                img_res = session.get(image_url, timeout=7)
+                img_res = session.get(image_url, timeout=15)
                 img_b64 = base64.b64encode(img_res.content).decode('utf-8')
                 
                 payload = {
@@ -1809,11 +1820,17 @@ def scrape_nordic_taste_lab(url, name, session):
                     }]
                 }
                 
-                candidate_models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+                candidate_models = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite']
                 for model in candidate_models:
                     try:
                         gemini_endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={gemini_key.strip()}"
-                        resp = session.post(gemini_endpoint, json=payload, headers={'Content-Type': 'application/json'}, timeout=8)
+                        for attempt in range(2):
+                            with _GEMINI_FETCH_SLOTS:
+                                resp = session.post(gemini_endpoint, json=payload, headers={'Content-Type': 'application/json'}, timeout=40)
+                            if resp.status_code in (429, 503) and attempt == 0:
+                                time.sleep(4)
+                                continue
+                            break
                         if resp.status_code == 200:
                             data = resp.json()
                             candidates = data.get('candidates', [])
@@ -1823,6 +1840,7 @@ def scrape_nordic_taste_lab(url, name, session):
                                     extracted_text = parts[0]['text']
                                     formatted_menu = format_menu_text(extracted_text)
                                     if formatted_menu and len(formatted_menu) > 30:
+                                        _weekly_put(image_url, cache_key, formatted_menu)
                                         return {
                                             'name': name,
                                             'url': url,
