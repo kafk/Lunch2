@@ -6,6 +6,7 @@ import os
 import re
 import time
 import threading
+import contextvars
 import hashlib
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -1618,16 +1619,69 @@ def scrape_tsukihana(url, name, session):
 # Begränsa samtidiga Gemini-hämtningar så att parallell scrapning inte ger 429
 _GEMINI_FETCH_SLOTS = threading.Semaphore(2)
 
+# Gemini-hämtade menyer cachas per ISO-vecka; admin-test kringgår cachen och skriver över den
+_WEEKLY_MEMORY = {}
+_BYPASS_WEEKLY_CACHE = contextvars.ContextVar('bypass_weekly_cache', default=False)
+
+
+def _current_week():
+    iso = swedish_now().isocalendar()
+    return iso[0], iso[1]
+
+
+def _weekly_get(url, week_key):
+    doc_id = hashlib.sha1(url.encode('utf-8')).hexdigest()
+    if db:
+        try:
+            doc = db.collection('menu_weekly').document(doc_id).get()
+            data = doc.to_dict() if doc.exists else None
+            return data['text'] if data and data.get('week_key') == week_key else None
+        except Exception as e:
+            print(f'Weekly cache read error: {e}')
+    entry = _WEEKLY_MEMORY.get(doc_id)
+    return entry[1] if entry and entry[0] == week_key else None
+
+
+def _weekly_put(url, week_key, text):
+    doc_id = hashlib.sha1(url.encode('utf-8')).hexdigest()
+    _WEEKLY_MEMORY[doc_id] = (week_key, text)
+    if db:
+        try:
+            db.collection('menu_weekly').document(doc_id).set({'url': url, 'week_key': week_key, 'text': text})
+        except Exception as e:
+            print(f'Weekly cache write error: {e}')
+
 
 def fetch_menu_via_gemini(url, reasons=None):
-    """Låt Gemini hämta sidan från Googles servrar (url_context) när vår egen IP blockeras. Returnerar menytext eller ''; felorsaker läggs i reasons."""
+    """Veckocachad Gemini-hämtning. Returnerar menytext eller ''; felorsaker läggs i reasons."""
+    reasons = reasons if reasons is not None else []
+    year, week = _current_week()
+    week_key = f'{year}-W{week:02d}'
+    if not _BYPASS_WEEKLY_CACHE.get():
+        cached = _weekly_get(url, week_key)
+        if cached:
+            return cached
+    text, page_week = _gemini_fetch_menu(url, reasons)
+    if not text:
+        return ''
+    # Sidan kan ligga kvar på förra veckans meny; visa den inte som aktuell
+    if page_week and page_week != week:
+        reasons.append(f'sidan visar vecka {page_week}, inte {week}')
+        return ''
+    _weekly_put(url, week_key, text)
+    return text
+
+
+def _gemini_fetch_menu(url, reasons):
+    """Låt Gemini hämta sidan från Googles servrar (url_context) när vår egen IP blockeras. Returnerar (text, veckonummer eller None)."""
     reasons = reasons if reasons is not None else []
     key = os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY')
     if not key:
         reasons.append('ingen GEMINI_API_KEY i miljön')
-        return ''
+        return '', None
     prompt = (
         f'Hämta sidan {url} och kopiera veckans lunchmeny ORDAGRANT, utan att hitta på eller sammanfatta. '
+        'Skriv först en egen rad "VECKA <nummer>" med veckonumret som sidan anger, eller "VECKA ?" om det saknas. '
         'Format: en rad med veckodagens namn (Måndag, Tisdag ...) följt av en rätt per rad, tom rad mellan dagar. '
         'Ta med pris/inkluderat-rad sist om den finns. Hittar du ingen meny, svara exakt INGEN_MENY.'
     )
@@ -1663,9 +1717,14 @@ def fetch_menu_via_gemini(url, reasons=None):
             # Modellen returnerar ibland bokstavliga "\n" och tomrader mellan varje rätt
             text = re.sub(r'\n{3,}', '\n\n', text.replace('\\n', '\n'))
             text = re.sub(r'(?<=\S)\n\n(?=[A-E][:.])', '\n', text)
-            return text
+            page_week = None
+            m = re.match(r'\s*VECKA\s*(\d+|\?)[^\n]*\n', text, re.IGNORECASE)
+            if m:
+                page_week = int(m.group(1)) if m.group(1).isdigit() else None
+                text = text[m.end():].lstrip()
+            return text, page_week
         reasons.append(f'Gemini {model}: ingen meny i svaret')
-    return ''
+    return '', None
 
 
 def scrape_kvartersmenyn(url, name, session):
@@ -2596,7 +2655,11 @@ def admin_test_scrape():
         url = 'https://' + url
     name = data.get('name') or url.split('/')[2]
     lang = data.get('lang', 'sv')
-    result = scrape_url(url, name, lang=lang)
+    token = _BYPASS_WEEKLY_CACHE.set(True)  # admin-test ska alltid h\u00e4mta p\u00e5 nytt
+    try:
+        result = scrape_url(url, name, lang=lang)
+    finally:
+        _BYPASS_WEEKLY_CACHE.reset(token)
     if result.get('menu'):
         result['menu'] = strip_menu_footers(result['menu'])
     return jsonify(result)
