@@ -5,6 +5,7 @@ import json
 import os
 import re
 import time
+import threading
 import hashlib
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -1614,6 +1615,10 @@ def scrape_tsukihana(url, name, session):
     return None
 
 
+# Begränsa samtidiga Gemini-hämtningar så att parallell scrapning inte ger 429
+_GEMINI_FETCH_SLOTS = threading.Semaphore(2)
+
+
 def fetch_menu_via_gemini(url, reasons=None):
     """Låt Gemini hämta sidan från Googles servrar (url_context) när vår egen IP blockeras. Returnerar menytext eller ''; felorsaker läggs i reasons."""
     reasons = reasons if reasons is not None else []
@@ -1628,25 +1633,29 @@ def fetch_menu_via_gemini(url, reasons=None):
     )
     payload = {'contents': [{'parts': [{'text': prompt}]}], 'tools': [{'url_context': {}}]}
     for model in ('gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite'):
-        try:
-            resp = requests.post(
-                f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
-                params={'key': key.strip()}, json=payload, timeout=8)
-        except Exception as e:
-            reasons.append(f'Gemini {model}: {type(e).__name__}')
-            continue
-        if resp.status_code != 200:
-            reasons.append(f'Gemini {model}: HTTP {resp.status_code}')
-            continue
-        try:
-            parts = resp.json()['candidates'][0]['content']['parts']
-            text = ''.join(p.get('text', '') for p in parts).strip()
-        except (KeyError, IndexError, ValueError):
-            reasons.append(f'Gemini {model}: tomt svar')
-            continue
-        if text:
+        text = ''
+        for attempt in range(2):
+            try:
+                with _GEMINI_FETCH_SLOTS:
+                    resp = requests.post(
+                        f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
+                        params={'key': key.strip()}, json=payload, timeout=40)
+            except Exception as e:
+                reasons.append(f'Gemini {model}: {type(e).__name__}')
+                break
+            if resp.status_code in (429, 503) and attempt == 0:
+                time.sleep(4)  # kvot/överbelastning är ofta kortvarig
+                continue
+            if resp.status_code != 200:
+                reasons.append(f'Gemini {model}: HTTP {resp.status_code}')
+                break
+            try:
+                parts = resp.json()['candidates'][0]['content']['parts']
+                text = ''.join(p.get('text', '') for p in parts).strip()
+            except (KeyError, IndexError, ValueError):
+                reasons.append(f'Gemini {model}: tomt svar')
             break
-        if text is None:
+        if not text:
             continue
         # Kräv minst två veckodagar så att ett förklarande/felaktigt svar inte publiceras som meny
         days = sum(1 for d in ('Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag') if d in text)
