@@ -1669,83 +1669,12 @@ def fetch_menu_via_gemini(url, reasons=None):
 
 
 def scrape_kvartersmenyn(url, name, session):
-    """Custom scraper för kvartersmenyn.se – veckomenyn ligger i div.meny med <strong>-dagrubriker."""
+    """Custom scraper för kvartersmenyn.se – hämtar via Gemini eftersom sajten blockerar vår server."""
     try:
-        # Subdom\u00e4nen blockeras ibland (403) fr\u00e5n serverns IP, s\u00e5 prova \u00e4ven huvuddom\u00e4nens rest-sida
-        candidates = []
-        rest_id = None
-        m_id = re.search(r'/rest/(\d+)', url)
-        if m_id:
-            rest_id = m_id.group(1)
-        else:
-            m = re.match(r'https?://([^.]+)\.kvartersmenyn\.se', url)
-            if m:
-                sub = m.group(1).lower()
-                if 'ferrariskok' in sub:
-                    rest_id = '16447'
-                elif 'arya' in sub:
-                    rest_id = '15855'
-                elif 'saras' in sub:
-                    rest_id = '16722'
-
-        if rest_id:
-            candidates.append(f'https://www.kvartersmenyn.se/index.php/mobile_site/rest/{rest_id}')
-            candidates.append(f'https://www.kvartersmenyn.se/index.php/rest/{rest_id}')
-        text = ''
+        # Servern blockeras alltid med 403 av kvartersmenyn.se, så vi går direkt till Gemini.
         reasons = []
-        headers_list = [
-            {'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'},
-            {'User-Agent': 'Twitterbot/1.0'},
-            {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'}
-        ]
-        for candidate in candidates:
-            response = None
-            for h in headers_list:
-                try:
-                    res = session.get(candidate, headers=h, timeout=6)
-                    if res.status_code == 200:
-                        response = res
-                        break
-                    elif res.status_code != 403:
-                        response = res
-                        break
-                except requests.RequestException:
-                    pass
-            if not response:
-                reasons.append(f'{candidate}: timeout/fel')
-                continue
-            if response.status_code != 200:
-                reasons.append(f'{candidate}: HTTP {response.status_code}')
-                continue
-            soup = BeautifulSoup(response.content, 'lxml')
-            meny = soup.select_one('div.meny')
-            if not meny:
-                best = None
-                for d in soup.find_all(['div', 'p', 'section']):
-                    t = d.get_text().lower()
-                    if 'måndag' in t and 'tisdag' in t and 'onsdag' in t:
-                        if best is None or len(d.get_text()) < len(best.get_text()):
-                            best = d
-                meny = best
-            if meny:
-                # Dolda <i>-taggar är allergenkoder/vattenstämplar, inte menytext
-                for hidden in meny.find_all('i'):
-                    hidden.decompose()
-                for bad in meny.find_all(['ul', 'div'], class_=lambda c: c and any(k in str(c) for k in ['button', 'icons'])):
-                    bad.decompose()
-                for br in meny.find_all('br'):
-                    br.replace_with('\n')
-                lines = [re.sub(r'\s+', ' ', l).strip() for l in meny.get_text().split('\n')]
-                parsed_text = re.sub(r'\n{3,}', '\n\n', '\n'.join(lines)).strip()
-                if len(parsed_text) > 50 and any(d in parsed_text.lower() for d in ['måndag', 'tisdag', 'onsdag', 'torsdag', 'fredag', 'veckans', 'lunch']):
-                    text = parsed_text
-                    break
-            reasons.append(f'{candidate}: ingen meny funnen')
-
-        source = 'HTML (Kvartersmenyn)'
-        if not text:
-            text = fetch_menu_via_gemini(url, reasons)
-            source = 'Gemini (url_context)'
+        text = fetch_menu_via_gemini(url, reasons)
+        source = 'Gemini (url_context)'
 
         if not text:
             return {
