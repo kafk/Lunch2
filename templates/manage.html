@@ -504,9 +504,14 @@
                 body: JSON.stringify({ name, url })
             });
 
-            const result = await response.json();
+            let result = {};
+            try {
+                result = await response.json();
+            } catch (jsonErr) {
+                result = { error: `Serverfel (${response.status}): ${response.statusText || 'Kunde inte läsa serversvaret'}` };
+            }
 
-            if (response.ok) {
+            if (response.ok && result.success) {
                 const msg = result.message || 'Restaurang verifierad och tillagd!';
                 addMessage.innerHTML = `
                     <div class="success-msg" style="padding: 12px 14px; font-size: 13px; line-height: 1.5;">
