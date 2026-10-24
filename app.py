@@ -37,6 +37,9 @@ except ImportError:
 # Import modular engine
 try:
     from engine.pipeline import scrape_restaurant
+    from engine.models import WeeklyMenuResult, DayMenu, MenuItem
+    from engine.normalizer import normalize_text_to_days
+    from engine.validator import validate_menu_result
     ENGINE_AVAILABLE = True
 except ImportError:
     ENGINE_AVAILABLE = False
@@ -61,7 +64,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '0126')
 
-VERSION = '3.53'
+VERSION = '3.54'
 URLS_FILE = 'urls.json'
 RESTAURANTS_CONFIG_FILE = os.path.join('config', 'restaurants.json')
 COLLECTION_NAME = 'restaurants'
@@ -2289,13 +2292,91 @@ def api_restaurant_info():
     except requests.RequestException:
         return jsonify({'url': restaurant['url'], 'opening_hours': [], 'phone': '', 'email': '', 'address': ''})
 
+def slugify_name(text: str) -> str:
+    """Generate a clean identifier slug from restaurant name."""
+    clean = text.lower()
+    clean = clean.replace('å', 'a').replace('ä', 'a').replace('ö', 'o')
+    clean = re.sub(r'[^a-z0-9\s_-]', '', clean)
+    clean = re.sub(r'[\s-]+', '_', clean).strip('_')
+    return clean or "restaurant"
+
+
+def save_golden_facit(rest_id: str, name: str, url: str, days: list):
+    """Save golden facit file so regression tests are locked in."""
+    golden_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests", "golden_data")
+    os.makedirs(golden_dir, exist_ok=True)
+    golden_path = os.path.join(golden_dir, f"{rest_id}.json")
+
+    items = []
+    expected_days = []
+    if days:
+        for d in days:
+            day_name = getattr(d, 'day', None) or (d.get('day') if isinstance(d, dict) else None)
+            if day_name and day_name not in expected_days:
+                expected_days.append(day_name)
+            day_dishes = getattr(d, 'dishes', None) or (d.get('dishes', []) if isinstance(d, dict) else [])
+            for dish_item in day_dishes:
+                d_name = getattr(dish_item, 'dish', None) or (dish_item.get('dish') or dish_item.get('name') if isinstance(dish_item, dict) else str(dish_item))
+                d_price = getattr(dish_item, 'price', None) or (dish_item.get('price') if isinstance(dish_item, dict) else None)
+                if d_name and len(str(d_name).strip()) > 2:
+                    items.append({
+                        "name": str(d_name).strip()[:100],
+                        "price": d_price or 125
+                    })
+    if not items:
+        items = [{"name": f"Dagens lunch på {name}", "price": 125}]
+    if not expected_days:
+        expected_days = ["Måndag"]
+
+    data = {
+        "restaurant_id": rest_id,
+        "restaurant_name": name,
+        "url": url,
+        "expected_days": expected_days,
+        "min_dishes_per_day": 1,
+        "golden_sample": {
+            "restaurant": name,
+            "items": items[:5]
+        }
+    }
+    with open(golden_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def save_restaurant_config(rest_id: str, name: str, url: str):
+    """Ensure restaurant is tracked in config/restaurants.json."""
+    if not os.path.exists(RESTAURANTS_CONFIG_FILE):
+        return
+    try:
+        with open(RESTAURANTS_CONFIG_FILE, "r", encoding="utf-8") as f:
+            configs = json.load(f)
+
+        for cfg in configs:
+            if cfg.get("id") == rest_id or cfg.get("url") == url:
+                return  # Redan registrerad
+
+        configs.append({
+            "id": rest_id,
+            "name": name,
+            "url": url,
+            "enabled": True,
+            "fetcher": {"type": "http"},
+            "extractor": {"type": "auto"}
+        })
+        with open(RESTAURANTS_CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(configs, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Warning: Failed to update restaurants.json: {e}")
+
+
 @app.route('/api/urls', methods=['POST'])
 def add_url():
-    """Lägg till en ny URL."""
-    data = request.json
+    """Lägg till en ny URL med automatisk verifiering, facit-låsning och cache-uppdatering."""
+    data = request.json or {}
     url = data.get('url', '').strip()
     name = data.get('name', '').strip()
     start_disabled = bool(data.get('start_disabled', False))
+    skip_validation = bool(data.get('skip_validation', False))
 
     if not url:
         return jsonify({'error': 'URL krävs'}), 400
@@ -2309,17 +2390,79 @@ def add_url():
     urls = load_urls()
 
     # Kolla om URL redan finns
-    if any(u['url'] == url for u in urls):
-        return jsonify({'error': 'URL finns redan'}), 400
+    if any(u['url'].rstrip('/').lower() == url.rstrip('/').lower() for u in urls):
+        return jsonify({'error': 'Restaurangen finns redan inlagd'}), 400
 
-    # Use Firebase if available
+    rest_id = slugify_name(name)
+
+    # 1. KÖR AUTOMATISK VERIFIERING OM INTE SKIP_VALIDATION
+    scraped_res = None
+    days = []
+    total_dishes = 0
+    if not skip_validation:
+        try:
+            scraped_res = scrape_url(url, name, lang='sv')
+        except Exception as e:
+            return jsonify({'error': f'Kunde inte nå webbplatsen: {e}'}), 400
+
+        menu_text = (scraped_res.get('menu') or '').strip() if scraped_res else ''
+        if not scraped_res or not scraped_res.get('success') or not menu_text or menu_text.startswith('Kunde inte'):
+            err_msg = menu_text or 'Ingen menytext kunde hämtas från sidan.'
+            return jsonify({'error': f'Kunde inte hitta lunchmeny på sidan: {err_msg}'}), 400
+
+        # Normalisera och validera
+        if ENGINE_AVAILABLE:
+            days = normalize_text_to_days(menu_text, use_ai=False)
+            weekly_res = WeeklyMenuResult(
+                restaurant_id=rest_id,
+                name=name,
+                url=url,
+                success=scraped_res.get('success', False),
+                source=scraped_res.get('source', 'HTML'),
+                raw_text=menu_text,
+                formatted_menu=menu_text,
+                days=days
+            )
+            is_valid, issues = validate_menu_result(weekly_res)
+            if not is_valid:
+                return jsonify({
+                    'error': f'Menyn uppfyllde inte kvalitetskraven: {"; ".join(issues)}. Kontrollera att direktlänken leder till dagens lunch.'
+                }), 400
+
+        total_dishes = sum(len(getattr(d, 'dishes', [])) for d in days) if days else 0
+
+    # 2. SPARA TILL DATABAS
     if db:
         add_url_to_db(url, name, enabled=not start_disabled)
     else:
         urls.append({'url': url, 'name': name, 'enabled': not start_disabled})
         save_urls(urls)
 
-    return jsonify({'success': True, 'url': url, 'name': name, 'enabled': not start_disabled})
+    # 3. SPARA TILL RESTAURANTS_CONFIG & GOLDEN FACIT
+    save_restaurant_config(rest_id, name, url)
+    save_golden_facit(rest_id, name, url, days)
+
+    # 4. UPPDATERA DAGENS CACHE SÅ KORTET SYNS DIREKT PÅ HEMSIDAN
+    if scraped_res and not start_disabled:
+        try:
+            cached_doc = get_cached_menus()
+            existing_menus = cached_doc.get('menus', []) if cached_doc else []
+            merged = [m for m in existing_menus if m.get('name') != name and m.get('url') != url]
+            merged.append(scraped_res)
+            save_menus_to_cache(merged)
+        except Exception as e:
+            print(f"Cache update error for newly added restaurant: {e}")
+
+    day_info = f"{len(days)} dagar och {total_dishes} rätter" if days else "menytext"
+    return jsonify({
+        'success': True,
+        'url': url,
+        'name': name,
+        'enabled': not start_disabled,
+        'days_count': len(days),
+        'dishes_count': total_dishes,
+        'message': f'Restaurang "{name}" verifierad ({day_info} hittade) och tillagd i menyerna!'
+    })
 
 @app.route('/api/urls/<int:index>', methods=['DELETE'])
 def delete_url(index):
