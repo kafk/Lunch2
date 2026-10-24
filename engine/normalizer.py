@@ -171,11 +171,14 @@ def enrich_dishes_with_categories(day_menus: List[DayMenu]) -> List[DayMenu]:
                 all_dishes.append(item.dish)
     
     if all_dishes:
-        cats = classifier.classify_batch(all_dishes)
-        for d in day_menus:
-            for item in d.dishes:
-                if not item.category and item.dish in cats:
-                    item.category = cats[item.dish]
+        try:
+            cats = classifier.classify_batch(all_dishes)
+            for d in day_menus:
+                for item in d.dishes:
+                    if not item.category and item.dish in cats:
+                        item.category = cats[item.dish]
+        except Exception as e:
+            print(f"Notice: Dish classification skipped: {e}")
     return day_menus
 
 def format_day_menus_to_text(days: List[DayMenu]) -> str:

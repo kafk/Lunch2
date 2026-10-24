@@ -31,7 +31,21 @@ ALLOWED_CATEGORIES = [
     "Övrigt"
 ]
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "..", "dish_cache.db")
+def get_db_path() -> str:
+    default_path = os.path.join(os.path.dirname(__file__), "..", "dish_cache.db")
+    # If in Vercel or serverless where current dir is read-only, copy to /tmp so writes succeed
+    if os.environ.get("VERCEL") or (os.name != "nt" and os.path.exists("/tmp")):
+        tmp_path = "/tmp/dish_cache.db"
+        if not os.path.exists(tmp_path) and os.path.exists(default_path):
+            try:
+                import shutil
+                shutil.copy2(default_path, tmp_path)
+            except Exception:
+                pass
+        return tmp_path
+    return default_path
+
+DB_PATH = get_db_path()
 
 
 def load_local_env():
@@ -56,7 +70,7 @@ class DishClassifier:
     """Classifier with SQLite persistent caching and Gemini LLM fallback."""
 
     def __init__(self, db_path: Optional[str] = None):
-        self.db_path = db_path or DB_PATH
+        self.db_path = db_path or get_db_path()
         self._init_db()
 
     def _get_connection(self) -> sqlite3.Connection:
@@ -66,23 +80,27 @@ class DishClassifier:
 
     def _init_db(self) -> None:
         """Create dish_cache table if not exists."""
-        with self._get_connection() as conn:
-            conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS dish_cache (
-                    normalized_key TEXT PRIMARY KEY,
-                    raw_title TEXT NOT NULL,
-                    category TEXT NOT NULL,
-                    confidence REAL DEFAULT 1.0,
-                    source TEXT NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        try:
+            with self._get_connection() as conn:
+                conn.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS dish_cache (
+                        normalized_key TEXT PRIMARY KEY,
+                        raw_title TEXT NOT NULL,
+                        category TEXT NOT NULL,
+                        confidence REAL DEFAULT 1.0,
+                        source TEXT NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
                 )
-                """
-            )
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_dish_category ON dish_cache(category)"
-            )
-            conn.commit()
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_dish_category ON dish_cache(category)"
+                )
+                conn.commit()
+        except sqlite3.OperationalError:
+            # Read-only database in serverless, skip init
+            pass
 
     @staticmethod
     def normalize_key(text: str) -> str:
@@ -101,14 +119,17 @@ class DishClassifier:
         key = self.normalize_key(dish_text)
         if not key:
             return None
-        with self._get_connection() as conn:
-            cur = conn.execute(
-                "SELECT category FROM dish_cache WHERE normalized_key = ?",
-                (key,)
-            )
-            row = cur.fetchone()
-            if row:
-                return row["category"]
+        try:
+            with self._get_connection() as conn:
+                cur = conn.execute(
+                    "SELECT category FROM dish_cache WHERE normalized_key = ?",
+                    (key,)
+                )
+                row = cur.fetchone()
+                if row:
+                    return row["category"]
+        except Exception:
+            pass
         return None
 
     def set_cached(self, dish_text: str, category: str, source: str = "llm") -> None:
@@ -120,19 +141,23 @@ class DishClassifier:
         # Ensure category is valid
         matched = next((c for c in ALLOWED_CATEGORIES if c.lower() == cat_clean.lower()), "Övrigt")
 
-        with self._get_connection() as conn:
-            conn.execute(
-                """
-                INSERT INTO dish_cache (normalized_key, raw_title, category, source)
-                VALUES (?, ?, ?, ?)
-                ON CONFLICT(normalized_key) DO UPDATE SET
-                    category=excluded.category,
-                    source=excluded.source,
-                    created_at=CURRENT_TIMESTAMP
-                """,
-                (key, dish_text.strip(), matched, source)
-            )
-            conn.commit()
+        try:
+            with self._get_connection() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO dish_cache (normalized_key, raw_title, category, source)
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT(normalized_key) DO UPDATE SET
+                        category=excluded.category,
+                        source=excluded.source,
+                        created_at=CURRENT_TIMESTAMP
+                    """,
+                    (key, dish_text.strip(), matched, source)
+                )
+                conn.commit()
+        except sqlite3.OperationalError:
+            # Read-only database, skip caching write
+            pass
 
     @staticmethod
     def heuristic_classify(dish_text: str) -> Optional[str]:
