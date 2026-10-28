@@ -1434,7 +1434,8 @@
             const options = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
             const dateStr = d.toLocaleDateString(locale, options);
             const timeStr = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
-            dtEl.textContent = `${dateStr}  ${timeStr}`;
+            const label = currentLang === 'en' ? 'Last updated' : 'Uppdaterad senast';
+            dtEl.textContent = `${label} ${dateStr}  ${timeStr}`;
         } catch {
             dtEl.textContent = lastScrapedTime;
         }
