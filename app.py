@@ -1689,7 +1689,7 @@ def _gemini_fetch_menu(url, reasons):
         'Ta med pris/inkluderat-rad sist om den finns. Hittar du ingen meny, svara exakt INGEN_MENY.'
     )
     payload = {'contents': [{'parts': [{'text': prompt}]}], 'tools': [{'url_context': {}}]}
-    for model in ('gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite'):
+    for model in ('gemini-3.8-flash', 'gemini-3.5-flash-lite'):
         text = ''
         for attempt in range(2):
             try:
@@ -1700,7 +1700,7 @@ def _gemini_fetch_menu(url, reasons):
             except Exception as e:
                 reasons.append(f'Gemini {model}: {type(e).__name__}')
                 break
-            if resp.status_code in (429, 503) and attempt == 0:
+            if resp.status_code == 503 and attempt == 0:
                 time.sleep(4)  # kvot/överbelastning är ofta kortvarig
                 continue
             if resp.status_code != 200:
@@ -1823,14 +1823,14 @@ def scrape_nordic_taste_lab(url, name, session):
                     }]
                 }
                 
-                candidate_models = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite']
+                candidate_models = ['gemini-3.8-flash', 'gemini-3.5-flash-lite']
                 for model in candidate_models:
                     try:
                         gemini_endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={gemini_key.strip()}"
                         for attempt in range(2):
                             with _GEMINI_FETCH_SLOTS:
                                 resp = session.post(gemini_endpoint, json=payload, headers={'Content-Type': 'application/json'}, timeout=40)
-                            if resp.status_code in (429, 503) and attempt == 0:
+                            if resp.status_code == 503 and attempt == 0:
                                 time.sleep(4)
                                 continue
                             break
