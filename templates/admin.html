@@ -1014,9 +1014,9 @@
                             style="padding:3px 9px;border:none;border-radius:5px;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;background:transparent;color:#9ca3af;">Vecka</button>
                     </div>
                 </div>
-                ${preview != null ? `<div class="lab-card-preview" id="lab-preview-${i}">${escHtml(preview)}</div>
-                <div class="lab-card-edit-area" id="lab-edit-${i}">
-                    <textarea id="lab-textarea-${i}">${escHtml(result.menu || '')}</textarea>
+                ${preview != null ? `<div class="lab-card-preview" id="lab-preview-${i}">${escHtml(preview)}</div>` : ''}
+                ${result ? `<div class="lab-card-edit-area" id="lab-edit-${i}">
+                    <textarea id="lab-textarea-${i}" placeholder="Klistra in menyn här (Måndag, Tisdag …)">${escHtml(result.success ? (result.menu || '') : '')}</textarea>
                     <div class="edit-btns">
                         <button class="btn-green" style="padding:6px 14px;font-size:13px;" onclick="labSaveEdit(${i})">Spara</button>
                         <button class="btn-outline" style="padding:6px 14px;font-size:13px;" onclick="labCancelEdit(${i})">Avbryt</button>
@@ -1068,24 +1068,35 @@
     }
 
     function labStartEdit(index) {
-        document.getElementById(`lab-preview-${index}`).style.display = 'none';
+        const preview = document.getElementById(`lab-preview-${index}`);
+        if (preview) preview.style.display = 'none';
         const editArea = document.getElementById(`lab-edit-${index}`);
         editArea.style.display = 'flex';
         document.getElementById(`lab-textarea-${index}`).focus();
     }
 
     function labCancelEdit(index) {
-        document.getElementById(`lab-preview-${index}`).style.display = 'block';
+        const preview = document.getElementById(`lab-preview-${index}`);
+        if (preview) preview.style.display = 'block';
         document.getElementById(`lab-edit-${index}`).style.display = 'none';
     }
 
     function labSaveEdit(index) {
         const newText = document.getElementById(`lab-textarea-${index}`).value;
-        if (!labResults[index]) labResults[index] = { success: true };
-        labResults[index].menu = newText;
-        labResults[index].source = (labResults[index].source || '') + ' ✏️';
+        if (!newText.trim()) return;
+        const u = allUrls[index];
+        const prev = labResults[index] || {};
+        labResults[index] = {
+            ...prev,
+            name: prev.name || u.name,
+            url: prev.url || u.url,
+            success: true,
+            menu: newText,
+            source: (prev.success ? (prev.source || '') : 'Manuell') + ' ✏️'
+        };
         renderLabCards();
         labUpdateSummary();
+        document.getElementById('btn-publish-lab').style.display = 'inline-block';
     }
 
     async function labTestOne(index) {
