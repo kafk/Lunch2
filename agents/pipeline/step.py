@@ -56,7 +56,7 @@ def _hr(t):
 
 def discovery(target=TARGET):
     from restaurant_discovery import DiscoveryConfig, discover_restaurants
-    _hr(f"STAGE 1/6 — restaurant-discovery (live OpenStreetMap, {CITY}, target={target})")
+    _hr(f"STAGE 1/8 — restaurant-discovery ({CITY}, target={target})")
     out = discover_restaurants(CITY, COUNTRY, target, config=DiscoveryConfig(provider="overpass"))
     _save("discovery", out)
     r = out["result"]

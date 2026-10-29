@@ -47,7 +47,7 @@ def _log(msg: str) -> None:
 
 
 def run(city: str, country: str, target: int, db_path: str, timeout: int = 10) -> dict:
-    _log(f"[1/8] Discovering restaurants in {city} (OpenStreetMap)…")
+    _log(f"[1/8] Identifierar restauranger i {city}…")
     disc = discover_restaurants(city, country, target, config=DiscoveryConfig(provider="overpass"))
     _log(f"      found {disc['result']['candidate_count']} candidates")
 
