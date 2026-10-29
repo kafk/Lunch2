@@ -87,16 +87,22 @@ def validate_candidate(
     elif primary_diagnosis == Diagnosis.PRICE_OUT_OF_BOUNDS.value:
         verdict = Verdict.REPAIR.value
         reason = f"Price sanity failed: {checks['price_sanity'].reason}"
+    elif primary_diagnosis == Diagnosis.STALE_MENU.value:
+        verdict = Verdict.REPAIR.value
+        reason = f"Freshness failed: {checks['freshness'].reason}"
+    elif primary_diagnosis == Diagnosis.MISSING_DISHES.value:
+        verdict = Verdict.REPAIR.value
+        reason = f"Cadence failed: {checks['cadence_and_volume'].reason}"
     elif primary_diagnosis == Diagnosis.EMPTY_EXTRACTION.value:
         verdict = Verdict.FAIL.value
         reason = "No content extracted."
-    elif overall_score >= cfg.pass_threshold:
+    elif not primary_diagnosis and overall_score >= cfg.pass_threshold:
         verdict = Verdict.PASS.value
         reason = f"Validation passed with score {round(overall_score, 2)}."
         primary_diagnosis = Diagnosis.CLEAN.value
     elif overall_score >= cfg.review_threshold:
         verdict = Verdict.REVIEW.value
-        reason = f"Borderline score {round(overall_score, 2)}, flagged for review."
+        reason = f"Borderline score {round(overall_score, 2)} ({primary_diagnosis or 'uncertain match'})."
     else:
         verdict = Verdict.REPAIR.value
         reason = f"Low score {round(overall_score, 2)} ({primary_diagnosis or 'uncertain match'})."
