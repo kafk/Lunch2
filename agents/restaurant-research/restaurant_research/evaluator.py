@@ -120,3 +120,67 @@ _STATUS_RANK = {
 
 def assessment_rank(a: PageAssessment) -> int:
     return _STATUS_RANK.get(a.lunch_status, 0)
+
+
+_WEEKDAYS = ("måndag", "tisdag", "onsdag", "torsdag", "fredag")
+_WEEK_NUM_RE = re.compile(r"\b(?:vecka|v\.?)\s*(\d{1,2})\b", re.IGNORECASE)
+_PRICE_RE = re.compile(r"\b(\d{2,3})\s*(?:kr|:-|sek)\b", re.IGNORECASE)
+
+
+def build_target_spec(page: FetchedPage) -> dict:
+    """Build a deterministic TargetSpec from the best evaluated lunch page."""
+    text = (page.text or "").lower()
+    weekdays_found = [w for w in _WEEKDAYS if w in text]
+
+    if len(weekdays_found) >= 3:
+        cadence = "weekly"
+    elif "dagens" in text or "dagens rätt" in text:
+        cadence = "daily"
+    else:
+        cadence = "standing"
+
+    anchor = None
+    for kw in _LUNCH_STRONG:
+        if kw in text:
+            anchor = kw
+            break
+    if not anchor:
+        for kw in _LUNCH_WEAK:
+            if kw in text:
+                anchor = kw
+                break
+
+    week_num = None
+    wm = _WEEK_NUM_RE.search(text)
+    if wm:
+        try:
+            wn = int(wm.group(1))
+            if 1 <= wn <= 53:
+                week_num = wn
+        except ValueError:
+            pass
+
+    prices = []
+    for pm in _PRICE_RE.finditer(text):
+        p = int(pm.group(1))
+        if 75 <= p <= 250:
+            prices.append(p)
+    if prices:
+        prices.sort()
+        med = prices[len(prices) // 2]
+        price_range = [max(85, med - 25), min(230, med + 30)]
+    else:
+        price_range = [90, 195]
+
+    return {
+        "target_url": page.final_url or page.url,
+        "lunch_anchor": anchor or "lunch",
+        "cadence": cadence,
+        "expected_price_range": price_range,
+        "exclude_sections": [
+            "à la carte", "a la carte", "kvällsmeny", "middag", "catering", "brunch", "julbord", "sällskapsmeny", "boka bord"
+        ],
+        "week_number_hint": week_num,
+        "positive_signals": list(weekdays_found) + ([anchor] if anchor else []),
+    }
+

@@ -67,6 +67,24 @@ class RestaurantInput:
 
 
 @dataclass
+class TargetSpec:
+    """Specification of what the lunch menu should look like for validation."""
+
+    target_url: str
+    lunch_anchor: Optional[str] = None
+    cadence: str = "weekly"  # "weekly" | "daily" | "standing"
+    expected_price_range: List[int] = field(default_factory=lambda: [90, 195])
+    exclude_sections: List[str] = field(default_factory=lambda: [
+        "à la carte", "a la carte", "kvällsmeny", "middag", "catering", "brunch", "julbord", "sällskapsmeny", "boka bord"
+    ])
+    week_number_hint: Optional[int] = None
+    positive_signals: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
 class ResearchProfile:
     """The research result for a single restaurant.
 
@@ -86,6 +104,7 @@ class ResearchProfile:
     confidence: str = Confidence.NONE.value
     reason: str = ""
     opening_hours: Optional[str] = None
+    target_spec: Optional[Dict[str, Any]] = None
     evidence_urls: List[str] = field(default_factory=list)
     fetched_urls: List[str] = field(default_factory=list)
     research_source_provider: str = ""

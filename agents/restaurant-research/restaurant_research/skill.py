@@ -18,6 +18,7 @@ from .errors import ResearchError
 from .evaluator import (
     PageReasoner,
     assessment_rank,
+    build_target_spec,
     evaluate_page_deterministic,
     menu_type_for,
 )
@@ -154,8 +155,10 @@ def research_restaurant(
             evidence = normalize_url(profile.lunch_page_url)
             if evidence:
                 profile.evidence_urls.append(evidence)
+            profile.target_spec = build_target_spec(best_page)
         elif best_page is not None and best.lunch_status in (LunchStatus.CONFIRMED.value, LunchStatus.LIKELY.value):
             profile.menu_page_type = menu_type_for(best_page)
+            profile.target_spec = build_target_spec(best_page)
 
     return profile
 

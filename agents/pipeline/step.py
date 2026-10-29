@@ -32,7 +32,8 @@ APPROVAL_DB = os.path.join(HERE, "approval.db")
 CITY, COUNTRY, TARGET, TIMEOUT = "Göteborg", "Sweden", 12, 10
 
 for _f in ["restaurant-discovery", "restaurant-research", "scraper-generation",
-           "lunch-scraping", "lunch-normalization", "human-approval"]:
+           "lunch-scraping", "lunch-normalization", "source-validation",
+           "publication-gate", "scraper-repair", "human-approval"]:
     sys.path.insert(0, os.path.join(BASE, _f))
 
 
@@ -287,16 +288,95 @@ def normalization():
                 price = f" {dish['price']} SEK" if dish.get("price") else ""
                 sample = f"   e.g. {lbl}: {dish['dish'][:34]}{price}"
         print("  %2d. %-26s %-13s days=%s%s" % (i, m["restaurant_name"][:26], m["status"], m["day_count"], sample))
+    print("\nNEXT: python step.py validation")
+
+
+def validation():
+    from source_validation import validate_sources
+    res = _load("research")
+    scr = _load("scraping")
+    norm = _load("normalization")
+    _hr("STAGE 6/8 — source-validation (intent, price bounds & evidence check)")
+    out = validate_sources({
+        "research": res,
+        "scraping": scr,
+        "normalization": norm,
+    })
+    _save("validation", out)
+    r = out["result"]
+    print(f"Passed: {r['passed_count']}   Repair: {r['repair_count']}   "
+          f"Review: {r['review_count']}   Failed: {r['failed_count']}\n")
+    for i, it in enumerate(out["restaurants"], 1):
+        print("  %2d. %-26s %-7s score=%-4.2f dx=%-18s %s" % (
+            i, it["restaurant_name"][:26], it["verdict"], it["score"],
+            it["diagnosis"] or "-", it["reason"][:38]))
+    print("\nNEXT: python step.py gate")
+
+
+def gate():
+    from publication_gate import evaluate_publication_gate, GateAction, AutonomousStatus
+    res = _load("research")
+    gen = _load("generation")
+    scr = _load("scraping")
+    norm = _load("normalization")
+    val = _load("validation")
+
+    _hr("STAGE 7/8 — publication-gate (deterministic publish decision + shadow routing)")
+    out = evaluate_publication_gate({
+        "research": res,
+        "generation": gen,
+        "scraping": scr,
+        "normalization": norm,
+        "validation": val,
+    })
+    _save("gate", out)
+    r = out["result"]
+    print(f"Activated: {r['activated_count']}   Shadow: {r['shadow_count']}   "
+          f"Repair: {r['repair_count']}   Review: {r['review_count']}   "
+          f"Exception: {r['exception_count']}   Rejected: {r['rejected_count']}\n")
+    for i, d in enumerate(out["decisions"], 1):
+        print("  %2d. %-26s %-10s status=%-12s %s" % (
+            i, d["restaurant_name"][:26], d["action"], d["autonomous_status"], d["reason"][:42]))
+
+    # Persist shadow and active production configs to candidates.json
+    candidates_file = os.path.join(os.path.dirname(BASE), "config", "candidates.json")
+    try:
+        if os.path.exists(candidates_file):
+            with open(candidates_file, "r", encoding="utf-8") as f:
+                cands = json.load(f)
+        else:
+            cands = []
+        cand_map = {c["id"]: c for c in cands if isinstance(c, dict) and "id" in c}
+        for d in out["decisions"]:
+            if d.get("production_config"):
+                cfg = d["production_config"]
+                cand_map[cfg["id"]] = {
+                    "id": cfg["id"],
+                    "name": cfg["name"],
+                    "website": cfg.get("url"),
+                    "lunch_url": cfg.get("url"),
+                    "status": d["action"],
+                    "autonomous_status": d["autonomous_status"],
+                    "strategy": cfg.get("extractor"),
+                    "reason": d["reason"],
+                }
+        with open(candidates_file, "w", encoding="utf-8") as f:
+            json.dump(list(cand_map.values()), f, ensure_ascii=False, indent=2)
+        print(f"\n-> Updated candidates configuration in: {candidates_file}")
+    except Exception as exc:
+        print(f"\n-> Warning saving candidates: {exc}")
+
     print("\nNEXT: python step.py approval")
 
 
 def approval():
     from human_approval import ApprovalConfig, build_review_queue
-    _hr("STAGE 6/6 — human-approval (aggregate -> review queue)")
+    _hr("STAGE 8/8 — human-approval (review queue for exceptions & edge cases)")
     out = build_review_queue(
         {"discovery": _load("discovery"), "research": _load("research"),
          "generation": _load("generation"), "scraping": _load("scraping"),
-         "normalization": _load("normalization")},
+         "normalization": _load("normalization"), "validation": _load("validation"),
+         "gate": _load("gate")},
         config=ApprovalConfig(db_path=APPROVAL_DB))
     q = out["result"]
     print(f"Queued: {q['total']}   Pending: {q['pending']}   Approved: {q['approved']}   "
@@ -305,12 +385,20 @@ def approval():
         print("  %2d. %-26s %-9s rec=%s" % (
             i, (it["restaurant_name"] or it["restaurant_id"])[:26], it["status"], it["recommendation"]))
     print(f"\nReview queue saved to: {APPROVAL_DB}")
-    print("Open the dashboard (already running) at http://127.0.0.1:8000 to approve/reject.")
+    print("Open the dashboard at http://127.0.0.1:8000 to review exceptions.")
 
 
-STAGES = {"discovery": discovery, "websites": websites, "research": research,
-          "generation": generation, "scraping": scraping, "normalization": normalization,
-          "approval": approval}
+STAGES = {
+    "discovery": discovery,
+    "websites": websites,
+    "research": research,
+    "generation": generation,
+    "scraping": scraping,
+    "normalization": normalization,
+    "validation": validation,
+    "gate": gate,
+    "approval": approval,
+}
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] not in STAGES:
@@ -320,3 +408,4 @@ if __name__ == "__main__":
         discovery(int(sys.argv[2]))
     else:
         STAGES[sys.argv[1]]()
+

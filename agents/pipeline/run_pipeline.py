@@ -28,7 +28,8 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 _BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 for _folder in ["restaurant-discovery", "restaurant-research", "scraper-generation",
-                "lunch-scraping", "lunch-normalization", "human-approval"]:
+                "lunch-scraping", "lunch-normalization", "source-validation",
+                "publication-gate", "scraper-repair", "human-approval"]:
     sys.path.insert(0, os.path.join(_BASE, _folder))
 
 from restaurant_discovery import DiscoveryConfig, discover_restaurants
@@ -36,6 +37,8 @@ from restaurant_research import ResearchConfig, research_restaurants
 from scraper_generation import GenerationConfig, generate_scrapers
 from lunch_scraping import ScrapingConfig, scrape_restaurants
 from lunch_normalization import normalize_menus
+from source_validation import validate_sources
+from publication_gate import evaluate_publication_gate
 from human_approval import ApprovalConfig, build_review_queue
 
 
@@ -44,13 +47,13 @@ def _log(msg: str) -> None:
 
 
 def run(city: str, country: str, target: int, db_path: str, timeout: int = 10) -> dict:
-    _log(f"[1/6] Discovering restaurants in {city} (OpenStreetMap)…")
+    _log(f"[1/8] Discovering restaurants in {city} (OpenStreetMap)…")
     disc = discover_restaurants(city, country, target, config=DiscoveryConfig(provider="overpass"))
     _log(f"      found {disc['result']['candidate_count']} candidates")
 
     with_site = [r for r in disc["restaurants"]
                  if r.get("official_website") and "facebook" not in r["official_website"]]
-    _log(f"[2/6] Researching {len(with_site)} with a website…")
+    _log(f"[2/8] Researching {len(with_site)} with a website…")
     research = research_restaurants(
         with_site, city=city, country=country,
         config=ResearchConfig(fetcher="http", request_timeout=timeout,
@@ -58,13 +61,13 @@ def run(city: str, country: str, target: int, db_path: str, timeout: int = 10) -
     rr = research["result"]
     _log(f"      confirmed {rr['confirmed_count']}, likely {rr['likely_count']}")
 
-    _log("[3/6] Generating + validating scraper recipes…")
+    _log("[3/8] Generating + validating scraper recipes…")
     gen = generate_scrapers(research, city=city,
                             config=GenerationConfig(fetcher="http", request_timeout=timeout,
                                                    max_fetches_total=200))
     _log(f"      validated {gen['result']['validated_count']}")
 
-    _log("[4/6] Scraping lunch pages…")
+    _log("[4/8] Scraping lunch pages…")
     pairs = [{
         "restaurant": {"restaurant_id": p["restaurant_id"], "restaurant_name": p["name"],
                        "lunch_source_url": p["lunch_page_url"]},
@@ -74,17 +77,34 @@ def run(city: str, country: str, target: int, db_path: str, timeout: int = 10) -
     scrape = scrape_restaurants(pairs, config=ScrapingConfig(fetcher="http", default_timeout=timeout))
     _log(f"      scraped {scrape['result']['success_count']} successfully")
 
-    _log("[5/6] Normalizing menus…")
+    _log("[5/8] Normalizing menus…")
     norm = normalize_menus(scrape)
     _log(f"      normalized {norm['result']['normalized_count']}")
 
-    _log("[6/6] Building the human-approval review queue…")
+    _log("[6/8] Independently validating lunch source & intent…")
+    validation = validate_sources({
+        "research": research, "scraping": scrape, "normalization": norm,
+    })
+    vr = validation["result"]
+    _log(f"      passed {vr['passed_count']}, repair {vr['repair_count']}, review {vr['review_count']}")
+
+    _log("[7/8] Evaluating publication gate (deterministic routing)…")
+    gate = evaluate_publication_gate({
+        "research": research, "generation": gen, "scraping": scrape,
+        "normalization": norm, "validation": validation,
+    })
+    gr = gate["result"]
+    _log(f"      activated {gr['activated_count']}, shadow {gr['shadow_count']}, "
+         f"exceptions {gr['exception_count']}, rejected {gr['rejected_count']}")
+
+    _log("[8/8] Building the human-approval review queue for exceptions…")
     queue = build_review_queue(
         {"discovery": disc, "research": research, "generation": gen,
-         "scraping": scrape, "normalization": norm},
+         "scraping": scrape, "normalization": norm, "validation": validation,
+         "gate": gate},
         config=ApprovalConfig(db_path=db_path))
     q = queue["result"]
-    _log(f"      {q['total']} restaurants queued for review (all pending)")
+    _log(f"      {q['total']} restaurants queued for review")
     return queue
 
 
