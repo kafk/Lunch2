@@ -64,7 +64,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '0126')
 
-VERSION = '3.57'
+VERSION = '3.58'
 URLS_FILE = 'urls.json'
 RESTAURANTS_CONFIG_FILE = os.path.join('config', 'restaurants.json')
 COLLECTION_NAME = 'restaurants'
@@ -1704,10 +1704,17 @@ def _gemini_fetch_menu(url, reasons):
                 time.sleep(4)  # kvot/överbelastning är ofta kortvarig
                 continue
             if resp.status_code != 200:
-                reasons.append(f'Gemini {model}: HTTP {resp.status_code}')
+                detail = ''
+                try:
+                    message = resp.json().get('error', {}).get('message', '')
+                    detail = re.sub(r'\s+', ' ', str(message).replace(key.strip(), '[redacted]'))[:300]
+                except (ValueError, AttributeError):
+                    pass
+                reasons.append(f'Gemini {model}: HTTP {resp.status_code}' + (f' ({detail})' if detail else ''))
                 break
             try:
-                parts = resp.json()['candidates'][0]['content']['parts']
+                candidate = resp.json()['candidates'][0]
+                parts = candidate['content']['parts']
                 text = ''.join(p.get('text', '') for p in parts).strip()
             except (KeyError, IndexError, ValueError):
                 reasons.append(f'Gemini {model}: tomt svar')
@@ -1726,7 +1733,10 @@ def _gemini_fetch_menu(url, reasons):
                 page_week = int(m.group(1)) if m.group(1).isdigit() else None
                 text = text[m.end():].lstrip()
             return text, page_week
-        reasons.append(f'Gemini {model}: ingen meny i svaret')
+        retrieval = candidate.get('urlContextMetadata', {}).get('urlMetadata', [])
+        statuses = sorted({item.get('urlRetrievalStatus', '') for item in retrieval} - {''})
+        detail = ', '.join(statuses)
+        reasons.append(f'Gemini {model}: ingen meny i svaret' + (f' ({detail})' if detail else ''))
     return '', None
 
 
@@ -1750,7 +1760,7 @@ def scrape_kvartersmenyn(url, name, session):
     """Fetch Kvartersmenyn through the configured LLM provider."""
     try:
         reasons = []
-        if os.environ.get('OPENAI_API_KEY', '').strip():
+        if os.environ.get('MENU_LLM_PROVIDER', 'gemini').strip().lower() == 'openai':
             text = fetch_menu_via_openai(url, reasons)
             source = 'OpenAI (web search)'
         else:

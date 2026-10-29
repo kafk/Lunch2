@@ -136,13 +136,57 @@ class OpenAIIntegrationTests(unittest.TestCase):
             save.assert_not_called()
 
     def test_kvartersmenyn_uses_openai(self):
-        with patch.dict(os.environ, {'OPENAI_API_KEY': 'test-only'}), patch.object(
+        with patch.dict(os.environ, {'OPENAI_API_KEY': 'test-only', 'MENU_LLM_PROVIDER': 'openai'}), patch.object(
             self.application, 'fetch_menu_via_openai', return_value='Verified menu'
         ), patch.object(self.application, 'fetch_menu_via_gemini') as gemini:
             result = self.application.scrape_kvartersmenyn('https://example.test/', 'Test', None)
             self.assertTrue(result['success'])
             self.assertEqual(result['source'], 'OpenAI (web search)')
             gemini.assert_not_called()
+
+    def test_kvartersmenyn_defaults_to_gemini_with_openai_key(self):
+        with patch.dict(os.environ, {'OPENAI_API_KEY': 'test-only', 'MENU_LLM_PROVIDER': ''}), patch.object(
+            self.application, 'fetch_menu_via_gemini', return_value='Verified Gemini menu'
+        ) as gemini, patch.object(self.application, 'fetch_menu_via_openai') as openai:
+            result = self.application.scrape_kvartersmenyn('https://example.test/', 'Test', None)
+            self.assertTrue(result['success'])
+            self.assertEqual(result['source'], 'Gemini (url_context)')
+            gemini.assert_called_once()
+            openai.assert_not_called()
+
+    def test_gemini_failure_does_not_call_disabled_openai(self):
+        with patch.dict(os.environ, {'OPENAI_API_KEY': 'test-only', 'MENU_LLM_PROVIDER': 'gemini'}), patch.object(
+            self.application, 'fetch_menu_via_gemini', return_value=''
+        ), patch.object(self.application, 'fetch_menu_via_openai') as openai:
+            result = self.application.scrape_kvartersmenyn('https://example.test/', 'Test', None)
+            self.assertFalse(result['success'])
+            openai.assert_not_called()
+
+    def test_gemini_quota_diagnostic_redacts_key_without_retry(self):
+        reasons = []
+        response = Mock(status_code=429, json=lambda: {
+            'error': {'message': 'Quota exceeded for test-secret'}
+        })
+        with patch.dict(os.environ, {'GEMINI_API_KEY': 'test-secret'}), patch.object(
+            self.application.requests, 'post', return_value=response
+        ) as post, patch.object(self.application.time, 'sleep') as sleep:
+            self.assertEqual(self.application._gemini_fetch_menu('https://example.test/', reasons), ('', None))
+            self.assertEqual(post.call_count, 2)
+            sleep.assert_not_called()
+            self.assertTrue(all('HTTP 429' in reason and 'Quota exceeded' in reason for reason in reasons))
+            self.assertNotIn('test-secret', ' '.join(reasons))
+
+    def test_gemini_url_failure_is_reported(self):
+        reasons = []
+        response = Mock(status_code=200, json=lambda: {'candidates': [{
+            'content': {'parts': [{'text': 'INGEN_MENY'}]},
+            'urlContextMetadata': {'urlMetadata': [{'urlRetrievalStatus': 'URL_RETRIEVAL_STATUS_ERROR'}]},
+        }]})
+        with patch.dict(os.environ, {'GEMINI_API_KEY': 'test-only'}), patch.object(
+            self.application.requests, 'post', return_value=response
+        ):
+            self.assertEqual(self.application._gemini_fetch_menu('https://example.test/', reasons), ('', None))
+            self.assertIn('URL_RETRIEVAL_STATUS_ERROR', ' '.join(reasons))
 
 
 if __name__ == '__main__':
