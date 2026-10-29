@@ -64,7 +64,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '0126')
 
-VERSION = '3.56'
+VERSION = '3.57'
 URLS_FILE = 'urls.json'
 RESTAURANTS_CONFIG_FILE = os.path.join('config', 'restaurants.json')
 COLLECTION_NAME = 'restaurants'
@@ -1730,13 +1730,32 @@ def _gemini_fetch_menu(url, reasons):
     return '', None
 
 
+def fetch_menu_via_openai(url, reasons):
+    from engine.openai_menu import fetch_openai_menu
+
+    year, week = _current_week()
+    week_key = f'{year}-W{week:02d}'
+    cache_key = 'openai:' + url
+    if not _BYPASS_WEEKLY_CACHE.get():
+        cached = _weekly_get(cache_key, week_key)
+        if cached:
+            return cached
+    text = fetch_openai_menu(url, year, week, reasons)
+    if text:
+        _weekly_put(cache_key, week_key, text)
+    return text
+
+
 def scrape_kvartersmenyn(url, name, session):
-    """Custom scraper för kvartersmenyn.se – hämtar via Gemini eftersom sajten blockerar vår server."""
+    """Fetch Kvartersmenyn through the configured LLM provider."""
     try:
-        # Servern blockeras alltid med 403 av kvartersmenyn.se, så vi går direkt till Gemini.
         reasons = []
-        text = fetch_menu_via_gemini(url, reasons)
-        source = 'Gemini (url_context)'
+        if os.environ.get('OPENAI_API_KEY', '').strip():
+            text = fetch_menu_via_openai(url, reasons)
+            source = 'OpenAI (web search)'
+        else:
+            text = fetch_menu_via_gemini(url, reasons)
+            source = 'Gemini (url_context)'
 
         if not text:
             return {
