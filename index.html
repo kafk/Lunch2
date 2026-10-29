@@ -16,7 +16,7 @@
       --border-darker: #cbd5e1;
       
       --text: #0f172a;
-      --text-muted: #475569;
+      --text-muted: #334155;
       --text-dim: #64748b;
       --text-faint: #94a3b8;
       
@@ -55,7 +55,7 @@
       font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       min-height: 100vh;
       line-height: 1.5;
-      padding-bottom: 70px;
+      padding-bottom: 80px;
       -webkit-font-smoothing: antialiased;
     }
 
@@ -277,11 +277,19 @@
       font-size: 14px;
     }
 
-    /* Filters */
+    /* Filters Bar */
+    .filter-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
     .filter-bar {
       display: flex;
       gap: 8px;
-      margin-bottom: 18px;
       flex-wrap: wrap;
     }
 
@@ -309,23 +317,35 @@
       border-color: var(--text);
     }
 
+    .toggle-all-btn {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      color: var(--primary);
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+    }
+    .toggle-all-btn:hover {
+      background: var(--primary-subtle);
+      border-color: var(--primary-border);
+    }
+
     /* Candidates List */
     .candidates-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 16px;
     }
 
     .cand-item {
       background: var(--surface);
       border: 1px solid var(--surface-border);
       border-radius: var(--radius-md);
-      padding: 18px 22px;
+      padding: 22px 24px;
       box-shadow: var(--shadow-sm);
-      display: grid;
-      grid-template-columns: 270px 1fr 180px;
-      gap: 20px;
-      align-items: center;
       transition: border-color 0.15s ease;
     }
 
@@ -333,8 +353,16 @@
       border-color: var(--border-darker);
     }
 
-    .cand-meta h3 {
-      font-size: 15.5px;
+    .cand-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .cand-title-block h3 {
+      font-size: 16px;
       font-weight: 700;
       color: var(--text);
       margin-bottom: 3px;
@@ -342,61 +370,21 @@
 
     .cand-id {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      color: var(--text-dim);
-    }
-
-    .cand-diagnostics {
-      font-size: 13px;
-    }
-
-    .diag-label {
-      color: var(--text-dim);
       font-size: 11.5px;
-      font-weight: 600;
-      margin-bottom: 3px;
+      color: var(--text-dim);
     }
 
-    .diag-reason {
-      color: var(--text);
-      font-weight: 500;
-      line-height: 1.4;
-    }
-
-    .score-breakdown {
+    .cand-status-block {
       display: flex;
+      align-items: center;
       gap: 10px;
-      margin-top: 8px;
-      flex-wrap: wrap;
-    }
-
-    .score-pill {
-      font-size: 11px;
-      font-family: 'JetBrains Mono', monospace;
-      padding: 2px 7px;
-      border-radius: 4px;
-      background: var(--surface-subtle);
-      border: 1px solid var(--surface-border);
-      color: var(--text-muted);
-    }
-
-    .score-pill span {
-      color: var(--text);
-      font-weight: 600;
-    }
-
-    .cand-status-col {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 6px;
     }
 
     .status-pill {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 4px 11px;
+      padding: 4px 12px;
       border-radius: 999px;
       font-size: 11.5px;
       font-weight: 700;
@@ -428,37 +416,183 @@
       border: 1px solid var(--surface-border);
     }
 
-    .score-badge {
-      font-family: 'JetBrains Mono', monospace;
+    .expand-btn {
+      background: var(--surface-subtle);
+      border: 1px solid var(--surface-border);
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
       font-size: 12px;
-      color: var(--text-dim);
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .expand-btn:hover {
+      background: #e2e8f0;
+      color: var(--text);
     }
 
-    .cand-evidence {
-      grid-column: 1 / -1;
-      border-top: 1px solid var(--surface-subtle);
-      padding-top: 12px;
-      margin-top: 4px;
-      font-size: 12px;
-      color: var(--text-muted);
+    /* Summary Bar */
+    .cand-summary-row {
+      margin: 12px 0 16px;
+      padding: 10px 14px;
+      background: var(--surface-subtle);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      color: var(--text);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 16px;
+      flex-wrap: wrap;
+      gap: 10px;
     }
 
-    .raw-preview {
+    .score-breakdown {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .score-pill {
+      font-size: 11px;
       font-family: 'JetBrains Mono', monospace;
-      background: var(--surface-subtle);
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: var(--surface);
       border: 1px solid var(--surface-border);
-      padding: 6px 10px;
-      border-radius: var(--radius-sm);
       color: var(--text-muted);
-      max-width: 820px;
+    }
+
+    .score-pill span {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    /* Full Details Panel (Shows ALL text) */
+    .details-panel {
+      border-top: 1px solid var(--surface-border);
+      padding-top: 18px;
+      margin-top: 14px;
+    }
+
+    .details-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 20px;
+    }
+
+    .details-col h4 {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Full Raw Content Box (Preserves all text unclipped) */
+    .raw-full-box {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      background: #ffffff;
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      color: #1e293b;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 380px;
+      overflow-y: auto;
+    }
+
+    /* Normalized Menu Listing */
+    .dishes-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      background: #ffffff;
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius-sm);
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+    }
+
+    .dishes-table th {
+      background: var(--surface-subtle);
+      text-align: left;
+      padding: 8px 12px;
+      font-weight: 600;
       font-size: 11.5px;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--surface-border);
+    }
+
+    .dishes-table td {
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--surface-subtle);
+      vertical-align: top;
+    }
+
+    .dishes-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .day-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      color: var(--primary);
+      font-size: 11px;
+    }
+
+    .price-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .flagged-item {
+      background: var(--red-bg);
+      color: var(--red);
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      display: inline-block;
+      margin-top: 4px;
+    }
+
+    /* Validation Checks Audit Table */
+    .checks-box {
+      margin-top: 14px;
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius-sm);
+      background: #ffffff;
+      padding: 12px 16px;
+      font-size: 12px;
+    }
+
+    .check-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 0;
+      border-bottom: 1px solid var(--surface-subtle);
+    }
+    .check-line:last-child {
+      border-bottom: none;
+    }
+
+    .check-name {
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .check-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
     }
 
     /* Comparison Box */
@@ -556,12 +690,11 @@
     }
 
     @media (max-width: 900px) {
-      .cand-item {
+      .details-grid {
         grid-template-columns: 1fr;
-        gap: 12px;
       }
-      .cand-status-col {
-        align-items: flex-start;
+      .cand-top-row {
+        flex-direction: column;
       }
       .comparison-grid {
         grid-template-columns: 1fr;
@@ -657,141 +790,385 @@
       <div class="flow-badge" style="background:var(--green-bg); color:var(--green); border-color:var(--green-border)">ACTIVE PRODUCTION (Live)</div>
     </div>
 
-    <!-- Candidate Inspector -->
-    <div class="section-title">Live Pipeline Decision Inspector</div>
+    <!-- Candidate Inspector with FULL Text -->
+    <div class="section-title">Live Candidate Inspector — Full Text & Evidence View</div>
     
-    <div class="filter-bar">
-      <button class="filter-btn active" onclick="filterCandidates('all', this)">All Candidates (5)</button>
-      <button class="filter-btn" onclick="filterCandidates('active', this)">Active (1)</button>
-      <button class="filter-btn" onclick="filterCandidates('shadow', this)">Shadow Mode (1)</button>
-      <button class="filter-btn" onclick="filterCandidates('repair', this)">Automatic Repair (2)</button>
-      <button class="filter-btn" onclick="filterCandidates('rejected', this)">Rejected (1)</button>
+    <div class="filter-row">
+      <div class="filter-bar">
+        <button class="filter-btn active" onclick="filterCandidates('all', this)">All Candidates (5)</button>
+        <button class="filter-btn" onclick="filterCandidates('active', this)">Active (1)</button>
+        <button class="filter-btn" onclick="filterCandidates('shadow', this)">Shadow Mode (1)</button>
+        <button class="filter-btn" onclick="filterCandidates('repair', this)">Automatic Repair (2)</button>
+        <button class="filter-btn" onclick="filterCandidates('rejected', this)">Rejected (1)</button>
+      </div>
+      <button class="toggle-all-btn" onclick="toggleAllPanels()">Visa/Dölj alla texter</button>
     </div>
 
     <div class="candidates-list" id="candidatesContainer">
       
       <!-- Candidate 1: Tildas Active -->
       <div class="cand-item" data-category="active">
-        <div class="cand-meta">
-          <h3>Tildas Restaurang</h3>
-          <div class="cand-id">id: tildas &bull; Gothenburg</div>
-        </div>
-        <div class="cand-diagnostics">
-          <div class="diag-label">Gate Decision & Diagnosis</div>
-          <div class="diag-reason">Promoted to live production. 2nd independent validation pass verified across schedule.</div>
-          <div class="score-breakdown">
-            <div class="score-pill">Score: <span>0.98</span></div>
-            <div class="score-pill">Intent: <span>1.0</span></div>
-            <div class="score-pill">Price: <span>135 SEK</span></div>
-            <div class="score-pill">Days: <span>5/5</span></div>
+        <div class="cand-top-row">
+          <div class="cand-title-block">
+            <h3>Tildas Restaurang</h3>
+            <div class="cand-id">id: tildas &bull; URL: https://tildasrestaurang.com/lunch/</div>
+          </div>
+          <div class="cand-status-block">
+            <span class="status-pill status-active">&bull; ACTIVE (LIVE)</span>
+            <button class="expand-btn" onclick="toggleCard(this)">Full text ▾</button>
           </div>
         </div>
-        <div class="cand-status-col">
-          <span class="status-pill status-active">&bull; ACTIVE</span>
-          <span class="score-badge">enabled: true</span>
+
+        <div class="cand-summary-row">
+          <div><strong>Beslut:</strong> Promoterad till skarp drift! Andra oberoende valideringen verifierad över tid.</div>
+          <div class="score-breakdown">
+            <div class="score-pill">Total: <span>0.98</span></div>
+            <div class="score-pill">Intent: <span>1.0</span></div>
+            <div class="score-pill">Priser: <span>100% OK</span></div>
+            <div class="score-pill">Dagar: <span>5/5</span></div>
+          </div>
         </div>
-        <div class="cand-evidence">
-          <div class="raw-preview">Veckans lunch på Tildas: Måndag Wallenbergare 135 kr, Tisdag Stekt strömming 135 kr, Onsdag Pasta...</div>
-          <span style="color:var(--green); font-weight:600">✔ Clean proof</span>
+
+        <!-- Full Text Details -->
+        <div class="details-panel">
+          <div class="details-grid">
+            <div class="details-col">
+              <h4>📄 Fullständig råtext från källsidan (Hämtat av skrapan)</h4>
+              <pre class="raw-full-box">Veckans lunch på Tildas Restaurang
+Lunch serveras måndag till fredag 11:00 - 14:00.
+I lunchen ingår stor salladsbuffé, nybakat bröd, smör, kaffe och måltidsdryck.
+Pris: 135 kr (Pensionärspris efter 13:00: 120 kr).
+
+Måndag:
+- Klassisk Wallenbergare med rårörda lingon, gröna ärtor och hemlagat potatismos (135 kr)
+- Krämig saffranspasta med lax och räkor (135 kr)
+
+Tisdag:
+- Stekt strömming med skirat smör, citron och potatispuré (135 kr)
+- Raggmunk med stekt fläsk och rårörda lingon (135 kr)
+
+Onsdag:
+- Pasta bolognese på högrev toppad med riven Grana Padano (129 kr)
+- Gratinerad torskrygg med senapssås och kokt potatis (135 kr)
+
+Torsdag:
+- Hemlagad ärtsoppa med fläsk samt nygräddade pannkakor med sylt och grädde (135 kr)
+- Kalvfärsbiffar med grönpepparsås och stekt potatis (135 kr)
+
+Fredag:
+- Panerad schnitzel med kryddsmör, bearnaisesås och klyftpotatis (139 kr)
+- Skaldjurslasagne med ruccolasallad (135 kr)</pre>
+            </div>
+
+            <div class="details-col">
+              <h4>🍽️ Normaliserad meny & Verifierade rätter</h4>
+              <table class="dishes-table">
+                <thead>
+                  <tr>
+                    <th>Dag</th>
+                    <th>Rätt</th>
+                    <th>Pris</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="day-badge">MÅNDAG</span></td>
+                    <td>Klassisk Wallenbergare med rårörda lingon och potatismos</td>
+                    <td class="price-tag">135 SEK</td>
+                  </tr>
+                  <tr>
+                    <td><span class="day-badge">TISDAG</span></td>
+                    <td>Stekt strömming med skirat smör och potatispuré</td>
+                    <td class="price-tag">135 SEK</td>
+                  </tr>
+                  <tr>
+                    <td><span class="day-badge">ONSDAG</span></td>
+                    <td>Pasta bolognese på högrev med Grana Padano</td>
+                    <td class="price-tag">129 SEK</td>
+                  </tr>
+                  <tr>
+                    <td><span class="day-badge">TORSDAG</span></td>
+                    <td>Hemlagad ärtsoppa med pannkakor sylt och grädde</td>
+                    <td class="price-tag">135 SEK</td>
+                  </tr>
+                  <tr>
+                    <td><span class="day-badge">FREDAG</span></td>
+                    <td>Panerad schnitzel med kryddsmör och klyftpotatis</td>
+                    <td class="price-tag">139 SEK</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="checks-box">
+                <div class="check-line"><span class="check-name">Intent Check (Lunch vs Middag)</span><span class="check-val" style="color:var(--green)">1.0 (PASS)</span></div>
+                <div class="check-line"><span class="check-name">Prisrimlighet (90–195 kr)</span><span class="check-val" style="color:var(--green)">1.0 (Snitt 135 kr)</span></div>
+                <div class="check-line"><span class="check-name">Kadens (Mån–Fre täckning)</span><span class="check-val" style="color:var(--green)">1.0 (5 av 5 dagar)</span></div>
+                <div class="check-line"><span class="check-name">Bevarande i källtext (Proximity)</span><span class="check-val" style="color:var(--green)">100% verifierat</span></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Candidate 2: Tildas 1st run Shadow -->
+      <!-- Candidate 2: Tildas Shadow -->
       <div class="cand-item" data-category="shadow">
-        <div class="cand-meta">
-          <h3>Tildas Restaurang (New Discovery)</h3>
-          <div class="cand-id">id: tildas_new &bull; Cold-start</div>
-        </div>
-        <div class="cand-diagnostics">
-          <div class="diag-label">Gate Decision & Diagnosis</div>
-          <div class="diag-reason">First validation pass verified. Placed into Shadow testing mode (invisible to users until tomorrow's run).</div>
-          <div class="score-breakdown">
-            <div class="score-pill">Score: <span>0.98</span></div>
-            <div class="score-pill">Run: <span>1/2</span></div>
-            <div class="score-pill">TargetSpec: <span>weekly</span></div>
+        <div class="cand-top-row">
+          <div class="cand-title-block">
+            <h3>Tildas Restaurang (Nyupptäckt kandidat)</h3>
+            <div class="cand-id">id: tildas_new &bull; Status: Cold-start probation</div>
+          </div>
+          <div class="cand-status-block">
+            <span class="status-pill status-shadow">&bull; SHADOW (Test 1/2)</span>
+            <button class="expand-btn" onclick="toggleCard(this)">Full text ▾</button>
           </div>
         </div>
-        <div class="cand-status-col">
-          <span class="status-pill status-shadow">&bull; SHADOW</span>
-          <span class="score-badge">enabled: false</span>
+
+        <div class="cand-summary-row">
+          <div><strong>Beslut:</strong> Första valideringen godkänd (0.98). Ligger i skuggläge (inaktiv på sajten) tills morgondagens schemalagda körning passerar.</div>
+          <div class="score-breakdown">
+            <div class="score-pill">Pass 1: <span>0.98</span></div>
+            <div class="score-pill">Pass 2: <span style="color:var(--purple)">Inväntas imorgon</span></div>
+            <div class="score-pill">Enabled: <span>false</span></div>
+          </div>
         </div>
-        <div class="cand-evidence">
-          <div class="raw-preview">TargetSpec: lunch_anchor='veckans lunch', expected_prices=[110, 160], cadence='weekly'</div>
-          <span style="color:var(--purple); font-weight:600">✔ Scheduled re-test pending</span>
+
+        <div class="details-panel">
+          <div class="details-grid">
+            <div class="details-col">
+              <h4>📄 Fastställd TargetSpec från Research</h4>
+              <pre class="raw-full-box">{
+  "target_url": "https://tildasrestaurang.com/lunch/",
+  "lunch_anchor": "veckans lunch",
+  "cadence": "weekly",
+  "expected_price_range": [110, 160],
+  "exclude_sections": [
+    "à la carte", "kvällsmeny", "middag", 
+    "catering", "brunch", "boka bord"
+  ],
+  "positive_signals": ["måndag", "tisdag", "onsdag", "torsdag", "fredag", "lunch"],
+  "week_number_hint": 44
+}</pre>
+            </div>
+            <div class="details-col">
+              <h4>🛡️ Varför publiceras den inte direkt?</h4>
+              <div class="checks-box">
+                <p style="color:var(--text-muted); font-size:12.5px; line-height:1.6;">
+                  En skrapa kan råka fungera en enstaka gång av ren slump eller för att en cachad sida råkade matcha. 
+                  Genom <strong>Shadow Mode</strong> körs skrapan om vid nästa ordinarie tidpunkt (imorgon bitti). 
+                  Om den då lyckas läsa in den nya dagens rätt utan mänsklig handpåläggning slås <code>enabled: true</code> på automatiskt.
+                </p>
+                <div class="check-line" style="margin-top:10px;"><span class="check-name">Konfiguration i databas:</span><span class="check-val">enabled: false</span></div>
+                <div class="check-line"><span class="check-name">Nästa planerade körning:</span><span class="check-val">Imorgon 06:00</span></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- Candidate 3: Kometen (Booking hours bug) -->
       <div class="cand-item" data-category="repair">
-        <div class="cand-meta">
-          <h3>Restaurang Kometen</h3>
-          <div class="cand-id">id: restaurang_kometen &bull; Vasagatan</div>
-        </div>
-        <div class="cand-diagnostics">
-          <div class="diag-label" style="color:var(--amber)">FILTERED: hours_or_booking_text</div>
-          <div class="diag-reason">Extracted opening hours ("tisd 11.30-20.00") and booking buttons as dishes. Blocked from publish.</div>
-          <div class="score-breakdown">
-            <div class="score-pill">Score: <span style="color:var(--amber)">0.66</span></div>
-            <div class="score-pill">Diagnosis: <span>hours_or_booking_text</span></div>
-            <div class="score-pill">Attempt: <span>1/2</span></div>
+        <div class="cand-top-row">
+          <div class="cand-title-block">
+            <h3>Restaurang Kometen (Boknings- & Öppettidsfällan)</h3>
+            <div class="cand-id">id: restaurang_kometen &bull; Vasagatan 58</div>
+          </div>
+          <div class="cand-status-block">
+            <span class="status-pill status-repair">&bull; REPAIR (AUTOMATISK REPARATION)</span>
+            <button class="expand-btn" onclick="toggleCard(this)">Full text ▾</button>
           </div>
         </div>
-        <div class="cand-status-col">
-          <span class="status-pill status-repair">&bull; REPAIR</span>
-          <span class="score-badge">diagnosis: wrong_content</span>
+
+        <div class="cand-summary-row">
+          <div><strong style="color:var(--amber)">Valideringsfel:</strong> Skrapan hämtade öppettider och bokningstext istället för lunchmat. Skickad till Scraper-Repair!</div>
+          <div class="score-breakdown">
+            <div class="score-pill">Poäng: <span style="color:var(--amber)">0.66</span></div>
+            <div class="score-pill">Diagnos: <span style="color:var(--amber)">hours_or_booking_text</span></div>
+            <div class="score-pill">Försök: <span>1 av 2</span></div>
+          </div>
         </div>
-        <div class="cand-evidence">
-          <div class="raw-preview">Måndag: - tisd 11.30-20.00 - onsd-fred 11.30-21.00 - För att boka bord använd onlinebokningen...</div>
-          <span style="color:var(--amber); font-weight:600">✖ Auto-repair triggered</span>
+
+        <div class="details-panel">
+          <div class="details-grid">
+            <div class="details-col">
+              <h4>📄 Fullständig råtext som skrapan felaktigt valde</h4>
+              <pre class="raw-full-box" style="border-color:var(--amber-border); background:#fffdf9;">Måndag:
+- tisd 11.30-20.00
+- onsd-fred 11.30-21.00
+
+Lördag:
+- 12.00-21.00
+- Söndagar 15.00-20.00
+- För att boka bord på Kometen så kan du antingen använda onlinebokningen eller ringa 031-13 79 88.
+- Vill du boka bord med kort varsel - ring oss, eller välkomna på drop in
+- BOKA NU
+- Restaurang Kometen Meny & Kontakt</pre>
+            </div>
+
+            <div class="details-col">
+              <h4>🍽️ Rätterna som blockerades från sajten</h4>
+              <table class="dishes-table">
+                <thead>
+                  <tr>
+                    <th>Dag</th>
+                    <th>"Rätt" som skrapan trodde fanns</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="day-badge">MÅNDAG</span></td>
+                    <td>tisd 11.30-20.00 <span class="flagged-item">ÖPPETTID (BLOCKERAD)</span></td>
+                    <td class="price-tag">—</td>
+                  </tr>
+                  <tr>
+                    <td><span class="day-badge">MÅNDAG</span></td>
+                    <td>onsd-fred 11.30-21.00 <span class="flagged-item">ÖPPETTID (BLOCKERAD)</span></td>
+                    <td class="price-tag">—</td>
+                  </tr>
+                  <tr>
+                    <td><span class="day-badge">LÖRDAG</span></td>
+                    <td>För att boka bord använd onlinebokningen <span class="flagged-item">BOKNINGSTEXT (BLOCKERAD)</span></td>
+                    <td class="price-tag">—</td>
+                  </tr>
+                  <tr>
+                    <td><span class="day-badge">LÖRDAG</span></td>
+                    <td>BOKA NU <span class="flagged-item">KNAPP/LÄNK (BLOCKERAD)</span></td>
+                    <td class="price-tag">—</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="checks-box">
+                <div class="check-line"><span class="check-name">Orsak:</span><span class="check-val" style="color:var(--amber)">hours_or_booking_text</span></div>
+                <div class="check-line"><span class="check-name">Åtgärd:</span><span class="check-val">Söker ny CSS-selektor för riktiga matblocket</span></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- Candidate 4: Aveny Grill (Dinner prices) -->
       <div class="cand-item" data-category="repair">
-        <div class="cand-meta">
-          <h3>Aveny Grill & Steak</h3>
-          <div class="cand-id">id: aveny_grill &bull; Kungsportsavenyn</div>
-        </div>
-        <div class="cand-diagnostics">
-          <div class="diag-label" style="color:var(--red)">FILTERED: price_out_of_bounds & wrong_content</div>
-          <div class="diag-reason">Scraper extracted evening À la carte (Oxfilé 345 kr, Entrecôte 320 kr) instead of midday lunch menu.</div>
-          <div class="score-breakdown">
-            <div class="score-pill">Score: <span style="color:var(--red)">0.57</span></div>
-            <div class="score-pill">Prices: <span>295–345 SEK</span></div>
-            <div class="score-pill">Max Allowed: <span>195 SEK</span></div>
+        <div class="cand-top-row">
+          <div class="cand-title-block">
+            <h3>Aveny Grill & Steakhouse (Kvällsmeny / À la carte)</h3>
+            <div class="cand-id">id: aveny_grill &bull; Kungsportsavenyn 14</div>
+          </div>
+          <div class="cand-status-block">
+            <span class="status-pill status-repair">&bull; REPAIR (PRISSTOPPAD)</span>
+            <button class="expand-btn" onclick="toggleCard(this)">Full text ▾</button>
           </div>
         </div>
-        <div class="cand-status-col">
-          <span class="status-pill status-repair">&bull; REPAIR</span>
-          <span class="score-badge">diagnosis: wrong_content</span>
+
+        <div class="cand-summary-row">
+          <div><strong style="color:var(--red)">Valideringsfel:</strong> Skrapan valde kvällens à la carte med oxfilé för 345 kr. Prisgränsen 195 kr överskreds!</div>
+          <div class="score-breakdown">
+            <div class="score-pill">Poäng: <span style="color:var(--red)">0.57</span></div>
+            <div class="score-pill">Priser: <span style="color:var(--red)">295–345 SEK</span></div>
+            <div class="score-pill">Max lunchpris: <span>195 SEK</span></div>
+          </div>
         </div>
-        <div class="cand-evidence">
-          <div class="raw-preview">Vår À la carte & Kvällsmeny: Oxfilé med tryffelsås 345 kr, Rödtunga Walewska 295 kr...</div>
-          <span style="color:var(--red); font-weight:600">✖ Blocked by price sanity</span>
+
+        <div class="details-panel">
+          <div class="details-grid">
+            <div class="details-col">
+              <h4>📄 Fullständig råtext från restaurangsidan</h4>
+              <pre class="raw-full-box" style="border-color:var(--red-border); background:#fffafa;">Välkommen till Aveny Grill
+Vår À la carte & Kvällsmeny serveras från kl 17:00 alla dagar.
+
+Förrätter:
+- Löjromstoast med rödlök, smetana och citron (185 kr)
+- Råbiff på svensk oxfilé med kapris och dijonnaise (165 kr)
+
+Varmrätter:
+- Helstekt Oxfilé med tryffelsås, sparris och pommes anna (345 kr)
+- Halstrad Rödtunga Walewska med hummersås och duchessepotatis (295 kr)
+- Hängmörad Entrecôte med bearnaisesås, rödvinssås och pommes frites (320 kr)
+- Smörstekt Fjällröding med sandefjordsås och forellrom (285 kr)
+
+Desserter:
+- Crème brûlée med färska hallon (115 kr)</pre>
+            </div>
+
+            <div class="details-col">
+              <h4>🍽️ Blockerade kvällsrätter</h4>
+              <table class="dishes-table">
+                <thead>
+                  <tr>
+                    <th>Typ</th>
+                    <th>Rätt</th>
+                    <th>Pris</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="day-badge" style="color:var(--red)">KVÄLL</span></td>
+                    <td>Helstekt Oxfilé med tryffelsås och pommes anna</td>
+                    <td class="price-tag" style="color:var(--red)">345 SEK <span class="flagged-item">FÖR DYR</span></td>
+                  </tr>
+                  <tr>
+                    <td><span class="day-badge" style="color:var(--red)">KVÄLL</span></td>
+                    <td>Hängmörad Entrecôte med bearnaise och pommes</td>
+                    <td class="price-tag" style="color:var(--red)">320 SEK <span class="flagged-item">FÖR DYR</span></td>
+                  </tr>
+                  <tr>
+                    <td><span class="day-badge" style="color:var(--red)">KVÄLL</span></td>
+                    <td>Halstrad Rödtunga Walewska med hummersås</td>
+                    <td class="price-tag" style="color:var(--red)">295 SEK <span class="flagged-item">FÖR DYR</span></td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="checks-box">
+                <div class="check-line"><span class="check-name">Intent Check:</span><span class="check-val" style="color:var(--red)">WRONG_CONTENT (À la carte träff)</span></div>
+                <div class="check-line"><span class="check-name">Priskoll (Max 195 kr):</span><span class="check-val" style="color:var(--red)">UNDERKÄND (Snitt 320 kr)</span></div>
+                <div class="check-line"><span class="check-name">Åtgärd:</span><span class="check-val">Scraper-repair söker lunchsektionen</span></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- Candidate 5: Bokcafé (No lunch) -->
       <div class="cand-item" data-category="rejected">
-        <div class="cand-meta">
-          <h3>Göteborgs Bokcafé</h3>
-          <div class="cand-id">id: bokcafe &bull; Haga</div>
-        </div>
-        <div class="cand-diagnostics">
-          <div class="diag-label">Gate Decision</div>
-          <div class="diag-reason">No weekday lunch offering or daily menu found during research stage. Discarded immediately.</div>
-          <div class="score-breakdown">
-            <div class="score-pill">Lunch Status: <span>not_found</span></div>
-            <div class="score-pill">Action: <span>immediate reject</span></div>
+        <div class="cand-top-row">
+          <div class="cand-title-block">
+            <h3>Göteborgs Bokcafé</h3>
+            <div class="cand-id">id: bokcafe &bull; Haga Nygata</div>
+          </div>
+          <div class="cand-status-block">
+            <span class="status-pill status-reject">&bull; REJECTED (AVBÖJD)</span>
+            <button class="expand-btn" onclick="toggleCard(this)">Full text ▾</button>
           </div>
         </div>
-        <div class="cand-status-col">
-          <span class="status-pill status-reject">&bull; REJECTED</span>
-          <span class="score-badge">status: rejected</span>
+
+        <div class="cand-summary-row">
+          <div><strong>Beslut:</strong> Ingen lunch serveras. Sorterades bort direkt i research-steget utan att skapa onödiga skrapor.</div>
+          <div class="score-breakdown">
+            <div class="score-pill">Lunch Status: <span>not_found</span></div>
+            <div class="score-pill">Åtgärd: <span>permanent avvisad</span></div>
+          </div>
         </div>
-        <div class="cand-evidence">
-          <div class="raw-preview">Homepage evaluated: café, fika, böcker. No midday lunch menu found.</div>
-          <span style="color:var(--text-dim)">Permanent rejection</span>
+
+        <div class="details-panel">
+          <div class="details-grid">
+            <div class="details-col">
+              <h4>📄 Fullständig text från startsidan</h4>
+              <pre class="raw-full-box">Välkommen till Göteborgs Bokcafé!
+Här hittar du litteratur, politisk debatt, begagnade böcker och gott kaffe.
+Vi serverar ekologiskt kaffe, te, kanelbullar, morotskaka och veganska smörgåsar.
+Öppettider: Tisdag–Fredag 14:00–18:00, Lördag–Söndag 12:00–16:00.
+Välkommen in och bläddra i vårt arkiv eller slå dig ner med en bok!</pre>
+            </div>
+            <div class="details-col">
+              <h4>🛡️ Research-analys</h4>
+              <div class="checks-box">
+                <div class="check-line"><span class="check-name">Lunch-nyckelord i text:</span><span class="check-val">Saknas helt</span></div>
+                <div class="check-line"><span class="check-name">Öppettider över lunch:</span><span class="check-val">Öppnar först kl 14:00</span></div>
+                <div class="check-line"><span class="check-name">Resultat:</span><span class="check-val" style="color:var(--text-dim)">Kandidaten avfärdas rent och sparas inte i kön.</span></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -799,33 +1176,33 @@
 
     <!-- Comparison Section -->
     <div class="comparison-section">
-      <h3>Why the Pipeline Changes Everything</h3>
+      <h3>Varför detta system förändrar allt</h3>
       <p style="color:var(--text-dim); font-size:13.5px; margin-top:3px;">
-        Comparing naive text extraction against deterministic intent validation.
+        Jämförelse mellan gamla naiva extraheringar och nya deterministiska kvalitetsportar.
       </p>
 
       <div class="comparison-grid">
         <div class="comp-col">
-          <h4 style="color:var(--red)">❌ Previous Failure Mode (Selection Trap)</h4>
+          <h4 style="color:var(--red)">❌ Tidigare problem (Urvalsfällan)</h4>
           <div class="comp-box">
             <ul>
-              <li><strong>Scraper only checked extraction:</strong> As long as text contained food words or prices, it assumed it succeeded.</li>
-              <li><strong>Dinner menus leaked:</strong> À la carte dishes at 345 kr were published onto Lunchdejt.</li>
-              <li><strong>Booking widgets extracted as dishes:</strong> Opening hours ("tisd 11.30-20.00") became fake menu entries.</li>
-              <li><strong>Human choked with volume:</strong> Required approving 100% of discovered candidates manually.</li>
+              <li><strong>Skrapan kontrollerade bara träff:</strong> Fanns det ord och siffror antogs allt vara rätt.</li>
+              <li><strong>Kvällsmenyer läckte ut:</strong> Oxfilé för 345 kr lades upp som dagens lunch på Lunchdejt.</li>
+              <li><strong>Bokningstext blev maträtter:</strong> "tisd 11.30-20.00" och "BOKA NU" tolkades som maträtter.</li>
+              <li><strong>100% manuellt arbete:</strong> Du tvingades granska och godkänna varenda restaurang för hand.</li>
             </ul>
           </div>
         </div>
 
         <div class="comp-col">
-          <h4 style="color:var(--green)">✔ Autonomous Validation & Gate</h4>
+          <h4 style="color:var(--green)">✔ Nya autonoma porten</h4>
           <div class="comp-box">
             <ul>
-              <li><strong>TargetSpec generated first:</strong> Research identifies what lunch looks like before code is generated.</li>
-              <li><strong>Selection & Intent verification:</strong> Compares candidates against negative signals and lunch anchors.</li>
-              <li><strong>Deterministic price sanity:</strong> Rejects dishes exceeding typical Swedish lunch pricing (90–195 SEK).</li>
-              <li><strong>Shadow mode testing:</strong> Must pass two scheduled scrapes across time before public activation.</li>
-              <li><strong>Human is an exception queue:</strong> Only inspects the 5% that fail automated repair attempts.</li>
+              <li><strong>TargetSpec skapas först:</strong> Research fastställer vad som faktiskt är lunch innan kod skapas.</li>
+              <li><strong>Innehålls- & avsiktsvalidering:</strong> Jämför träffar mot negativa sektioner (à la carte, bokning).</li>
+              <li><strong>Deterministisk priskoll:</strong> Blockerar automatiskt rätter över svensk lunchgräns (90–195 kr).</li>
+              <li><strong>Skuggläge (Shadow mode):</strong> Måste klara två oberoende schemalagda körningar innan aktivering.</li>
+              <li><strong>Människan blir en ren undantagskö:</strong> Du behöver bara titta på de 2–5% som fallerar 2 lagningsförsök.</li>
             </ul>
           </div>
         </div>
@@ -838,28 +1215,30 @@
       <div class="terminal-line">
         <span class="terminal-prompt">&gt;</span>
         <span class="terminal-cmd">python agents/source-validation/run_source_validation.py --demo</span>
-        <span class="terminal-comment"># Test 4 realistic validation scenarios offline</span>
+        <span class="terminal-comment"># Testa 4 realistiska valideringsfall offline</span>
       </div>
       <div class="terminal-line">
         <span class="terminal-prompt">&gt;</span>
         <span class="terminal-cmd">python agents/publication-gate/run_publication_gate.py --demo</span>
-        <span class="terminal-comment"># Test Shadow / Active / Repair / Exception gate</span>
+        <span class="terminal-comment"># Testa Shadow / Active / Repair / Exception-porten</span>
       </div>
       <div class="terminal-line">
         <span class="terminal-prompt">&gt;</span>
         <span class="terminal-cmd">python agents/pipeline/step.py validation</span>
-        <span class="terminal-comment"># Walk validation stage interactively</span>
+        <span class="terminal-comment"># Kör valideringssteget interaktivt</span>
       </div>
       <div class="terminal-line">
         <span class="terminal-prompt">&gt;</span>
         <span class="terminal-cmd">python agents/pipeline/run_pipeline.py --city "Göteborg"</span>
-        <span class="terminal-comment"># Run full 8-stage autonomous pipeline</span>
+        <span class="terminal-comment"># Kör hela autonoma pipelinen end-to-end</span>
       </div>
     </div>
 
   </div>
 
   <script>
+    let allExpanded = true;
+
     function filterCandidates(cat, btn) {
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
@@ -867,11 +1246,32 @@
       const items = document.querySelectorAll('.cand-item');
       items.forEach(it => {
         if (cat === 'all' || it.dataset.category === cat) {
-          it.style.display = 'grid';
+          it.style.display = 'block';
         } else {
           it.style.display = 'none';
         }
       });
+    }
+
+    function toggleCard(btn) {
+      const card = btn.closest('.cand-item');
+      const panel = card.querySelector('.details-panel');
+      if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        btn.textContent = 'Dölj text ▴';
+      } else {
+        panel.style.display = 'none';
+        btn.textContent = 'Full text ▾';
+      }
+    }
+
+    function toggleAllPanels() {
+      allExpanded = !allExpanded;
+      const panels = document.querySelectorAll('.details-panel');
+      const buttons = document.querySelectorAll('.expand-btn');
+      
+      panels.forEach(p => p.style.display = allExpanded ? 'block' : 'none');
+      buttons.forEach(b => b.textContent = allExpanded ? 'Dölj text ▴' : 'Full text ▾');
     }
   </script>
 </body>
