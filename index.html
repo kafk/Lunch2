@@ -1,12 +1,867 @@
 <!DOCTYPE html>
-<html>
+<html lang="sv">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="refresh" content="0; url=https://lunch2.vercel.app/">
-  <title>Lunch2</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lunchdejt — Autonomous Discovery & Validation Pipeline</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --surface: #121826;
+      --surface-elevated: #1a2234;
+      --surface-hover: #222c42;
+      --border: #232d42;
+      --border-bright: #344465;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.15);
+      
+      --green: #10b981;
+      --green-glow: rgba(16, 185, 129, 0.18);
+      --green-bg: rgba(16, 185, 129, 0.12);
+      
+      --amber: #f59e0b;
+      --amber-glow: rgba(245, 158, 11, 0.18);
+      --amber-bg: rgba(245, 158, 11, 0.12);
+      
+      --red: #ef4444;
+      --red-glow: rgba(239, 68, 68, 0.18);
+      --red-bg: rgba(239, 68, 68, 0.12);
+      
+      --purple: #a855f7;
+      --purple-bg: rgba(168, 85, 247, 0.12);
+      
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --radius-xl: 24px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      line-height: 1.5;
+      padding-bottom: 60px;
+    }
+
+    /* Ambient glow */
+    .glow-sphere {
+      position: fixed;
+      top: -120px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 350px;
+      background: radial-gradient(circle, rgba(56,189,248,0.12) 0%, rgba(16,185,129,0.05) 50%, transparent 70%);
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      padding: 36px 0 28px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .logo-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-badge {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, #0284c7, #10b981);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 0 20px rgba(56,189,248,0.25);
+    }
+
+    .title-area h1 {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .title-area p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+
+    .btn-secondary {
+      background: var(--surface-elevated);
+      color: var(--text);
+      border-color: var(--border);
+    }
+    .btn-secondary:hover {
+      background: var(--surface-hover);
+      border-color: var(--border-bright);
+    }
+
+    .btn-primary {
+      background: #0284c7;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #0369a1;
+      box-shadow: 0 0 16px rgba(2, 132, 199, 0.4);
+    }
+
+    /* Architecture Pipeline Flow */
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      margin: 36px 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .pipeline-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 36px;
+    }
+
+    .pipeline-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+      position: relative;
+      transition: all 0.25s ease;
+    }
+
+    .pipeline-card:hover {
+      border-color: var(--border-bright);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .pipeline-card.highlight {
+      border-color: rgba(56, 189, 248, 0.4);
+      background: linear-gradient(180deg, rgba(56, 189, 248, 0.06) 0%, var(--surface) 100%);
+    }
+
+    .pipeline-card.gate-card {
+      border-color: rgba(16, 185, 129, 0.4);
+      background: linear-gradient(180deg, rgba(16, 185, 129, 0.06) 0%, var(--surface) 100%);
+    }
+
+    .card-step-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .badge-new {
+      background: var(--accent-glow);
+      color: var(--accent);
+      padding: 2px 7px;
+      border-radius: 99px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-gate {
+      background: var(--green-glow);
+      color: var(--green);
+      padding: 2px 7px;
+      border-radius: 99px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .card-desc {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    .pipeline-arrows {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin: 12px 0 28px;
+      flex-wrap: wrap;
+    }
+
+    .flow-badge {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 14px;
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .flow-arrow {
+      color: var(--text-dim);
+      font-weight: 800;
+    }
+
+    /* Live Candidate Inspector */
+    .filter-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 7px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .filter-btn:hover {
+      color: var(--text);
+      border-color: var(--border-bright);
+    }
+
+    .filter-btn.active {
+      background: var(--surface-elevated);
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .candidates-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .cand-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: 280px 1fr 180px;
+      gap: 24px;
+      align-items: center;
+      transition: all 0.2s ease;
+    }
+
+    .cand-item:hover {
+      border-color: var(--border-bright);
+      background: var(--surface-elevated);
+    }
+
+    .cand-meta h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .cand-id {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      color: var(--text-dim);
+    }
+
+    .cand-diagnostics {
+      font-size: 13px;
+    }
+
+    .diag-label {
+      color: var(--text-muted);
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .diag-reason {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .score-breakdown {
+      display: flex;
+      gap: 14px;
+      margin-top: 8px;
+    }
+
+    .score-pill {
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.05);
+      color: var(--text-muted);
+    }
+
+    .score-pill span {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .cand-status-col {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .status-active {
+      background: var(--green-bg);
+      color: var(--green);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      box-shadow: 0 0 12px var(--green-glow);
+    }
+
+    .status-shadow {
+      background: var(--purple-bg);
+      color: var(--purple);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+    }
+
+    .status-repair {
+      background: var(--amber-bg);
+      color: var(--amber);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .status-reject {
+      background: var(--red-bg);
+      color: var(--red);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .status-exception {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border: 1px dashed rgba(239, 68, 68, 0.6);
+    }
+
+    .score-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    /* Modal / Details Drawer */
+    .cand-evidence {
+      grid-column: 1 / -1;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .raw-preview {
+      font-family: 'JetBrains Mono', monospace;
+      background: #070a12;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      color: #93c5fd;
+      max-width: 780px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Comparison Box */
+    .comparison-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 32px;
+      margin: 40px 0;
+    }
+
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      margin-top: 20px;
+    }
+
+    .comp-col h4 {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .comp-box {
+      background: var(--surface-elevated);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      border-left: 4px solid var(--border);
+    }
+
+    .comp-box.old {
+      border-left-color: var(--red);
+    }
+
+    .comp-box.new {
+      border-left-color: var(--green);
+    }
+
+    .comp-box ul {
+      list-style: none;
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .comp-box li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      color: var(--text-muted);
+    }
+
+    .comp-box li strong {
+      color: var(--text);
+    }
+
+    /* Terminal banner */
+    .terminal-box {
+      background: #070a12;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      margin-top: 30px;
+    }
+    .terminal-line {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+    .terminal-prompt {
+      color: var(--accent);
+      user-select: none;
+    }
+    .terminal-cmd {
+      color: #f8fafc;
+    }
+    .terminal-comment {
+      color: var(--text-dim);
+    }
+
+    @media (max-width: 900px) {
+      .cand-item {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+      .cand-status-col {
+        align-items: flex-start;
+      }
+      .comparison-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 <body>
-  <p>Redirecting to <a href="https://lunch2.vercel.app/">lunch2.vercel.app</a>...</p>
-  <script>window.location.href = "https://lunch2.vercel.app/";</script>
+
+  <div class="glow-sphere"></div>
+
+  <div class="container">
+    <header>
+      <div class="logo-group">
+        <div class="logo-badge">🍽️</div>
+        <div class="title-area">
+          <h1>Lunchdejt Autonomous Pipeline</h1>
+          <p>Deterministic Intent Verification & Publication Gate</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a href="https://github.com/kafk/Lunch2" target="_blank" class="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          GitHub Repo
+        </a>
+        <a href="https://lunch2.vercel.app/" target="_blank" class="btn btn-primary">
+          Launch Lunchdejt ↗
+        </a>
+      </div>
+    </header>
+
+    <!-- Pipeline Architecture -->
+    <div class="section-title">Autonomous 8-Stage Architecture</div>
+    
+    <div class="pipeline-grid">
+      <div class="pipeline-card">
+        <div class="card-step-num">STAGE 01</div>
+        <div class="card-title">Discovery</div>
+        <div class="card-desc">Extracts restaurant names, addresses, and candidate sites via OpenStreetMap Overpass.</div>
+      </div>
+
+      <div class="pipeline-card highlight">
+        <div class="card-step-num">STAGE 02 <span class="badge-new">TARGET SPEC</span></div>
+        <div class="card-title">Research & Spec</div>
+        <div class="card-desc">Identifies official lunch URLs and locks in the <code>TargetSpec</code>: cadence, lunch anchors, and price boundaries.</div>
+      </div>
+
+      <div class="pipeline-card">
+        <div class="card-step-num">STAGE 03</div>
+        <div class="card-title">Recipe Generation</div>
+        <div class="card-desc">Synthesizes and dry-runs CSS selectors or HTML weekday parsing strategies.</div>
+      </div>
+
+      <div class="pipeline-card">
+        <div class="card-step-num">STAGE 04</div>
+        <div class="card-title">Lunch Scraping</div>
+        <div class="card-desc">Fetches live DOM content, applies selectors, and records raw extracted text.</div>
+      </div>
+
+      <div class="pipeline-card">
+        <div class="card-step-num">STAGE 05</div>
+        <div class="card-title">Normalization</div>
+        <div class="card-desc">Transforms raw extractions into structured days, dishes, and price integers.</div>
+      </div>
+
+      <div class="pipeline-card highlight">
+        <div class="card-step-num">STAGE 06 <span class="badge-new">VALIDATOR</span></div>
+        <div class="card-title">Source Validation</div>
+        <div class="card-desc">Independently checks intent, price sanity (90–195 kr), calendar week freshness, and proximity proof.</div>
+      </div>
+
+      <div class="pipeline-card gate-card">
+        <div class="card-step-num">STAGE 07 <span class="badge-gate">QUALITY GATE</span></div>
+        <div class="card-title">Publication Gate</div>
+        <div class="card-desc">Zero LLM guesswork. Pure Python code routes into <code>SHADOW</code>, <code>ACTIVE</code>, or <code>REPAIR</code>.</div>
+      </div>
+
+      <div class="pipeline-card">
+        <div class="card-step-num">STAGE 08</div>
+        <div class="card-title">Exception Queue</div>
+        <div class="card-desc">Human review is strictly an exception queue for items that fail 2 automated repairs.</div>
+      </div>
+    </div>
+
+    <!-- Lifecycle Path -->
+    <div class="pipeline-arrows">
+      <div class="flow-badge">Candidate Scraped</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-badge" style="color:var(--accent); border-color:var(--accent)">1st Validation PASS</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-badge" style="color:var(--purple); border-color:var(--purple)">SHADOW (Background Test)</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-badge" style="color:var(--green); border-color:var(--green)">2nd Scheduled PASS</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-badge" style="background:var(--green-bg); color:var(--green); font-weight:800">ACTIVE PRODUCTION (Live)</div>
+    </div>
+
+    <!-- Candidate Inspector -->
+    <div class="section-title">Live Pipeline Decision Inspector</div>
+    
+    <div class="filter-bar">
+      <button class="filter-btn active" onclick="filterCandidates('all', this)">All Candidates (5)</button>
+      <button class="filter-btn" onclick="filterCandidates('active', this)">Active (1)</button>
+      <button class="filter-btn" onclick="filterCandidates('shadow', this)">Shadow Mode (1)</button>
+      <button class="filter-btn" onclick="filterCandidates('repair', this)">Automatic Repair (2)</button>
+      <button class="filter-btn" onclick="filterCandidates('rejected', this)">Rejected (1)</button>
+    </div>
+
+    <div class="candidates-list" id="candidatesContainer">
+      
+      <!-- Candidate 1: Tildas Active -->
+      <div class="cand-item" data-category="active">
+        <div class="cand-meta">
+          <h3>Tildas Restaurang</h3>
+          <div class="cand-id">id: tildas &bull; Gothenburg</div>
+        </div>
+        <div class="cand-diagnostics">
+          <div class="diag-label">Gate Decision & Diagnosis</div>
+          <div class="diag-reason">Promoted to live production! 2nd independent validation pass verified across schedule.</div>
+          <div class="score-breakdown">
+            <div class="score-pill">Score: <span>0.98</span></div>
+            <div class="score-pill">Intent: <span>1.0</span></div>
+            <div class="score-pill">Price: <span>135 SEK</span></div>
+            <div class="score-pill">Days: <span>5/5</span></div>
+          </div>
+        </div>
+        <div class="cand-status-col">
+          <span class="status-pill status-active">&bull; ACTIVE</span>
+          <span class="score-badge">enabled: true</span>
+        </div>
+        <div class="cand-evidence">
+          <div class="raw-preview">Veckans lunch på Tildas: Måndag Wallenbergare 135 kr, Tisdag Stekt strömming 135 kr, Onsdag Pasta...</div>
+          <span style="color:var(--green)">✔ Clean proof</span>
+        </div>
+      </div>
+
+      <!-- Candidate 2: Tildas 1st run Shadow -->
+      <div class="cand-item" data-category="shadow">
+        <div class="cand-meta">
+          <h3>Tildas Restaurang (New Discovery)</h3>
+          <div class="cand-id">id: tildas_new &bull; Cold-start</div>
+        </div>
+        <div class="cand-diagnostics">
+          <div class="diag-label">Gate Decision & Diagnosis</div>
+          <div class="diag-reason">First validation pass verified. Placed into Shadow testing mode (invisible to users until tomorrow's run).</div>
+          <div class="score-breakdown">
+            <div class="score-pill">Score: <span>0.98</span></div>
+            <div class="score-pill">Run: <span>1/2</span></div>
+            <div class="score-pill">TargetSpec: <span>weekly</span></div>
+          </div>
+        </div>
+        <div class="cand-status-col">
+          <span class="status-pill status-shadow">&bull; SHADOW</span>
+          <span class="score-badge">enabled: false</span>
+        </div>
+        <div class="cand-evidence">
+          <div class="raw-preview">TargetSpec: lunch_anchor='veckans lunch', expected_prices=[110, 160], cadence='weekly'</div>
+          <span style="color:var(--purple)">✔ Scheduled re-test pending</span>
+        </div>
+      </div>
+
+      <!-- Candidate 3: Kometen (Booking hours bug) -->
+      <div class="cand-item" data-category="repair">
+        <div class="cand-meta">
+          <h3>Restaurang Kometen</h3>
+          <div class="cand-id">id: restaurang_kometen &bull; Vasagatan</div>
+        </div>
+        <div class="cand-diagnostics">
+          <div class="diag-label" style="color:var(--amber)">BUG BLOCKED: hours_or_booking_text</div>
+          <div class="diag-reason">Extracted opening hours ("tisd 11.30-20.00") and booking buttons as dishes. Blocked from publish!</div>
+          <div class="score-breakdown">
+            <div class="score-pill">Score: <span style="color:var(--amber)">0.66</span></div>
+            <div class="score-pill">Diagnosis: <span>hours_or_booking_text</span></div>
+            <div class="score-pill">Attempt: <span>1/2</span></div>
+          </div>
+        </div>
+        <div class="cand-status-col">
+          <span class="status-pill status-repair">&bull; REPAIR</span>
+          <span class="score-badge">diagnosis: wrong_content</span>
+        </div>
+        <div class="cand-evidence">
+          <div class="raw-preview">Måndag: - tisd 11.30-20.00 - onsd-fred 11.30-21.00 - För att boka bord använd onlinebokningen...</div>
+          <span style="color:var(--amber)">✖ Auto-repair triggered</span>
+        </div>
+      </div>
+
+      <!-- Candidate 4: Aveny Grill (Dinner prices) -->
+      <div class="cand-item" data-category="repair">
+        <div class="cand-meta">
+          <h3>Aveny Grill & Steak</h3>
+          <div class="cand-id">id: aveny_grill &bull; Kungsportsavenyn</div>
+        </div>
+        <div class="cand-diagnostics">
+          <div class="diag-label" style="color:var(--red)">BUG BLOCKED: price_out_of_bounds & wrong_content</div>
+          <div class="diag-reason">Scraper extracted evening À la carte (Oxfilé 345 kr, Entrecôte 320 kr) instead of midday lunch menu.</div>
+          <div class="score-breakdown">
+            <div class="score-pill">Score: <span style="color:var(--red)">0.57</span></div>
+            <div class="score-pill">Prices: <span>295–345 SEK</span></div>
+            <div class="score-pill">Max Allowed: <span>195 SEK</span></div>
+          </div>
+        </div>
+        <div class="cand-status-col">
+          <span class="status-pill status-repair">&bull; REPAIR</span>
+          <span class="score-badge">diagnosis: wrong_content</span>
+        </div>
+        <div class="cand-evidence">
+          <div class="raw-preview">Vår À la carte & Kvällsmeny: Oxfilé med tryffelsås 345 kr, Rödtunga Walewska 295 kr...</div>
+          <span style="color:var(--red)">✖ Blocked by price sanity</span>
+        </div>
+      </div>
+
+      <!-- Candidate 5: Bokcafé (No lunch) -->
+      <div class="cand-item" data-category="rejected">
+        <div class="cand-meta">
+          <h3>Göteborgs Bokcafé</h3>
+          <div class="cand-id">id: bokcafe &bull; Haga</div>
+        </div>
+        <div class="cand-diagnostics">
+          <div class="diag-label">Gate Decision</div>
+          <div class="diag-reason">No weekday lunch offering or daily menu found during research stage. Discarded immediately.</div>
+          <div class="score-breakdown">
+            <div class="score-pill">Lunch Status: <span>not_found</span></div>
+            <div class="score-pill">Action: <span>immediate reject</span></div>
+          </div>
+        </div>
+        <div class="cand-status-col">
+          <span class="status-pill status-reject">&bull; REJECTED</span>
+          <span class="score-badge">status: rejected</span>
+        </div>
+        <div class="cand-evidence">
+          <div class="raw-preview">Homepage evaluated: café, fika, böcker. No midday lunch menu found.</div>
+          <span style="color:var(--text-dim)">Permanent rejection</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Comparison Section -->
+    <div class="comparison-section">
+      <h3 style="font-size:18px; font-weight:800; letter-spacing:-0.01em;">Why the Pipeline Changes Everything</h3>
+      <p style="color:var(--text-muted); font-size:14px; margin-top:4px;">
+        Comparing the old naive extraction against the new deterministic intent validation.
+      </p>
+
+      <div class="comparison-grid">
+        <div class="comp-col">
+          <h4 style="color:var(--red)">❌ Previous Failure Mode (Selection Trap)</h4>
+          <div class="comp-box old">
+            <ul>
+              <li><strong>Scraper only checked extraction:</strong> As long as text contained food words or prices, it assumed it succeeded.</li>
+              <li><strong>Dinner menus leaked:</strong> À la carte dishes at 345 kr were published onto Lunchdejt.</li>
+              <li><strong>Booking widgets extracted as dishes:</strong> Opening hours ("tisd 11.30-20.00") became fake menu entries.</li>
+              <li><strong>Human choked with volume:</strong> Required approving 100% of discovered candidates manually.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="comp-col">
+          <h4 style="color:var(--green)">✔ Autonomous Validation & Gate</h4>
+          <div class="comp-box new">
+            <ul>
+              <li><strong>TargetSpec generated first:</strong> Research identifies what lunch looks like before code is generated.</li>
+              <li><strong>Selection & Intent verification:</strong> Compares candidates against negative signals and lunch anchors.</li>
+              <li><strong>Deterministic price sanity:</strong> Rejects dishes exceeding typical Swedish lunch pricing (90–195 SEK).</li>
+              <li><strong>Shadow mode testing:</strong> Must pass two scheduled scrapes across time before public activation.</li>
+              <li><strong>Human is an exception queue:</strong> Only inspects the 5% that fail automated repair attempts.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLI Terminal Usage -->
+    <div class="section-title">Terminal Quick Commands</div>
+    <div class="terminal-box">
+      <div class="terminal-line">
+        <span class="terminal-prompt">&gt;</span>
+        <span class="terminal-cmd">python agents/source-validation/run_source_validation.py --demo</span>
+        <span class="terminal-comment"># Test 4 realistic validation scenarios offline</span>
+      </div>
+      <div class="terminal-line">
+        <span class="terminal-prompt">&gt;</span>
+        <span class="terminal-cmd">python agents/publication-gate/run_publication_gate.py --demo</span>
+        <span class="terminal-comment"># Test Shadow / Active / Repair / Exception gate</span>
+      </div>
+      <div class="terminal-line">
+        <span class="terminal-prompt">&gt;</span>
+        <span class="terminal-cmd">python agents/pipeline/step.py validation</span>
+        <span class="terminal-comment"># Walk validation stage interactively</span>
+      </div>
+      <div class="terminal-line">
+        <span class="terminal-prompt">&gt;</span>
+        <span class="terminal-cmd">python agents/pipeline/run_pipeline.py --city "Göteborg"</span>
+        <span class="terminal-comment"># Run full 8-stage autonomous pipeline</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function filterCandidates(cat, btn) {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const items = document.querySelectorAll('.cand-item');
+      items.forEach(it => {
+        if (cat === 'all' || it.dataset.category === cat) {
+          it.style.display = 'grid';
+        } else {
+          it.style.display = 'none';
+        }
+      });
+    }
+  </script>
 </body>
 </html>
