@@ -1336,6 +1336,15 @@
     // Last scraped timestamp display (static scraped time, not ticking clock)
     let lastScrapedTime = localStorage.getItem('lunch_last_scraped_at') || null;
 
+    function formatDateTimeIso(d) {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hours}:${minutes}`;
+    }
+
     function renderScrapedDateTime(timestamp) {
         if (timestamp) {
             lastScrapedTime = timestamp;
@@ -1343,6 +1352,7 @@
         }
         const dtEl = document.getElementById('currentDateTime');
         if (!dtEl) return;
+        const label = currentLang === 'en' ? 'Last updated' : 'Uppdaterades senast';
         if (!lastScrapedTime) {
             dtEl.textContent = currentLang === 'en' ? 'Not scraped yet' : 'Ej hämtad än';
             return;
@@ -1354,17 +1364,12 @@
             }
             const d = new Date(iso);
             if (isNaN(d.getTime())) {
-                dtEl.textContent = lastScrapedTime;
+                dtEl.textContent = `${label} ${lastScrapedTime}`;
                 return;
             }
-            const locale = currentLang === 'en' ? 'en-GB' : 'sv-SE';
-            const options = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
-            const dateStr = d.toLocaleDateString(locale, options);
-            const timeStr = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
-            const label = currentLang === 'en' ? 'Last updated' : 'Uppdaterad senast';
-            dtEl.textContent = `${label} ${dateStr}  ${timeStr}`;
+            dtEl.textContent = `${label} ${formatDateTimeIso(d)}`;
         } catch {
-            dtEl.textContent = lastScrapedTime;
+            dtEl.textContent = `${label} ${lastScrapedTime}`;
         }
     }
     renderScrapedDateTime();
@@ -1517,7 +1522,10 @@
 
         // Use the actual scraping timestamp, not page load time
         const timestamp = updatedAt ? new Date(updatedAt) : new Date();
-        document.getElementById('lastUpdateTimeHeader').textContent = 'Uppdaterad: ' + timestamp.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+        const headerEl = document.getElementById('lastUpdateTimeHeader');
+        if (headerEl) {
+            headerEl.textContent = (currentLang === 'en' ? 'Last updated ' : 'Uppdaterades senast ') + formatDateTimeIso(timestamp);
+        }
 
         // Alerts - only for enabled restaurants that failed
         if (failed > 0) {
