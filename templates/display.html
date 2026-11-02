@@ -1831,7 +1831,7 @@
         };
 
         if (matches.length === 0) {
-            let plain = cleaned.split('\n').map(s => s.replace(/^[❖•\-\*]\s*/, '').trim()).filter(Boolean).join(' / ');
+            let plain = cleaned.split('\n').map(s => s.replace(/^[❖•\-\*]\s*/, '').trim()).filter(Boolean).join('\n');
             if (currentLang === 'en') plain = translateCulinaryText(plain);
             return plain;
         }
@@ -1848,7 +1848,7 @@
             
             parts.push(`${catName}: ${content}`);
         }
-        return parts.join(' / ');
+        return parts.join('\n');
     }
 
     function extractToday(text, restaurantName) {
@@ -2874,15 +2874,36 @@
                     </div>
                 `;
             } else {
-                // All other restaurants: single Veckans row
-                const formattedWeekly = formatWeeklyDishes(weeklyText, noteText);
-                const weeklyLabel = currentLang === 'en' ? 'Veckans' : 'Veckans';
+                // All other restaurants: render each weekly dish cleanly on its own row
+                const lines = weeklyText.split('\n')
+                    .map(l => l.trim())
+                    .filter(l => l.length > 0 && !/^(?:veckans|veckans\s+sallader|veckans\s+extrarätter|stående|alltid hos|alltid på):?$/i.test(l));
+
+                const isSaladsOnly = /sallad/i.test(weeklyText) && !/köttbullar|burgare|wallenbergare|schnitzel/i.test(weeklyText);
+                const weeklyTitle = isSaladsOnly
+                    ? (currentLang === 'en' ? 'Veckans sallader' : 'Veckans sallader')
+                    : (currentLang === 'en' ? 'Veckans' : 'Veckans');
+
+                if (lines.length > 0) {
                     html += `
-                        <div class="week-day-row">
-                            <strong class="category-label">${weeklyLabel}:</strong>
-                            <span class="week-dishes-text">${linkify(escapeHtml(formattedWeekly))}</span>
+                        <div class="week-day-row" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+                            <strong class="week-day-name">${weeklyTitle}:</strong>
+                            <div style="margin-top: 3px; display: flex; flex-direction: column; gap: 5px; width: 100%;">
+                                ${lines.map(line => {
+                                    let cleanLine = line.replace(/^[❖•\-\*]\s*/, '');
+                                    const cat = detectDishCategory(cleanLine);
+                                    cleanLine = cleanLine.replace(catPrefixStripRe, '');
+                                    if (currentLang === 'en') cleanLine = translateCulinaryText(cleanLine);
+                                    return `
+                                        <div style="display: flex; gap: 6px; align-items: baseline;">
+                                            <span class="week-dishes-text">${cat ? `<strong class="category-label">${cat}:</strong> ` : ''}${linkify(escapeHtml(cleanLine))}</span>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
                         </div>
                     `;
+                }
                 if (noteText) {
                     let displayNote = currentLang === 'en' ? translateCulinaryText(noteText) : noteText;
                     html += `
