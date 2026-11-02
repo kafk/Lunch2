@@ -1622,6 +1622,12 @@ def scrape_tsukihana(url, name, session):
 # Begränsa samtidiga Gemini-hämtningar så att parallell scrapning inte ger 429
 _GEMINI_FETCH_SLOTS = threading.Semaphore(2)
 
+# Misslyckade Gemini-hämtningar cachas en stund så att varje sidladdning/cron inte bränner kvot på samma fel
+_GEMINI_FAIL_TTL = 3 * 3600
+_GEMINI_FAILURES = {}
+# Efter HTTP 429 pausas alla Gemini-hämtningar en stund (kvoten återställs ändå inte direkt)
+_GEMINI_COOLDOWN = {'until': 0.0}
+
 # Gemini-hämtade menyer cachas per ISO-vecka; admin-test kringgår cachen och skriver över den
 _WEEKLY_MEMORY = {}
 _BYPASS_WEEKLY_CACHE = contextvars.ContextVar('bypass_weekly_cache', default=False)
@@ -1660,13 +1666,24 @@ def fetch_menu_via_gemini(url, reasons=None):
     reasons = reasons if reasons is not None else []
     year, week = _current_week()
     week_key = f'{year}-W{week:02d}'
-    if not _BYPASS_WEEKLY_CACHE.get():
+    bypass = _BYPASS_WEEKLY_CACHE.get()
+    if not bypass:
         cached = _weekly_get(url, week_key)
         if cached:
             return cached
+        failed = _GEMINI_FAILURES.get(url)
+        if failed and time.time() - failed[0] < _GEMINI_FAIL_TTL:
+            reasons.append(f'senaste Gemini-försöket misslyckades {time.strftime("%H:%M", time.localtime(failed[0]))}, väntar innan nytt försök ({failed[1]})')
+            return ''
+    if time.time() < _GEMINI_COOLDOWN['until'] and not bypass:
+        reasons.append('Gemini-kvoten är slut (HTTP 429), pausar anrop en stund')
+        return ''
+    start = len(reasons)
     text, page_week = _gemini_fetch_menu(url, reasons)
     if not text:
+        _GEMINI_FAILURES[url] = (time.time(), '; '.join(reasons[start:])[:200])
         return ''
+    _GEMINI_FAILURES.pop(url, None)
     # Sidan kan ligga kvar på förra veckans meny; visa den inte som aktuell
     if page_week and page_week != week:
         reasons.append(f'sidan visar vecka {page_week}, inte {week}')
@@ -1711,6 +1728,8 @@ def _gemini_fetch_menu(url, reasons):
                 except (ValueError, AttributeError):
                     pass
                 reasons.append(f'Gemini {model}: HTTP {resp.status_code}' + (f' ({detail})' if detail else ''))
+                if resp.status_code == 429:
+                    _GEMINI_COOLDOWN['until'] = time.time() + 15 * 60
                 break
             try:
                 candidate = resp.json()['candidates'][0]
@@ -1737,7 +1756,66 @@ def _gemini_fetch_menu(url, reasons):
         statuses = sorted({item.get('urlRetrievalStatus', '') for item in retrieval} - {''})
         detail = ', '.join(statuses)
         reasons.append(f'Gemini {model}: ingen meny i svaret' + (f' ({detail})' if detail else ''))
+        if 'URL_RETRIEVAL_STATUS_ERROR' in statuses:
+            # Googles hämtare blockeras av sajten; nästa modell använder samma hämtare, så spara kvoten
+            break
     return '', None
+
+
+_KVARTERS_SUBDOMAIN_IDS = {'ferrariskok': '16447', 'arya': '15855', 'saras': '16722'}
+
+
+def _kvartersmenyn_direct(url, session, reasons):
+    """Gratis direkthämtning av kvartersmenyn-HTML. Cloudflare blockerar datacenter-IP:n (Vercel, Google),
+    men från vanliga IP:n fungerar den, så prova alltid först innan Gemini-kvot används."""
+    rest_id = None
+    m = re.search(r'/rest/(\d+)', url)
+    if m:
+        rest_id = m.group(1)
+    else:
+        m = re.match(r'https?://([^.]+)\.kvartersmenyn\.se', url)
+        if m:
+            rest_id = next((v for k, v in _KVARTERS_SUBDOMAIN_IDS.items() if k in m.group(1).lower()), None)
+    if not rest_id:
+        return ''
+    candidate = f'https://www.kvartersmenyn.se/index.php/rest/{rest_id}'
+    try:
+        res = session.get(candidate, timeout=6, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'})
+    except requests.RequestException as e:
+        reasons.append(f'direkt: {type(e).__name__}')
+        return ''
+    if res.status_code != 200:
+        reasons.append(f'direkt: HTTP {res.status_code}')
+        return ''
+    soup = BeautifulSoup(res.content, 'html.parser')
+    meny = soup.select_one('div.menu_body') or soup.select_one('div.meny')
+    if not meny:
+        reasons.append('direkt: ingen meny i HTML (troligen blockerad)')
+        return ''
+    # Dolda <i>-taggar är vattenstämplar (t.ex. "caab:caec:..."), inte menytext
+    for hidden in meny.find_all('i'):
+        hidden.decompose()
+    for br in meny.find_all('br'):
+        br.replace_with('\n')
+    lines = [re.sub(r'\s+', ' ', line).strip() for line in meny.get_text('\n').split('\n')]
+    out = []
+    for line in lines:
+        if not line:
+            continue
+        if line in ('Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag') and out:
+            out.append('')
+        out.append(line)
+    text = '\n'.join(out).strip()
+    days = sum(1 for d in ('Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag') if d in text)
+    if days < 2:
+        reasons.append('direkt: menyn saknar veckodagar')
+        return ''
+    page_week = re.search(r'VECKA\s+(\d+)', soup.get_text(' '), re.IGNORECASE)
+    if page_week and int(page_week.group(1)) != _current_week()[1]:
+        reasons.append(f'direkt: sidan visar vecka {page_week.group(1)}')
+        return ''
+    return text
 
 
 def fetch_menu_via_openai(url, reasons):
@@ -1760,6 +1838,20 @@ def scrape_kvartersmenyn(url, name, session):
     """Fetch Kvartersmenyn through the configured LLM provider."""
     try:
         reasons = []
+        year, week = _current_week()
+        week_key = f'{year}-W{week:02d}'
+        text = _kvartersmenyn_direct(url, session, reasons)
+        if text:
+            # Lägg i veckocachen så att Vercel kan återanvända menyn även när servern själv blockeras
+            _weekly_put(url, week_key, text)
+            return {
+                'name': name,
+                'url': url,
+                'menu': text,
+                'success': True,
+                'source': 'HTML (Kvartersmenyn)',
+                'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+            }
         if os.environ.get('MENU_LLM_PROVIDER', 'gemini').strip().lower() == 'openai':
             text = fetch_menu_via_openai(url, reasons)
             source = 'OpenAI (web search)'

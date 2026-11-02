@@ -188,6 +188,35 @@ class OpenAIIntegrationTests(unittest.TestCase):
             self.assertEqual(self.application._gemini_fetch_menu('https://example.test/', reasons), ('', None))
             self.assertIn('URL_RETRIEVAL_STATUS_ERROR', ' '.join(reasons))
 
+    def test_kvartersmenyn_direct_html_skips_gemini(self):
+        html = ('<html><body>VECKA 44, 2026<div class="menu_body"><strong>Måndag</strong><br>Kålpudding'
+                '<br><i>caab:caec</i><br><strong>Tisdag</strong><br>Stekt fläsk</div></body></html>')
+        session = Mock()
+        session.get.return_value = Mock(status_code=200, content=html.encode('utf-8'))
+        with patch.object(self.application, '_current_week', return_value=(2026, 44)), patch.object(
+            self.application, '_weekly_put'
+        ) as save, patch.object(self.application, 'fetch_menu_via_gemini') as gemini:
+            result = self.application.scrape_kvartersmenyn('https://www.kvartersmenyn.se/index.php/rest/15855', 'Arya', session)
+            self.assertTrue(result['success'])
+            self.assertEqual(result['source'], 'HTML (Kvartersmenyn)')
+            self.assertNotIn('caab', result['menu'])
+            self.assertIn('Kålpudding', result['menu'])
+            gemini.assert_not_called()
+            save.assert_called_once()
+
+    def test_gemini_failure_is_cached_briefly(self):
+        url = 'https://example.test/fail-cache'
+        self.application._GEMINI_FAILURES.pop(url, None)
+        with patch.object(self.application, '_weekly_get', return_value=None), patch.object(
+            self.application, '_gemini_fetch_menu', return_value=('', None)
+        ) as fetch:
+            self.assertEqual(self.application.fetch_menu_via_gemini(url, []), '')
+            reasons = []
+            self.assertEqual(self.application.fetch_menu_via_gemini(url, reasons), '')
+            self.assertEqual(fetch.call_count, 1)
+            self.assertIn('väntar', ' '.join(reasons))
+        self.application._GEMINI_FAILURES.pop(url, None)
+
 
 if __name__ == '__main__':
     unittest.main()
