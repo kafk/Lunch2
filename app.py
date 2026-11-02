@@ -1706,7 +1706,13 @@ def _gemini_fetch_menu(url, reasons):
         'Ta med pris/inkluderat-rad sist om den finns. Hittar du ingen meny, svara exakt INGEN_MENY.'
     )
     payload = {'contents': [{'parts': [{'text': prompt}]}], 'tools': [{'url_context': {}}]}
-    for model in ('gemini-3.8-flash', 'gemini-3.5-flash-lite'):
+    # Välj EN modell per dag (roterar mellan modellerna dag för dag)
+    # På så sätt bränner vi inte dubbel kvot vid blockeringar, och provar en annan modell dagen efter
+    candidate_models = ('gemini-3.8-flash', 'gemini-3.5-flash-lite')
+    day_idx = swedish_now().timetuple().tm_yday % len(candidate_models)
+    selected_model = os.environ.get('GEMINI_MODEL', candidate_models[day_idx]).strip()
+
+    for model in (selected_model,):
         text = ''
         for attempt in range(2):
             try:
@@ -1860,6 +1866,20 @@ def scrape_kvartersmenyn(url, name, session):
             source = 'Gemini (url_context)'
 
         if not text:
+            # Fallback från fallback_menus.json (statisk säkerhetskopia) om LLM/scraping misslyckades
+            fb_file = os.path.join(os.path.dirname(__file__), 'fallback_menus.json')
+            if os.path.exists(fb_file):
+                try:
+                    with open(fb_file, 'r', encoding='utf-8') as f:
+                        fb_data = json.load(f)
+                    if name in fb_data and fb_data[name].get('menu'):
+                        fb_item = dict(fb_data[name])
+                        fb_item['source'] = f"{fb_item.get('source', 'Fallback')} (fallback)"
+                        fb_item['fallback_used'] = True
+                        return fb_item
+                except Exception as fb_err:
+                    reasons.append(f"fallback_err: {fb_err}")
+
             return {
                 'name': name,
                 'url': url,

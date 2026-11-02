@@ -171,7 +171,7 @@ class OpenAIIntegrationTests(unittest.TestCase):
             self.application.requests, 'post', return_value=response
         ) as post, patch.object(self.application.time, 'sleep') as sleep:
             self.assertEqual(self.application._gemini_fetch_menu('https://example.test/', reasons), ('', None))
-            self.assertEqual(post.call_count, 2)
+            self.assertEqual(post.call_count, 1)
             sleep.assert_not_called()
             self.assertTrue(all('HTTP 429' in reason and 'Quota exceeded' in reason for reason in reasons))
             self.assertNotIn('test-secret', ' '.join(reasons))
