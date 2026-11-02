@@ -1811,7 +1811,19 @@ def _kvartersmenyn_direct(url, session, reasons):
             continue
         if line in ('Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag') and out:
             out.append('')
-        out.append(line)
+            out.append(line)
+            continue
+        # Rensa bokstavsprefix (A. / A: / B: / 1. etc.)
+        cleaned_l = re.sub(r'^[A-Ea-e]\s*[:.]\s*', '', line)
+        cleaned_l = re.sub(r'^\d+\s*[:.)]\s*', '', cleaned_l)
+        # Fixa dubbelpunkter i text som 'FREDAGS SPECIAL..LANGOS'
+        cleaned_l = re.sub(r'\.{2,}', ' – ', cleaned_l)
+        # Snygga till dessert / fredagsfika
+        if re.match(r'^dessert\b', cleaned_l, re.I):
+            cleaned_l = re.sub(r'^dessert\s*[:.\s–-]*', 'Dessert: ', cleaned_l, flags=re.I)
+        elif re.search(r'bjuds p[åa] fredagsfika', cleaned_l, re.I):
+            cleaned_l = 'Dessert: Bjuds på fredagsfika'
+        out.append(cleaned_l)
     text = '\n'.join(out).strip()
     days = sum(1 for d in ('Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag') if d in text)
     if days < 2:

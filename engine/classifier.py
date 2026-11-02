@@ -185,9 +185,9 @@ class DishClassifier:
             'fisk', 'lax', 'torsk', 'sej', 'spätta', 'rödspätta', 'kolja', 'abborre', 'gös',
             'sill', 'strömming', 'tonfisk', 'hälleflundra', 'makrill', 'räkor', 'räka', 'kräftor',
             'musslor', 'skaldjur', 'fiskgratäng', 'fisksoppa', 'fiskfilé', 'fiskbiff', 'fiskburgare',
-            'fiskbullar', 'panerad fisk', 'havets', 'havskatt', 'fiskcurry'
+            'fiskbullar', 'panerad fisk', 'havets', 'havskatt', 'fiskcurry', 'queneller', 'sandfjordsås'
         ]
-        if any(re.search(rf'\b{re.escape(k)}', t) for k in fish_keywords) or any(k in t for k in ['lax', 'torsk', 'räk']):
+        if any(re.search(rf'\b{re.escape(k)}', t) for k in fish_keywords) or any(k in t for k in ['lax', 'torsk', 'räk', 'quenell']):
             return "Fisk"
 
         # 4. Burgare
