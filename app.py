@@ -2015,6 +2015,106 @@ def scrape_nordic_taste_lab(url, name, session):
         return None
 
 
+def scrape_kock_rock(url, name, session):
+    """Custom scraper för Kock & Rock.
+    
+    Hämtar dagens lunch (Mån-Fre) samt stående rätter (Mosluckan & Pastaluckan),
+    strukturerar upp dem tydligt med sektioner och filtrerar bort nyhetsbrevsformuläret.
+    """
+    try:
+        resp = session.get(url, timeout=12)
+        if resp.status_code != 200:
+            return None
+        soup = BeautifulSoup(resp.content, 'html.parser')
+        modules = soup.find_all(class_='et_pb_text')
+
+        daily_text = ''
+        extra_text = ''
+        for m in modules:
+            txt = m.get_text('\n', strip=True)
+            if 'MÅNDAG' in txt and 'FREDAG' in txt and not daily_text:
+                daily_text = txt
+            elif 'Wallenbergare' in txt and not extra_text:
+                extra_text = txt
+
+        if not daily_text:
+            return None
+
+        # Rensa bort eventuella nyhetsbrevsfraser och headerrader från daily_text
+        daily_lines = []
+        for line in daily_text.split('\n'):
+            line_s = line.strip()
+            if not line_s:
+                continue
+            if re.search(r'^(lunchmeny|vecka\s*\d+)$', line_s, re.I):
+                continue
+            if 'Vill du få vår lunchmeny på mail' in line_s:
+                break
+            daily_lines.append(line_s)
+
+        # Formatera stående favoriter (Mosluckan & Pastaluckan)
+        standing_sections = []
+        if extra_text:
+            # Exempel extra_text:
+            # Alltid hos Kock & Rock (mosluckan)
+            # Wallenbergare med mos, rårörda lingon & gräddsås
+            # Havets Wallenbergare med mos & vitvinssås
+            # Schnitzel med dagens tillbehör
+            # Pasta luckan
+            # Dagens pasta (kolla med köket)
+            # Bolognese med Grana padano
+            # Tomatsås med pruscuttio och mozarella samt pesto
+            mos_dishes = []
+            pasta_dishes = []
+            curr_target = None
+            for line in extra_text.split('\n'):
+                l = line.strip()
+                if not l:
+                    continue
+                if 'Vill du få vår lunchmeny på mail' in l:
+                    break
+                if re.search(r'Alltid hos Kock & Rock|mosluckan', l, re.I):
+                    curr_target = mos_dishes
+                    continue
+                elif re.search(r'Pasta\s*luckan', l, re.I):
+                    curr_target = pasta_dishes
+                    continue
+
+                if curr_target is not None:
+                    curr_target.append(l)
+
+            if mos_dishes:
+                standing_sections.append("Alltid hos Kock & Rock (Mosluckan):")
+                for d in mos_dishes:
+                    standing_sections.append(d)
+                standing_sections.append("")
+
+            if pasta_dishes:
+                standing_sections.append("Pastaluckan:")
+                for d in pasta_dishes:
+                    standing_sections.append(d)
+
+        full_parts = []
+        if daily_lines:
+            full_parts.append('\n'.join(daily_lines))
+        if standing_sections:
+            full_parts.append('\n'.join(standing_sections).strip())
+
+        full_menu = '\n\n'.join(full_parts).strip()
+        if full_menu:
+            return {
+                'name': name,
+                'url': url,
+                'menu': full_menu,
+                'success': True,
+                'source': 'HTML (Kock & Rock)',
+                'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+            }
+    except Exception as e:
+        print(f"Kock & Rock scraper error: {e}")
+    return None
+
+
 def categorize_menu_text(text, restaurant_name=None):
     """
     Scannar menytexten och säkerställer att rätter får en kategori (Kött:, Fisk:, etc.)
@@ -2054,6 +2154,8 @@ def categorize_menu_text(text, restaurant_name=None):
         if weekday_re.match(line):
             continue
         if cat_prefix_re.match(line) or category_header_re.match(line):
+            continue
+        if line.endswith(':') or re.search(r'^(alltid hos|pastaluckan|mosluckan)', line, re.I):
             continue
         if footer_re.search(line):
             continue
@@ -2215,6 +2317,12 @@ def _scrape_url_raw(url, name, lang='sv'):
             result = scrape_kvartersmenyn(kvarters_url, name, session)
             if result and result.get('success'):
                 result['url'] = url
+                return result
+
+        # SPECIAL: Kock & Rock (Mölndal)
+        if 'kockochrock' in url.lower() or 'kock & rock' in name.lower() or 'kock och rock' in name.lower():
+            result = scrape_kock_rock(url, name, session)
+            if result:
                 return result
 
         # Kolla om URL:en är en direkt PDF-länk
@@ -2692,9 +2800,10 @@ def strip_menu_footers(text):
         r'\nINKL\s*:',
         r'\nOBS!\s*Med reservation',
         r'\nMed reservation för eventuella',
+        r'Vill du få vår lunchmeny på mail\?.*',
     ]
     for pattern in footer_patterns:
-        match = re.search(pattern, text, re.IGNORECASE)
+        match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
         if match and match.start() > 50:
             text = text[:match.start()]
     return text.strip()
