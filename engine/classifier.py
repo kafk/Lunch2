@@ -175,7 +175,8 @@ class DishClassifier:
         # 2. Pasta (egen kategori)
         pasta_keywords = [
             'pasta', 'spaghetti', 'penne', 'tagliatelle', 'rigatoni', 'lasagne', 'lasagnette',
-            'fettuccine', 'linguine', 'tortellini', 'ravioli', 'gnocchi', 'fusilli', 'makaroner'
+            'fettuccine', 'linguine', 'tortellini', 'ravioli', 'gnocchi', 'fusilli', 'makaroner',
+            'bolognese', 'carbonara'
         ]
         if any(re.search(rf'\b{re.escape(k)}', t) for k in pasta_keywords) or 'pasta' in t:
             return "Pasta"

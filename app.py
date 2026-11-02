@@ -2096,16 +2096,17 @@ def scrape_kock_rock(url, name, session):
                 if curr_target is not None:
                     curr_target.append(l)
 
-            if mos_dishes:
-                standing_sections.append("Alltid hos Kock & Rock (Mosluckan):")
+            if mos_dishes or pasta_dishes:
+                standing_sections.append("Alltid hos Kock & Rock:")
                 for d in mos_dishes:
-                    standing_sections.append(d)
-                standing_sections.append("")
-
-            if pasta_dishes:
-                standing_sections.append("Pastaluckan:")
+                    if not re.match(r'^(?:pasta:\s*)?pasta\s*luckan:?$', d.strip(), re.I):
+                        standing_sections.append(d)
                 for d in pasta_dishes:
-                    standing_sections.append(d)
+                    d_clean = d.strip()
+                    if not re.match(r'^(?:pasta:\s*)?pasta\s*luckan:?$', d_clean, re.I):
+                        if not re.match(r'^(?:pasta|kött|fisk|vegetariskt|vego|soppa)\s*:\s*', d_clean, re.I):
+                            d_clean = f"Pasta: {d_clean}"
+                        standing_sections.append(d_clean)
 
         full_parts = []
         if daily_lines:
@@ -2133,7 +2134,13 @@ def categorize_menu_text(text, restaurant_name=None):
     Scannar menytexten och säkerställer att rätter får en kategori (Kött:, Fisk:, etc.)
     om den saknar det, med hjälp av DishClassifier (SQLite-cache + Gemini LLM fallback).
     """
-    if not text or not CLASSIFIER_AVAILABLE or not classifier:
+    if not text:
+        return text
+
+    # Ta bort eventuella redundanta "Pastaluckan:" / "Pasta: Pastaluckan:" rader
+    text = re.sub(r'(?im)^(?:\s*pasta\s*:\s*)?pasta\s*luckan\s*:?\s*$\n?', '', text).strip()
+
+    if not CLASSIFIER_AVAILABLE or not classifier:
         return text
 
     if restaurant_name and any(x in restaurant_name.lower() for x in ['tsukihana', 'albatross', 'nordic', 'tilda', 'the grill', 'zäta', 'zata', 'grand central', 'spirafood', 'roots']):

@@ -805,7 +805,7 @@
             if (wMatch) {
                 let daysPart = cleaned.slice(0, wMatch.index).trim();
                 let weeklyPart = cleaned.slice(wMatch.index).trim();
-                weeklyPart = weeklyPart.replace(/^(?:LUNCH\s*V\d+[^\n]*|VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*)\s*/i, '').trim();
+                weeklyPart = weeklyPart.replace(/^(?:LUNCH\s*V\d+[^\n]*|VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*|ALLTID\s+HOS[^\n:]*)\s*/i, '').trim();
                 return { daysText: daysPart, weeklyText: weeklyPart, noteText };
             }
             return { daysText: cleaned, weeklyText: '', noteText };
@@ -819,7 +819,7 @@
             const weeklyStart = lastDayEnd + wMatch.index;
             let daysText = cleaned.slice(0, weeklyStart).trim();
             let weeklyRaw = cleaned.slice(weeklyStart).trim();
-            weeklyRaw = weeklyRaw.replace(/^(?:LUNCH\s*V\d+[^\n]*|VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*)\s*/i, '').trim();
+            weeklyRaw = weeklyRaw.replace(/^(?:LUNCH\s*V\d+[^\n]*|VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*|ALLTID\s+HOS[^\n:]*)\s*/i, '').trim();
             return { daysText, weeklyRaw: weeklyRaw, weeklyText: weeklyRaw, noteText };
         }
         
@@ -829,7 +829,7 @@
         const topMatch = weeklyHeaderRegex.exec(beforeDays);
         if (topMatch) {
             let weeklyRaw = beforeDays.slice(topMatch.index).trim();
-            weeklyRaw = weeklyRaw.replace(/^(?:LUNCH\s*V\d+[^\n]*|VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*)\s*/i, '').trim();
+            weeklyRaw = weeklyRaw.replace(/^(?:LUNCH\s*V\d+[^\n]*|VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*|ALLTID\s+HOS[^\n:]*)\s*/i, '').trim();
             let daysText = cleaned.slice(firstDayIndex).trim();
             return { daysText, weeklyText: weeklyRaw, noteText };
         }
@@ -967,7 +967,7 @@
         }
 
         // 2. Pasta (egen kategori)
-        if (/\b(pasta|spaghetti|penne|tagliatelle|rigatoni|lasagne|lasagnette|fettuccine|linguine|tortellini|ravioli|gnocchi|fusilli|makaroner)\b/i.test(t) || /pasta/i.test(t)) {
+        if (/\b(pasta|spaghetti|penne|tagliatelle|rigatoni|lasagne|lasagnette|fettuccine|linguine|tortellini|ravioli|gnocchi|fusilli|makaroner|bolognese|carbonara)\b/i.test(t) || /pasta/i.test(t)) {
             return 'Pasta';
         }
 
@@ -1107,7 +1107,9 @@
                 }
             } else if (/kock/i.test(restaurantName || '')) {
                 const weeklyLabel = currentLang === 'en' ? 'Specials:' : 'Stående favoriter:';
-                const lines = weeklyText.split('\n').map(l => l.trim()).filter(Boolean);
+                const lines = weeklyText.split('\n')
+                    .map(l => l.trim())
+                    .filter(l => l && !/^(?:pasta\s*:\s*)?pasta\s*luckan:?$/i.test(l) && !/^alltid hos/i.test(l));
                 todayText += `\n\n${weeklyLabel}\n` + lines.join('\n');
             } else {
                 const weeklyLabel = currentLang === 'en' ? 'Weekly specials:' : 'Veckans:';
@@ -1126,6 +1128,9 @@
 
     function formatWeekMenu(text, restaurantName) {
         if (!text) return text;
+        if (/kock/i.test(restaurantName || '')) {
+            text = text.split('\n').filter(l => !/^(?:pasta\s*:\s*)?pasta\s*luckan:?$/i.test(l.trim())).join('\n');
+        }
         const isTildas = restaurantName && /tilda/i.test(restaurantName);
         const isZata = isZataRestaurant(restaurantName, text);
         const isGC = isGCRestaurant(restaurantName, text);
@@ -1154,7 +1159,9 @@
                 }
             } else if (/kock/i.test(restaurantName || '')) {
                 const weeklyLabel = currentLang === 'en' ? 'Specials:' : 'Stående favoriter:';
-                const lines = weeklyText.split('\n').map(l => l.trim()).filter(Boolean);
+                const lines = weeklyText.split('\n')
+                    .map(l => l.trim())
+                    .filter(l => l && !/^(?:pasta\s*:\s*)?pasta\s*luckan:?$/i.test(l) && !/^alltid hos/i.test(l));
                 out += `\n\n${weeklyLabel}\n` + lines.join('\n');
             } else {
                 const weeklyLabel = currentLang === 'en' ? 'Weekly specials:' : 'Veckans:';
