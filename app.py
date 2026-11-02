@@ -674,14 +674,15 @@ def extract_today_section(text):
         day_sections[day_name] = section
 
     # Kolla om det finns en veckanssektion EFTER sista veckodagen
-    # (t.ex. Tildas PDF: MÅNDAG…FREDAG…KÖTT ❖ … FISK ❖ …)
+    # (t.ex. Tildas PDF: MÅNDAG…FREDAG…KÖTT ❖ … FISK ❖ … eller explicit "Veckans:")
     weekly_extra = ''
     last_match = matches[-1]
     text_from_last_day = text[last_match.start():]
-    weekly_cats = 'KÖTT|FISK|PASTA|SALLAD|BURGARE'
+    # Kräver antingen explicit "Veckans", "Hela veckan", eller Tildas kategori med ❖/•
     weekly_start = re.search(
-        r'\n{2,}(?:LUNCH\s+V[\d\s]*\n+)?(' + weekly_cats + r')\b',
-        text_from_last_day
+        r'\n{2,}(?:LUNCH\s+V[\d\s]*\n+)?(?:(VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|ALLTID\s+HOS[^\n:]*):?|(?:KÖTT|FISK|PASTA|SALLAD|BURGARE)\s*[❖•])',
+        text_from_last_day,
+        re.IGNORECASE
     )
     if weekly_start:
         split_pos = last_match.start() + weekly_start.start()

@@ -794,9 +794,11 @@
             dayMatches.push({ day: m[1], index: m.index, end: m.index + m[0].length });
         }
         
-        const weeklyHeaderRegex = (/roots|z[äa]ta|kock/i.test(restaurantName || '') || isZataRestaurant(restaurantName, text))
-            ? /(?:^|\n)\s*(?:LUNCH\s*V\d+[^\n]*)?(?:(VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*|ALLTID\s+HOS[^\n:]*)|LUNCH\s*V\d+)/i
-            : /(?:^|\n)\s*(?:LUNCH\s*V\d+[^\n]*)?(?:(VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*|(?:KÖTT|FISK|PASTA|SALLAD|BURGARE)\s*[:/]|KÖTT\s+[/❖])|LUNCH\s*V\d+)/i;
+        // Bara Tildas har en veckomeny som börjar direkt med kategorinamn (KÖTT ❖ ... FISK ❖ ...) utan "Veckans:"-rubrik.
+        const isTildas = restaurantName && /tilda/i.test(restaurantName);
+        const weeklyHeaderRegex = isTildas
+            ? /(?:^|\n)\s*(?:LUNCH\s*V\d+[^\n]*)?(?:(VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*|(?:KÖTT|FISK|PASTA|SALLAD|BURGARE)\s*[:/]|KÖTT\s+[/❖])|LUNCH\s*V\d+)/i
+            : /(?:^|\n)\s*(?:LUNCH\s*V\d+[^\n]*)?(?:(VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*|ALLTID\s+HOS[^\n:]*)|LUNCH\s*V\d+)/i;
         
         if (dayMatches.length === 0) {
             const wMatch = weeklyHeaderRegex.exec(cleaned);

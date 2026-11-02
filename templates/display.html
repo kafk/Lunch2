@@ -1668,9 +1668,11 @@
             dayMatches.push({ day: m[1], index: m.index, end: m.index + m[0].length });
         }
         
-        // Roots/Zäta/Kock & Rock har kategorietiketter (Fisk:, Kött:) i varje dag – de får inte tolkas som veckorubrik
-        const catHeaderOk = !(/roots|z[äa]ta|kock/i.test(restaurantName || '') || isZataRestaurant(restaurantName, text));
-        const weeklyHeaderRegex = catHeaderOk
+        // Bara Tildas har en veckomeny som börjar direkt med kategorinamn (KÖTT ❖ ... FISK ❖ ...) utan "Veckans:"-rubrik.
+        // För alla andra restauranger med kategoriserade rätter (Saras, Ferraris, Kock & Rock, Arya etc.)
+        // får inte "Kött:" tolkas som början på en veckomeny!
+        const isTildas = restaurantName && /tilda/i.test(restaurantName);
+        const weeklyHeaderRegex = isTildas
             ? /(?:^|\n)\s*(?:LUNCH\s*V\d+[^\n]*)?(?:(VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*|(?:KÖTT|FISK|PASTA|SALLAD|BURGARE)\s*[:/]|KÖTT\s+[/❖])|LUNCH\s*V\d+)/i
             : /(?:^|\n)\s*(?:LUNCH\s*V\d+[^\n]*)?(?:(VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*|ALLTID\s+HOS[^\n:]*)|LUNCH\s*V\d+)/i;
         
