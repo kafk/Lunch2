@@ -1,62 +1,97 @@
 [
   {
     "url": "https://www.tildasrestaurang.com/",
-    "name": "Tildas Restaurang"
+    "name": "Tildas Restaurang",
+    "enabled": true
   },
   {
     "url": "https://www.thegrill.se/",
-    "name": "The Grill"
+    "name": "The Grill",
+    "enabled": true
   },
   {
     "url": "https://mistertomato.se/",
-    "name": "Mr Tomato"
+    "name": "Mr Tomato",
+    "enabled": true
   },
   {
     "url": "https://www.cevichetasteofperu.se/",
-    "name": "Ceviche"
+    "name": "Ceviche",
+    "enabled": true
   },
   {
     "url": "https://www.restaurangdivan.se/",
-    "name": "Divan"
+    "name": "Divan",
+    "enabled": true
   },
   {
     "url": "https://tsukihana.net/lunch",
-    "name": "Tsukihana"
+    "name": "Tsukihana",
+    "enabled": true
   },
   {
     "url": "https://compass.mashie.matildaplatform.com/public/app/restaurang+z%C3%A4ta/c2b83349?country=se",
-    "name": "Restaurang Zäta"
+    "name": "Restaurang Zäta",
+    "enabled": true
   },
   {
     "url": "https://spirafood.se/volvo-lunchmeny",
-    "name": "Grand Central (GC)"
+    "name": "Grand Central (GC)",
+    "enabled": true
   },
   {
     "url": "https://ferrariskok.kvartersmenyn.se/",
-    "name": "Ferraris Kök"
+    "name": "Ferraris Kök",
+    "enabled": true
   },
   {
     "url": "https://www.kvartersmenyn.se/index.php/rest/15855",
-    "name": "Arya"
+    "name": "Arya",
+    "enabled": true
   },
   {
     "url": "https://www.kvartersmenyn.se/index.php/rest/16722",
-    "name": "Saras Husmanskost"
+    "name": "Saras Husmanskost",
+    "enabled": true
   },
   {
     "url": "https://sarashusmanskost.com/kolgruvegatan1/",
-    "name": "Saras Kolgruvegatan"
+    "name": "Saras Kolgruvegatan",
+    "enabled": true
   },
   {
     "url": "https://ce576758e5e44ad59e25f885b130d4ca.compass-group.se/",
-    "name": "AE - Nordic Taste Lab"
+    "name": "AE - Nordic Taste Lab",
+    "enabled": true
   },
   {
     "url": "https://www.sanktjorgenpark.se/mat-dryck/restauranger/greenhouse",
-    "name": "Sankt Jörgen Park"
+    "name": "Sankt Jörgen Park",
+    "enabled": true
   },
   {
     "url": "https://lunchlabbet.se/",
-    "name": "Lunchlabbet"
+    "name": "Lunchlabbet",
+    "enabled": true
+  },
+  {
+    "name": "Restaurang Tegel",
+    "url": "https://www.restaurangtegel.com/lunch/",
+    "enabled": true
+  },
+  {
+    "name": "Nya Etage",
+    "url": "https://www.nyaetage.se/menu",
+    "enabled": true
+  },
+  {
+    "name": "Conqrete",
+    "url": "https://www.conqrete.se/the-lunch",
+    "enabled": true
+  },
+  {
+    "name": "Backside",
+    "url": "https://www.instagram.com/restaurangbackside/",
+    "enabled": true
   }
 ]

@@ -42,6 +42,12 @@
                     <label for="url">URL till lunchmeny</label>
                     <input type="url" id="url" placeholder="https://exempel.se/lunch" required>
                 </div>
+                <div class="form-group" style="margin-top: -6px; margin-bottom: 16px;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #4b5563; cursor: pointer; font-weight: normal;">
+                        <input type="checkbox" id="skipValidation" style="width: 16px; height: 16px; accent-color: #22c55e;">
+                        <span>Bildmeny eller Instagram / Facebook (hoppa över krav på direkt textmeny)</span>
+                    </label>
+                </div>
                 <button type="submit" class="btn" id="addBtn">
                     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M12 5v14M5 12h14"/>
@@ -478,22 +484,38 @@
     }
 
     const addBtn = document.getElementById('addBtn');
+    const urlInput = document.getElementById('url');
+    const skipValidationCheck = document.getElementById('skipValidation');
+
+    if (urlInput && skipValidationCheck) {
+        urlInput.addEventListener('input', () => {
+            const val = urlInput.value.toLowerCase();
+            if (val.includes('instagram.com') || val.includes('facebook.com') || val.includes('fb.com')) {
+                skipValidationCheck.checked = true;
+            }
+        });
+    }
+
     addForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
         const name = document.getElementById('name').value.trim();
         const url = document.getElementById('url').value.trim();
+        const skip_validation = Boolean(
+            (skipValidationCheck && skipValidationCheck.checked) ||
+            /instagram\.com|facebook\.com|fb\.com/i.test(url)
+        );
 
         if (addBtn) {
             addBtn.disabled = true;
             addBtn.innerHTML = `
                 <div class="spinner" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 6px; border-width: 2px;"></div>
-                Analyserar meny...
+                ${skip_validation ? 'Lägger till restaurang...' : 'Analyserar meny...'}
             `;
         }
         addMessage.innerHTML = `
             <div style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 10px 14px; border-radius: 8px; font-size: 13px; display: flex; align-items: center; gap: 8px;">
-                <span>🔍 Läser av webbplatsen, letar efter lunchmeny och verifierar rätter... Detta tar 2–4 sekunder.</span>
+                <span>🔍 ${skip_validation ? 'Registrerar restaurang och förbereder menykort...' : 'Läser av webbplatsen, letar efter lunchmeny och verifierar rätter... Detta tar 2–4 sekunder.'}</span>
             </div>
         `;
 
@@ -501,7 +523,7 @@
             const response = await fetch('/api/urls', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, url })
+                body: JSON.stringify({ name, url, skip_validation })
             });
 
             let result = {};

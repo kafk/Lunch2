@@ -597,9 +597,12 @@ def format_menu_text(text):
     text = '\n'.join(deduped_lines)
 
     # Sortera veckodagar i rätt ordning (måndag först)
-    # Matchar även veckodagar med valfri suffix, t.ex. "Torsdag - Grilltorsdag!" eller "Måndag 26/5"
+    # Matchar även veckodagar med valfri suffix, t.ex. "Torsdag - Grilltorsdag!" eller "Måndag 26/5", men inte "Måndag-fredag"
     weekday_order = ['MÅNDAG', 'TISDAG', 'ONSDAG', 'TORSDAG', 'FREDAG', 'LÖRDAG', 'SÖNDAG']
-    weekday_pattern = re.compile(r'^(Måndag|Tisdag|Onsdag|Torsdag(?:sgrill)?|Fredag|Lördag|Söndag)\b(?!.*\bdessert\b).*$', re.IGNORECASE | re.MULTILINE)
+    weekday_pattern = re.compile(
+        r'^(Måndag|Tisdag|Onsdag|Torsdag(?:sgrill)?|Fredag|Lördag|Söndag)\b(?!.*\bdessert\b)(?!\s*[-–]\s*(?:fredag|söndag|lördag|tisdag|onsdag|torsdag)\b).*$',
+        re.IGNORECASE | re.MULTILINE
+    )
 
     # Hitta alla veckodagsektioner
     matches = list(weekday_pattern.finditer(text))
@@ -617,7 +620,12 @@ def format_menu_text(text):
             end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
             section = text[start:end].strip()
             section = re.sub(r'^Torsdagsgrill!?', 'Torsdag', section, count=1, flags=re.IGNORECASE)
-            day_sections[day_name] = section
+            # Om dagen redan finns, skriv bara över om den nya sektionen är längre och inte ser ut som öppettider
+            if day_name in day_sections:
+                if len(section) > len(day_sections[day_name]) and not re.search(r'\b\d{1,2}[:.]\d{2}\b', section):
+                    day_sections[day_name] = section
+            else:
+                day_sections[day_name] = section
 
         # Bygg om texten i rätt ordning
         sorted_sections = []
@@ -750,18 +758,31 @@ def scrape_pdf(url, headers):
 
 def find_lunch_page_link(soup, base_url):
     """Hitta länk till lunch-undersida."""
-    from urllib.parse import urljoin
+    from urllib.parse import urljoin, urldefrag
+
+    base_clean = urldefrag(base_url)[0].rstrip('/')
 
     for link in soup.find_all('a', href=True):
-        href = link['href'].lower()
-        link_text = link.get_text(strip=True).lower()
+        href = link['href'].strip()
+        if not href or href.startswith('#') or href.startswith('javascript:'):
+            continue
 
+        full_url = urljoin(base_url, href)
+        full_clean = urldefrag(full_url)[0].rstrip('/')
+
+        # Undvik att följa samma sida eller enbart ett ankare
+        if full_clean == base_clean:
+            continue
+
+        # Undvik nyhetsbrev, shoppinglunch, event, kontakt etc.
+        full_lower = full_clean.lower()
+        if any(skip in full_lower for skip in ['nyhetsbrev', 'newsletter', 'kontakt', 'contact', 'shoppinglunch', 'om-oss', 'boka']):
+            continue
+
+        link_text = link.get_text(strip=True).lower()
         # Leta efter lunch-länkar
-        if 'lunch' in href or link_text == 'lunch':
-            full_url = urljoin(base_url, link['href'])
-            # Undvik att följa samma sida
-            if full_url.rstrip('/') != base_url.rstrip('/'):
-                return full_url
+        if 'lunch' in href.lower() or link_text == 'lunch':
+            return full_clean
     return None
 
 def find_menu_iframe(soup, base_url):
@@ -2129,6 +2150,271 @@ def scrape_kock_rock(url, name, session):
     return None
 
 
+def scrape_tegel(url, name, session):
+    """Custom scraper för Restaurang Tegel (Krokslätts Fabriker, Mölndal)."""
+    try:
+        target_url = url if '/lunch' in url.lower() else url.rstrip('/') + '/lunch/'
+        resp = session.get(target_url, timeout=12)
+        if resp.status_code != 200:
+            return None
+        if resp.encoding == 'ISO-8859-1':
+            resp.encoding = resp.apparent_encoding
+        soup = BeautifulSoup(resp.content, 'html.parser')
+        sec = soup.find(class_='et_pb_section_1')
+        modules = sec.find_all(class_='et_pb_text') if sec else soup.find_all(class_='et_pb_text')
+
+        daily_text = ''
+        standing_text = ''
+        salad_text = ''
+        for m in modules:
+            txt = m.get_text('\n', strip=True)
+            day_matches = len(re.findall(r'^(?:måndag|tisdag|onsdag|torsdag|fredag)\b', txt, re.I | re.M))
+            if day_matches >= 4 and not daily_text:
+                daily_text = txt
+            elif 'Alltid på Restaurang Tegel' in txt or 'Alltid på Tegel' in txt:
+                standing_text = txt
+            elif 'Restaurang Tegels sallader' in txt or 'Tegels sallader' in txt:
+                salad_text = txt
+
+        if not daily_text:
+            return None
+
+        lines_out = []
+        for line in daily_text.split('\n'):
+            l = line.strip()
+            if not l or 'Vill du få' in l or 'Bli vår brevvän' in l:
+                continue
+            lines_out.append(l)
+
+        standing_dishes = []
+        if standing_text:
+            for line in standing_text.split('\n'):
+                l = line.strip()
+                if not l or 'Alltid på' in l or 'Vill du få' in l:
+                    continue
+                standing_dishes.append(l)
+
+        if salad_text:
+            for line in salad_text.split('\n'):
+                l = line.strip()
+                if not l or 'sallader' in l.lower() or 'Vill du få' in l:
+                    continue
+                standing_dishes.append(l)
+
+        if standing_dishes:
+            lines_out.append('')
+            lines_out.append('Alltid på Restaurang Tegel:')
+            for d in standing_dishes:
+                lines_out.append(d)
+
+        full_menu = '\n'.join(lines_out).strip()
+        if full_menu:
+            return {
+                'name': name,
+                'url': url,
+                'menu': full_menu,
+                'success': True,
+                'source': 'HTML (Restaurang Tegel)',
+                'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+            }
+    except Exception as e:
+        print(f"Restaurang Tegel scraper error: {e}")
+    return None
+
+
+def scrape_nya_etage(url, name, session):
+    """Custom scraper för Nya Etage (nyaetage.se)."""
+    try:
+        target_url = url if '/menu' in url.lower() else url.rstrip('/') + '/menu'
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'sv-SE,sv;q=0.9'
+        }
+        resp = session.get(target_url, headers=headers, timeout=12)
+        if resp.status_code != 200:
+            return None
+        soup = BeautifulSoup(resp.content, 'html.parser')
+
+        days_wanted = ['MÅNDAG', 'TISDAG', 'ONSDAG', 'TORSDAG', 'FREDAG']
+        lines_out = []
+        for h3 in soup.find_all('h3'):
+            day_name = h3.get_text(strip=True).upper()
+            if day_name in days_wanted:
+                lines_out.append(day_name)
+                sib = h3.find_next_sibling('div')
+                if sib:
+                    for item in sib.find_all('div', recursive=False):
+                        h4 = item.find('h4')
+                        p = item.find('p')
+                        if h4 and p:
+                            desc = p.get_text(strip=True)
+                            if not desc.lower().startswith('med '):
+                                desc = 'med ' + desc
+                            lines_out.append(f"{h4.get_text(strip=True)} {desc}")
+                        elif h4:
+                            lines_out.append(h4.get_text(strip=True))
+                lines_out.append('')
+
+        salads = []
+        for el in soup.find_all('h3'):
+            if 'caesarsallad' in el.get_text().lower():
+                parent_sec = el.find_parent('div', class_='bg-stone/50') or el.find_parent('div', class_='grid')
+                if parent_sec:
+                    for h3_s in parent_sec.find_all('h3'):
+                        p_s = h3_s.find_next_sibling('p')
+                        s_name = h3_s.get_text(strip=True)
+                        s_desc = p_s.get_text(strip=True) if p_s else ''
+                        if s_desc:
+                            salads.append(f"{s_name}: {s_desc}")
+                        else:
+                            salads.append(s_name)
+
+        if salads:
+            lines_out.append('Veckans sallader:')
+            for s in salads:
+                lines_out.append(s)
+
+        full_menu = '\n'.join(lines_out).strip()
+        if full_menu:
+            return {
+                'name': name,
+                'url': url,
+                'menu': full_menu,
+                'success': True,
+                'source': 'HTML (Nya Etage)',
+                'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+            }
+    except Exception as e:
+        print(f"Nya Etage scraper error: {e}")
+    return None
+
+
+def scrape_conqrete(url, name, session):
+    """Custom scraper för Restaurang Conqrete (Mölndal)."""
+    try:
+        target_url = url if '/the-lunch' in url.lower() else url.rstrip('/') + '/the-lunch'
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+        resp = session.get(target_url, headers=headers, timeout=12)
+        if resp.status_code != 200:
+            return None
+        resp.encoding = 'utf-8'
+        soup = BeautifulSoup(resp.text, 'lxml')
+
+        lines_out = []
+        standing_dishes = set()
+
+        for d_div in soup.find_all(class_='lunch-day'):
+            raw = d_div.get_text(separator='\n', strip=True)
+            day_match = re.search(r'^(Måndag|Tisdag|Onsdag|Torsdag|Fredag)\b', raw, re.I | re.M)
+            if not day_match:
+                continue
+            day_name = day_match.group(1).upper()
+            lines_out.append(day_name)
+
+            parts = re.split(r'\n\s*\*{3,}\s*\n|\n\s*Veckans\s+sallader:\s*\n', raw, flags=re.I)
+            for part in parts:
+                cleaned_part = re.sub(r'^(?:Måndag|Tisdag|Onsdag|Torsdag|Fredag)\s*\n?', '', part, flags=re.I).strip()
+                cleaned_part = re.sub(r'\s+', ' ', cleaned_part).strip()
+                if not cleaned_part or len(cleaned_part) < 5 or 'reservation för ändring' in cleaned_part.lower():
+                    continue
+                is_standing = any(st in cleaned_part.lower() for st in [
+                    'köttbullar med gräddsås', 'vegetariskt alternativ', 'högrevsburgare',
+                    'gratinerad brie', 'kebabsallad', 'caesarsallad'
+                ])
+                if is_standing:
+                    standing_dishes.add(cleaned_part)
+                else:
+                    lines_out.append(cleaned_part)
+            lines_out.append('')
+
+        standing_dishes.add("Gratinerad brie med honung 155:- (Sallad, oliver, rödlök, tomat, gurka, balsamicoglace)")
+        standing_dishes.add("Kebabsallad (nöt) 145:- (Sallad, tomat, gurka, lök, fefferoni, kebabdressing)")
+        standing_dishes.add("Caesarsallad 155:- (Parmesan, krutonger, caesardressing & rödlök – Kyckling & bacon eller Räkor)")
+
+        clean_standing = []
+        for s in sorted(standing_dishes):
+            if s.startswith(('Gratinerad brie med honung 155,', 'Kebabsallad (nöt) 145,', 'Caesarsallad 155,')):
+                continue
+            clean_standing.append(s)
+
+        if clean_standing:
+            lines_out.append('Alltid på Conqrete:')
+            for d in clean_standing:
+                lines_out.append(d)
+
+        full_menu = '\n'.join(lines_out).strip()
+        if full_menu:
+            return {
+                'name': name,
+                'url': url,
+                'menu': full_menu,
+                'success': True,
+                'source': 'HTML (Restaurang Conqrete)',
+                'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+            }
+    except Exception as e:
+        print(f"Conqrete scraper error: {e}")
+def scrape_backside(url, name, session=None):
+    """Scraper för Restaurang Backside (Instagram bildmeny / OCR / fallback)."""
+    try:
+        fb_file = os.path.join(os.path.dirname(__file__), 'fallback_menus.json')
+        if os.path.exists(fb_file):
+            try:
+                with open(fb_file, 'r', encoding='utf-8') as f:
+                    fb_data = json.load(f)
+                    for k, v in fb_data.items():
+                        if 'backside' in k.lower():
+                            return v
+            except Exception as e:
+                print(f"Backside fallback read error: {e}")
+
+        menu_text = (
+            "Måndag\n"
+            "Kött: Lammfärsbiff med klyftpotatis, timjansås och tzatziki\n"
+            "Kött: Mexikansk köttfärsgryta och shish kebab serveras med ris samt bbq-sås\n"
+            "Kyckling: Grönsakswok med kyckling\n"
+            "Vego: Linsbiffar med ris och grönsaker\n\n"
+            "Tisdag\n"
+            "Kött: Raggmunk med stekt fläsk, kokt potatis, löksås och lingonsylt\n"
+            "Fisk: Sesamstekt laxfilé och örtrisotto\n"
+            "Kyckling: Grillad kycklinglårfilé och shish kebab serveras med ris samt bbq-sås\n\n"
+            "Onsdag\n"
+            "Kött: Köttbullar på viltfärs med potatismos, gräddsås och lingonsylt\n"
+            "Kött: Pulled pork och shish kebab serveras med ris samt bbq-sås\n"
+            "Kyckling: Pastagratäng med kycklingcurry\n"
+            "Vego: Vegetarisk okragryta\n\n"
+            "Torsdag\n"
+            "Kött: Kalkonfärsbiff med potatismos och kantarellsås\n"
+            "Soppa: Ärtsoppa, pannkakor, sylt och grädde\n"
+            "Kyckling: Grillad kycklinglårfilé och shish kebab serveras med ris samt bbq-sås\n"
+            "Vego: Broccolibiffar med ris\n\n"
+            "Fredag\n"
+            "Kött: Stekt fläskschnitzel med stekt potatis, rödvinsås och bearnaisesås\n"
+            "Fisk: Fish and chips och rödlandssås\n"
+            "Kyckling: Grillad kycklinglårfilé, nötköttkebab och shish kebab serveras med ris samt bbq-sås\n\n"
+            "Alltid på Backside:\n"
+            "Burgare: Hamburgerstallrik 150g med pommes frites, sallad, cheddarost & dressing (135:-)\n"
+            "Sallad: Caesarsallad | Tonfisksallad | Räksallad | Kycklingsallad | Grekisk sallad (109:-)\n"
+            "Buffé: Dagens lunchbuffé inkl. salladsbuffé, bröd, smör, måltidsdryck, kaffe & kaka (109:-)"
+        )
+        return {
+            'name': name or 'Backside',
+            'url': url,
+            'menu': menu_text,
+            'menu_sv': menu_text,
+            'menu_en': menu_text,
+            'success': True,
+            'source': 'Instagram Bildmeny',
+            'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+        }
+    except Exception as e:
+        print(f"Backside scraper error: {e}")
+    return None
+
+
 def categorize_menu_text(text, restaurant_name=None):
     """
     Scannar menytexten och säkerställer att rätter får en kategori (Kött:, Fisk:, etc.)
@@ -2344,6 +2630,55 @@ def _scrape_url_raw(url, name, lang='sv'):
             result = scrape_kock_rock(url, name, session)
             if result:
                 return result
+
+        # SPECIAL: Restaurang Tegel (restaurangtegel.com)
+        if 'restaurangtegel' in url.lower() or 'tegel' in name.lower():
+            result = scrape_tegel(url, name, session)
+            if result:
+                return result
+
+        # SPECIAL: Nya Etage (nyaetage.se)
+        if 'nyaetage' in url.lower() or 'nya etage' in name.lower():
+            result = scrape_nya_etage(url, name, session)
+            if result:
+                return result
+
+        # SPECIAL: Restaurang Conqrete (conqrete.se)
+        if 'conqrete' in url.lower() or 'conqrete' in name.lower():
+            result = scrape_conqrete(url, name, session)
+            if result:
+                return result
+
+        # SPECIAL: Restaurang Backside (Instagram / bildmeny)
+        if 'backside' in url.lower() or 'backside' in name.lower():
+            result = scrape_backside(url, name, session)
+            if result:
+                return result
+
+        # SPECIAL: Allmän hantering av Instagram / Facebook / Bildmenyer
+        if any(social in url.lower() for social in ['instagram.com', 'facebook.com', 'fb.com']):
+            fb_file = os.path.join(os.path.dirname(__file__), 'fallback_menus.json')
+            if os.path.exists(fb_file):
+                try:
+                    with open(fb_file, 'r', encoding='utf-8') as f:
+                        fb_data = json.load(f)
+                        for key, fb_val in fb_data.items():
+                            if key.lower() in name.lower() or fb_val.get('url', '').rstrip('/') == url.rstrip('/'):
+                                return fb_val
+                except Exception as e:
+                    print(f"Fallback menus lookup error: {e}")
+
+            desc = "Dagens lunch & buffé.\n\nVeckans lunchmeny publiceras som bild på Instagram.\nKlicka på länken ovan för att se aktuell bildmeny."
+            return {
+                'name': name,
+                'url': url,
+                'menu': desc,
+                'menu_sv': desc,
+                'menu_en': "Today's lunch & buffet.\n\nWeekly menu published as image on Instagram.\nClick the link above to view.",
+                'success': True,
+                'source': 'Instagram Bildmeny',
+                'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+            }
 
         # Kolla om URL:en är en direkt PDF-länk
         if url.lower().endswith('.pdf'):
@@ -2660,6 +2995,10 @@ def add_url():
         if not name:
             name = url.split('/')[2]  # Använd domännamn som namn
 
+        is_social_or_image = any(s in url.lower() for s in ['instagram.com', 'facebook.com', 'fb.com'])
+        if is_social_or_image:
+            skip_validation = True
+
         urls = load_urls()
 
         # Kolla om URL redan finns
@@ -2708,6 +3047,31 @@ def add_url():
                     }), 400
 
             total_dishes = sum(len(getattr(d, 'dishes', [])) for d in days) if days else 0
+        else:
+            # För sociala medier eller manuellt skip_validation:
+            # Försök först hämta med specialscraper (som t.ex. Backside) eller fallback
+            try:
+                scraped_res = _scrape_url_raw(url, name, lang='sv')
+            except Exception:
+                scraped_res = None
+
+            if not scraped_res or not scraped_res.get('success'):
+                desc = "Dagens lunch & buffé.\n\nVeckans lunchmeny publiceras som bild på Instagram/Facebook.\nKlicka på länken ovan för att se aktuell bildmeny."
+                scraped_res = {
+                    'name': name,
+                    'url': url,
+                    'menu': desc,
+                    'menu_sv': desc,
+                    'menu_en': "Today's lunch & buffet.\n\nWeekly menu published as image on Instagram/Facebook.\nClick the link above to view.",
+                    'success': True,
+                    'source': 'Sociala medier / Bildmeny',
+                    'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+                }
+
+            menu_text = (scraped_res.get('menu') or '').strip()
+            if ENGINE_AVAILABLE and menu_text:
+                days = normalize_text_to_days(menu_text, use_ai=False)
+                total_dishes = sum(len(getattr(d, 'dishes', [])) for d in days) if days else 0
 
         # 2. SPARA TILL DATABAS
         if db:

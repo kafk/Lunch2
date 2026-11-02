@@ -123,5 +123,17 @@
       "type": "custom",
       "handler": "gc"
     }
+  },
+  {
+    "id": "test_instagram_cafe",
+    "name": "Test Instagram Cafe",
+    "url": "https://www.instagram.com/testcafegbg/",
+    "enabled": true,
+    "fetcher": {
+      "type": "http"
+    },
+    "extractor": {
+      "type": "auto"
+    }
   }
 ]

@@ -2451,7 +2451,7 @@
         const t = clean.toLowerCase();
         
         // 1. Kyckling / Fågel (egen kategori)
-        if (/\b(kyckling|kycklingfilé|kycklingbiff|kycklingspett|kycklinggryta|höna|kalkon|anka|fågel|chicken|coq au vin)\b/i.test(t) || /kyckling/i.test(t)) {
+        if (/\b(kyckling|kycklingfilé|kycklingbiff|kycklingspett|kycklinggryta|höna|kalkon|anka|fågel|chicken|coq au vin|kai)\b/i.test(t) || /kyckling/i.test(t)) {
             return currentLang === 'en' ? 'Chicken' : 'Kyckling';
         }
 
@@ -2460,36 +2460,36 @@
             return 'Pasta';
         }
 
-        // 3. Fisk & Skaldjur
-        if (/\b(fisk|lax|torsk|sej|spätta|rödspätta|kolja|kummel|abborre|gös|sill|strömming|tonfisk|hälleflundra|makrill|räkor|räka|kräftor|musslor|skaldjur|fiskgratäng|fisksoppa|fiskfilé|fiskbiff|fiskburgare|panerad fisk|havets|havskatt|fiskcurry|fish)\b/i.test(t) || /(lax|torsk|räk|makrill|kummel|sej|strömming)/i.test(t)) {
-            return currentLang === 'en' ? 'Fish' : 'Fisk';
+        // 3. Vego & Vegan (kontrolleras före kött så att vegobiffar inte blir kött)
+        if (/^(?:veg|vego|vegetarisk)\b/i.test(t) || /\b(vegetarisk|vegetariskt|vego|vegan|vegansk|halloumi|halloumibiff|falafel|tofu|quorn|soyafärs|linser|kikärtor|kikärtsbiff|bönbiff|paneer|grönsaksbiff|brie|vegetarian)\b/i.test(t) || /halloumi/i.test(t)) {
+            if (/vegan|vegansk/i.test(t)) return 'Vegan';
+            return currentLang === 'en' ? 'Vegetarian' : 'Vegetariskt';
         }
 
-        // 4. Burgare
-        if (/\b(burgare|burger|hamburgare)\b/i.test(t)) {
+        // 4. Burgare (före sallad så att burgare med sallad/dressing blir Burgare)
+        if (/(?:burgare|burger|hamburgare)\b/i.test(t)) {
             if (/halloumi|veg|bön/i.test(t)) return currentLang === 'en' ? 'Vegetarian' : 'Vegetariskt';
             return currentLang === 'en' ? 'Burger' : 'Burgare';
         }
 
-        // 5. Kött (Nöt, Fläsk, Lamm, Färs, Korv, Stek m.m.)
-        if (/\b(kött|biff|biffar|oxfärs|oxfärsbiff|kalvfärs|oxfilé|ryggbiff|entrecôte|entrecote|högrev|kalv|fläsk|fläskfilé|fläskkarré|fläskytterfilé|kotlett|sidfläsk|karré|bacon|lamm|färs|köttfärs|köttbullar|kalvköttbullar|pannbiff|wallenbergare|schnitzel|fläskschnitzel|korv|korvstroganoff|stroganoff|falukorv|isterband|chorizo|bratwurst|skinka|raggmunk|pyttipanna|pytt i panna|kebab|gyros|kalops|rostbiff|revben|revbensspjäll|slottstek|oxstek|stek|kassler|kåldolmar|kålpudding|oxbringa|bringa|gulasch|gulaschgryta|enchiladas|enchilada|fläsklägg|pulled pork|köttfärslimpa|viltgryta|vilt|meat|beef|pork)\b/i.test(t) || /(kalvfärs|fläskfilé|fläskytterfilé|biffar|kebab|stroganoff|slottstek|oxfärs|kåldolmar|kålpudding|oxbringa|pyttipanna|fläskschnitzel|pulled pork|köttbull|kalvköttbull|gulasch|enchilada)/i.test(t)) {
-            return currentLang === 'en' ? 'Meat' : 'Kött';
-        }
-
-        // 6. Sallad
-        if (/\b(sallad|caesarsallad|räksallad|kycklingsallad|grekisk sallad|salad)\b/i.test(t)) {
+        // 5. Sallad
+        if (/\b(sallad|caesarsallad|räksallad|kycklingsallad|grekisk sallad|kebabsallad|salad)\b/i.test(t)) {
             return currentLang === 'en' ? 'Salad' : 'Sallad';
         }
 
-        // 7. Soppa
-        if (/\b(soppa|ärtsoppa|gulaschsoppa|linssoppa|tomatsoppa|soup)\b/i.test(t) || /ärtsoppa/i.test(t)) {
+        // 6. Soppa
+        if (/\b(soppa|ärtsoppa|ärtsoppabuffé|gulaschsoppa|linssoppa|tomatsoppa|soup)\b/i.test(t) || /ärtsoppa/i.test(t)) {
             return currentLang === 'en' ? 'Soup' : 'Soppa';
         }
 
-        // 8. Vego & Vegan
-        if (/\b(vegetarisk|vegetariskt|vego|vegan|vegansk|halloumi|falafel|tofu|quorn|soyafärs|linser|kikärtor|bönbiff|vegetarian)\b/i.test(t) || /halloumi/i.test(t)) {
-            if (/vegan|vegansk/i.test(t)) return 'Vegan';
-            return currentLang === 'en' ? 'Vegetarian' : 'Vegetariskt';
+        // 7. Fisk & Skaldjur
+        if (/\b(fisk|lax|torsk|sej|spätta|rödspätta|kolja|kummel|abborre|gös|sill|strömming|tonfisk|hälleflundra|makrill|räkor|räka|kräftor|musslor|skaldjur|fiskgratäng|fisksoppa|fiskfilé|fiskbiff|fiskburgare|panerad fisk|havets|havskatt|fiskcurry|queneller|sandfjordsås|fångst|regnbåge|regnbågsfilé|röding|fish)\b/i.test(t) || /(lax|torsk|räk|makrill|kummel|sej|strömming|quenell|fångst|regnbåg)/i.test(t)) {
+            return currentLang === 'en' ? 'Fish' : 'Fisk';
+        }
+
+        // 8. Kött (Nöt, Fläsk, Lamm, Färs, Korv, Stek m.m.)
+        if (/\b(kött|biff|biffar|oxfärs|oxfärsbiff|kalvfärs|oxfilé|ryggbiff|entrecôte|entrecote|högrev|kalv|fläsk|fläskfilé|fläskkarré|fläskytterfilé|kotlett|sidfläsk|karré|bacon|lamm|färs|nötfärs|köttfärs|köttbullar|kalvköttbullar|pannbiff|wallenbergare|schnitzel|fläskschnitzel|korv|korvstroganoff|stroganoff|falukorv|isterband|chorizo|bratwurst|skinka|raggmunk|pyttipanna|pytt i panna|kebab|gyros|kalops|rostbiff|revben|revbensspjäll|slottstek|oxstek|stek|kassler|kåldolmar|kålpudding|oxbringa|bringa|gulasch|gulaschgryta|enchiladas|enchilada|fläsklägg|pulled pork|köttfärslimpa|viltgryta|vilt|meat|beef|pork)\b/i.test(t) || /(kalvfärs|fläskfilé|fläskytterfilé|biffar|kebab|stroganoff|slottstek|oxfärs|kåldolmar|kålpudding|oxbringa|pyttipanna|fläskschnitzel|pulled pork|köttbull|kalvköttbull|gulasch|enchilada|nötfärs)/i.test(t)) {
+            return currentLang === 'en' ? 'Meat' : 'Kött';
         }
         return '';
     }
