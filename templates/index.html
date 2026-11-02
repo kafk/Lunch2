@@ -794,8 +794,8 @@
             dayMatches.push({ day: m[1], index: m.index, end: m.index + m[0].length });
         }
         
-        const weeklyHeaderRegex = (/roots|z[äa]ta/i.test(restaurantName || '') || isZataRestaurant(restaurantName, text))
-            ? /(?:^|\n)\s*(?:LUNCH\s*V\d+[^\n]*)?(?:(VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*)|LUNCH\s*V\d+)/i
+        const weeklyHeaderRegex = (/roots|z[äa]ta|kock/i.test(restaurantName || '') || isZataRestaurant(restaurantName, text))
+            ? /(?:^|\n)\s*(?:LUNCH\s*V\d+[^\n]*)?(?:(VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*|ALLTID\s+HOS[^\n:]*)|LUNCH\s*V\d+)/i
             : /(?:^|\n)\s*(?:LUNCH\s*V\d+[^\n]*)?(?:(VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*|(?:KÖTT|FISK|PASTA|SALLAD|BURGARE)\s*[:/]|KÖTT\s+[/❖])|LUNCH\s*V\d+)/i;
         
         if (dayMatches.length === 0) {
@@ -1103,6 +1103,10 @@
                 } else {
                     todayText += '\n\nVeckans:\n' + formatWeeklyDishes(weeklyText, noteText);
                 }
+            } else if (/kock/i.test(restaurantName || '')) {
+                const weeklyLabel = currentLang === 'en' ? 'Specials:' : 'Stående favoriter:';
+                const lines = weeklyText.split('\n').map(l => l.trim()).filter(Boolean);
+                todayText += `\n\n${weeklyLabel}\n` + lines.join('\n');
             } else {
                 const weeklyLabel = currentLang === 'en' ? 'Weekly specials:' : 'Veckans:';
                 const formatted = formatWeeklyDishes(weeklyText, noteText);
@@ -1146,6 +1150,10 @@
                 } else {
                     out += '\n\nVeckans:\n' + formatWeeklyDishes(weeklyText, noteText);
                 }
+            } else if (/kock/i.test(restaurantName || '')) {
+                const weeklyLabel = currentLang === 'en' ? 'Specials:' : 'Stående favoriter:';
+                const lines = weeklyText.split('\n').map(l => l.trim()).filter(Boolean);
+                out += `\n\n${weeklyLabel}\n` + lines.join('\n');
             } else {
                 const weeklyLabel = currentLang === 'en' ? 'Weekly specials:' : 'Veckans:';
                 const formatted = formatWeeklyDishes(weeklyText, noteText);

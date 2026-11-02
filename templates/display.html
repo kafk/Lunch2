@@ -1668,11 +1668,11 @@
             dayMatches.push({ day: m[1], index: m.index, end: m.index + m[0].length });
         }
         
-        // Roots/Zäta har kategorietiketter (Fisk:, Kött:) i varje dag – de får inte tolkas som veckorubrik
-        const catHeaderOk = !(/roots|z[äa]ta/i.test(restaurantName || '') || isZataRestaurant(restaurantName, text));
+        // Roots/Zäta/Kock & Rock har kategorietiketter (Fisk:, Kött:) i varje dag – de får inte tolkas som veckorubrik
+        const catHeaderOk = !(/roots|z[äa]ta|kock/i.test(restaurantName || '') || isZataRestaurant(restaurantName, text));
         const weeklyHeaderRegex = catHeaderOk
             ? /(?:^|\n)\s*(?:LUNCH\s*V\d+[^\n]*)?(?:(VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*|(?:KÖTT|FISK|PASTA|SALLAD|BURGARE)\s*[:/]|KÖTT\s+[/❖])|LUNCH\s*V\d+)/i
-            : /(?:^|\n)\s*(?:LUNCH\s*V\d+[^\n]*)?(?:(VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*)|LUNCH\s*V\d+)/i;
+            : /(?:^|\n)\s*(?:LUNCH\s*V\d+[^\n]*)?(?:(VECKANS[^\n:]*|HELA\s+VECKAN|STÅENDE\s+MENY|WEEKLY[^\n:]*|ALLTID\s+HOS[^\n:]*)|LUNCH\s*V\d+)/i;
         
         if (dayMatches.length === 0) {
             const wMatch = weeklyHeaderRegex.exec(cleaned);
@@ -1917,6 +1917,10 @@
                 } else {
                     todayText += '\n\nVeckans:\n' + formatWeeklyDishes(weeklyText, noteText);
                 }
+            } else if (/kock/i.test(restaurantName || '')) {
+                const weeklyLabel = currentLang === 'en' ? 'Specials:' : 'Stående favoriter:';
+                const lines = weeklyText.split('\n').map(l => l.trim()).filter(Boolean);
+                todayText += `\n\n${weeklyLabel}\n` + lines.join('\n');
             } else {
                 const weeklyLabel = currentLang === 'en' ? 'Weekly specials:' : 'Veckans:';
                 const formatted = formatWeeklyDishes(weeklyText, noteText, false);
@@ -2836,16 +2840,16 @@
                         </div>
                     </div>
                 `;
-            } else if (/sankt\s*j/i.test(restaurantName || '') && buildDishRows(weeklyText.split('\n').map(l => l.trim()).filter(Boolean)).rows.length) {
+            } else if (/kock/i.test(restaurantName || '') && buildDishRows(weeklyText.split('\n').map(l => l.trim()).filter(Boolean)).rows.length) {
                 const wk = buildDishRows(weeklyText.split('\n').map(l => l.replace(/\u00a0/g, ' ').trim()).filter(Boolean));
                 const tr = s => currentLang === 'en' ? translateCulinaryText(s) : s;
                 html += `
                     <div class="week-day-row">
-                        ${/^Veckans/i.test(wk.rows[0].label) ? '' : `<strong class="week-day-name">${currentLang === 'en' ? 'Weekly' : 'Veckans'}:</strong>`}
+                        <strong class="week-day-name">${currentLang === 'en' ? 'Specials' : 'Stående favoriter'}:</strong>
                         <div style="margin-top: 3px; display: flex; flex-direction: column; gap: 4px;">
                             ${wk.rows.map(r => `
                                 <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px;">
-                                    <span class="week-dishes-text">${r.label ? `<strong style="color: var(--ink-black);">${escapeHtml(r.label)}:</strong> ` : ''}${linkify(escapeHtml(tr(r.text)))}</span>
+                                    <span class="week-dishes-text">${r.label ? `<strong class="category-label">${escapeHtml(r.label)}:</strong> ` : ''}${linkify(escapeHtml(tr(r.text)))}</span>
                                     ${r.price ? `<strong style="white-space: nowrap; color: var(--ink-black);">${r.price}</strong>` : ''}
                                 </div>
                             `).join('')}
