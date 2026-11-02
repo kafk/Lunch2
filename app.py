@@ -2184,6 +2184,9 @@ def scrape_tegel(url, name, session):
             l = line.strip()
             if not l or 'Vill du få' in l or 'Bli vår brevvän' in l:
                 continue
+            is_day = bool(re.match(r'^(?:måndag|tisdag|onsdag|torsdag|fredag)\b', l, re.I))
+            if is_day and lines_out:
+                lines_out.append('')
             lines_out.append(l)
 
         standing_dishes = []
@@ -2194,17 +2197,24 @@ def scrape_tegel(url, name, session):
                     continue
                 standing_dishes.append(l)
 
+        salad_dishes = []
         if salad_text:
             for line in salad_text.split('\n'):
                 l = line.strip()
                 if not l or 'sallader' in l.lower() or 'Vill du få' in l:
                     continue
-                standing_dishes.append(l)
+                salad_dishes.append(l)
 
         if standing_dishes:
             lines_out.append('')
             lines_out.append('Alltid på Restaurang Tegel:')
             for d in standing_dishes:
+                lines_out.append(d)
+
+        if salad_dishes:
+            lines_out.append('')
+            lines_out.append('Restaurang Tegels sallader:')
+            for d in salad_dishes:
                 lines_out.append(d)
 
         full_menu = '\n'.join(lines_out).strip()
@@ -2437,11 +2447,11 @@ def categorize_menu_text(text, restaurant_name=None):
     line_indices_to_update = []
 
     cat_prefix_re = re.compile(
-        r'^(?:[A-Z]\s*:\s*)?(vegetariskt|vegetarisk|vego|vegan|vegansk|fisk|kött|streetfood|pasta|sallad|burgare|soppa|kyckling|meat|fish|vegetarian|salad|burger|soup)\s*:\s*',
+        r'^(?:[A-Z]\s*:\s*)?(vegetariskt|vegetarisk|vego|veg|vegan|vegansk|fisk|kött|streetfood|pasta|sallad|burgare|soppa|kyckling|meat|fish|vegetarian|salad|burger|soup)\s*:\s*',
         re.I
     )
     category_header_re = re.compile(
-        r'^(?:kött|fisk|vegetariskt|vegetarisk|vego|vegan|vegansk|streetfood|pasta|sallad|burgare|soppa|kyckling|meat|fish|salad|burger|soup|dagens|lunch|veckans|hela veckan|lunch\s*v\d+):?$',
+        r'^(?:kött|fisk|vegetariskt|vegetarisk|vego|veg|vegan|vegansk|streetfood|pasta|sallad|burgare|soppa|kyckling|meat|fish|salad|burger|soup|dagens|lunch|veckans|hela veckan|lunch\s*v\d+):?$',
         re.I
     )
     weekday_re = re.compile(
