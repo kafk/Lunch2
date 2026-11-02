@@ -198,8 +198,11 @@ class DishClassifier:
                 return "Vegetariskt"
             return "Burgare"
 
-        # 5. Sallad (kontrolleras före kött/fisk så att Caesarsallad, Kebabsallad och Räksallad blir Sallad)
-        if re.search(r'\b(sallad|caesarsallad|räksallad|kycklingsallad|grekisk sallad|kebabsallad)\b', t):
+        # 5. Sallad (kontrolleras före kött/fisk, men undviker att tillbehörssallader överskuggar huvudrätten)
+        is_named_salad = bool(re.search(r'\b(caesarsallad|räksallad|kycklingsallad|grekisk sallad|kebabsallad|tonfisksallad|pastasallad|biffsallad)\b', t))
+        is_standalone_salad = bool(re.search(r'^(?:veckans\s+)?sallad\b|\bsallad\s*(?:med|tallrik|buffé)?\b', t))
+        has_primary_meat_or_fish = any(k in t for k in ['köttbullar', 'fläskfilé', 'ryggbiff', 'fångst', 'spätta', 'kummel', 'torsk', 'lax', 'pannbiff', 'schnitzel'])
+        if is_named_salad or (is_standalone_salad and not has_primary_meat_or_fish):
             return "Sallad"
 
         # 6. Soppa

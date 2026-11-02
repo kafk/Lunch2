@@ -985,7 +985,10 @@
         }
 
         // 5. Sallad
-        if (/\b(sallad|caesarsallad|räksallad|kycklingsallad|grekisk sallad|kebabsallad|salad)\b/i.test(t)) {
+        const isNamedSalad = /\b(caesarsallad|räksallad|kycklingsallad|grekisk sallad|kebabsallad|tonfisksallad|pastasallad|biffsallad)\b/i.test(t);
+        const isStandaloneSalad = /^(?:veckans\s+)?sallad\b|\bsallad\s*(?:med|tallrik|buffé)?\b/i.test(t);
+        const hasPrimaryMeatOrFish = /(?:köttbullar|fläskfilé|ryggbiff|fångst|spätta|kummel|torsk|lax|pannbiff|schnitzel)/i.test(t);
+        if (isNamedSalad || (isStandaloneSalad && !hasPrimaryMeatOrFish)) {
             return currentLang === 'en' ? 'Salad' : 'Sallad';
         }
 
