@@ -2020,8 +2020,13 @@
         // Cards view is managed per-card by loadMenus; re-render only on view/pref toggle
         if (allMenus.length > 0) {
             menuGrid.innerHTML = menus.map(menu => {
-                const u = allUrls.find(u => u.name === menu.name) || menu;
-                return cardHtml(u, menu);
+                try {
+                    const u = allUrls.find(u => u.name === menu.name) || menu;
+                    return cardHtml(u, menu);
+                } catch (cardErr) {
+                    console.error("Error rendering card for", menu.name, cardErr);
+                    return '';
+                }
             }).join('');
         }
 
@@ -2246,15 +2251,23 @@
             // 1. Hämta menyerna från servern (delad cache). Vid "Uppdatera" skrapar servern om allt och sparar komplett cache.
             try {
                 const cacheRes = await fetch('/api/menus?lang=' + encodeURIComponent(currentLang) + (forceRefresh ? '&refresh=true' : ''));
-                const cacheData = await cacheRes.json();
-                if (cacheData && cacheData.menus && cacheData.menus.length > 0 && cacheData.updated_at) {
-                    allMenus = cacheData.menus;
-                    renderScrapedDateTime(cacheData.updated_at);
-                    renderViews();
-                    refreshBtn.disabled = false;
-                    return;
+                if (cacheRes.ok) {
+                    const cacheData = await cacheRes.json();
+                    if (cacheData && cacheData.menus && cacheData.menus.length > 0) {
+                        allMenus = cacheData.menus;
+                        if (cacheData.updated_at) renderScrapedDateTime(cacheData.updated_at);
+                        try {
+                            renderViews();
+                        } catch (err) {
+                            console.error("renderViews error:", err);
+                        }
+                        refreshBtn.disabled = false;
+                        return;
+                    }
                 }
-            } catch (e) {}
+            } catch (e) {
+                console.error("Cache load error:", e);
+            }
 
             // 2. Om servercachen inte svarade: fortsätt med individuell live-skrapning
 
@@ -2623,6 +2636,8 @@
             return `<span style="color:var(--ink-light);font-style:italic;">${emptyMsg}</span>`;
         }
 
+        const catPrefixStripRe = /^(?:[A-Z]\s*:\s*)?(Vegetariskt|Vegetarisk|Vego|Veg|Fisk|Kött|Streetfood|Pasta|Sallad|Burgare|Soppa|Kyckling|Meat|Fish|Vegetarian|Vegan|Salad|Burger|Soup)\s*:\s*/i;
+
         const mode = viewMode || displayView || 'week';
         text = precleanMenu(text, restaurantName);
         if (restaurantName && /tsukihana/i.test(restaurantName)) {
@@ -2788,7 +2803,6 @@
                 }
             }
         } else {
-            const catPrefixStripRe = /^(?:[A-Z]\s*:\s*)?(Vegetariskt|Vegetarisk|Vego|Fisk|Kött|Streetfood|Pasta|Sallad|Burgare|Soppa|Kyckling|Meat|Fish|Vegetarian|Vegan|Salad|Burger|Soup)\s*:\s*/i;
             const numberedItems = parseNumberedList(cleaned);
             if (numberedItems && numberedItems.length > 0) {
                 html = numberedItems.map(item => {
