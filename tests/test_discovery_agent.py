@@ -75,10 +75,11 @@ class TestDiscoveryAgent(unittest.TestCase):
         self.assertTrue(is_lunch)
         self.assertGreater(len(signals), 0)
 
-        # Price format variations (129:-, 145.-, 140,-, 95 kr, 135 SEK)
+        # Price format extraction variations (129:-, 145.-, 140,-, 95 kr, 135 SEK)
+        from agents.discovery_agent.researcher import PRICE_PATTERN
         for price_str in ["Lunchbuffé 129:-", "Dagens rätt 145.-", "Varmrätt 140,-", "Dagens 95 kr", "Lunch 135 SEK"]:
-            is_valid, _ = check_swedish_lunch_signals(price_str)
-            self.assertTrue(is_valid, f"Failed on valid price format: {price_str}")
+            matches = [int(p) for p in PRICE_PATTERN.findall(price_str) if 60 <= int(p) <= 300]
+            self.assertEqual(len(matches), 1, f"Failed on valid price extraction: {price_str}")
 
         # Non-lunch or out-of-range prices
         self.assertFalse(check_swedish_lunch_signals("Presentkort 500 kr")[0])
@@ -88,6 +89,44 @@ class TestDiscoveryAgent(unittest.TestCase):
         sample_bad = "Välkommen till vår bilverkstad. Vi byter däck måndag till fredag."
         is_lunch_bad, _ = check_swedish_lunch_signals(sample_bad)
         self.assertFalse(is_lunch_bad)
+
+        # Opening hours false-positive rejection
+        opening_hours_sample = """
+        Välkommen till Bilverkstan & Café
+        Lunchservering i kaféet
+        Öppettider: Måndag - Fredag 11:00 - 14:00
+        Telefon: 031-123456
+        """
+        is_lunch_oh, _ = check_swedish_lunch_signals(opening_hours_sample)
+        self.assertFalse(is_lunch_oh)
+
+    def test_assess_lunch_content_levels(self):
+        from agents.discovery_agent.researcher import assess_lunch_content
+
+        # 1. Confirmed level (weekdays with dishes)
+        real_menu = """
+        Veckans lunch v.45
+        Måndag: Raggmunk med stekt fläsk 135 kr
+        Tisdag: Pocherad torsk med äggsås 135 kr
+        Onsdag: Pannbiff med lök och potatismos 135 kr
+        """
+        res_confirmed = assess_lunch_content(real_menu)
+        self.assertEqual(res_confirmed["level"], "confirmed")
+        self.assertTrue(res_confirmed["is_confirmed"])
+        self.assertGreaterEqual(len(res_confirmed["days_found"]), 3)
+
+        # 2. Likely level (standing dishes with lunch context & multiple prices)
+        likely_menu = """
+        Dagens lunch och stående rätter
+        Klassisk Caesarsallad med grillad kyckling 145 kr
+        Högrevsburgare med pommes frites och tryffelmajo 165 kr
+        """
+        res_likely = assess_lunch_content(likely_menu)
+        self.assertEqual(res_likely["level"], "likely")
+
+        # 3. None level (just single price or noise)
+        res_none = assess_lunch_content("Dagens 95 kr")
+        self.assertEqual(res_none["level"], "none")
 
     def test_agent_isolation(self):
         """Verifies that running discovery agent does NOT alter active production config."""

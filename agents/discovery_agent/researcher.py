@@ -67,36 +67,114 @@ def find_candidate_lunch_urls(soup: BeautifulSoup, base_url: str) -> List[Dict[s
     candidates.sort(key=lambda x: x["score"], reverse=True)
     return candidates
 
-def check_swedish_lunch_signals(text: str) -> Tuple[bool, List[str]]:
-    """Analyze Swedish text to verify if it contains actual lunch menu content."""
-    signals = []
-    text_lower = text.lower()
+OPENING_HOURS_PATTERN = re.compile(
+    r'(?:öppet(?:tider)?|lunch(?:servering)?|öppna|stängt)?\s*:?\s*'
+    r'(?:mån(?:dag)?|tis(?:dag)?|ons(?:dag)?|tor(?:sdag)?|fre(?:dag)?|lör(?:dag)?|sön(?:dag)?)'
+    r'\s*(?:[-–—]|till)\s*'
+    r'(?:mån(?:dag)?|tis(?:dag)?|ons(?:dag)?|tor(?:sdag)?|fre(?:dag)?|lör(?:dag)?|sön(?:dag)?)'
+    r'\s*(?::\s*)?'
+    r'(?:kl\.?\s*)?\d{1,2}(?:[.:]\d{2})?\s*(?:[-–—]|till)\s*\d{1,2}(?:[.:]\d{2})?',
+    re.I
+)
 
-    # Must contain at least one explicit lunch or culinary context keyword
-    lunch_context_words = [
-        'lunch', 'dagens', 'matsedel', 'lunchmeny', 'veckans lunch',
-        'dagens rätt', 'varmrätt', 'lunchbuffé', 'buffé', 'serveras',
-        'inklusive sallad', 'veckans meny'
-    ]
-    matched_contexts = [kw for kw in lunch_context_words if kw in text_lower]
-    if matched_contexts:
-        signals.append(f"Found lunch context: {', '.join(matched_contexts[:2])}")
+PRICE_PATTERN = re.compile(r'(?<![\d.,])(?<!\d\s)(\d{2,3})\s*(?:kr\b|sek\b|:-|\.-|,-)', re.I)
 
-    # 1. Check for weekday occurrences
-    days_present = [d for d in WEEKDAYS if re.search(rf'\b{d}\b', text, re.I)]
-    if len(days_present) >= 2:
-        signals.append(f"Found {len(days_present)} weekdays ({', '.join(days_present[:3])}...)")
+def clean_soup_text(soup: BeautifulSoup) -> str:
+    """Extract page text while discarding noisy elements like navbars, headers and footers."""
+    clone = BeautifulSoup(str(soup), "lxml")
+    for tag in clone(['nav', 'header', 'footer', 'script', 'style', 'form', 'noscript', 'aside', 'svg']):
+        tag.decompose()
+    return clone.get_text(separator="\n", strip=True)
 
-    # 2. Check for lunch pricing (supports 129:-, 145.-, 140,-, 125 kr, 129 SEK, 95 kr)
-    # Excludes thousands like '1 250 kr', decimals '12,50 kr', phone numbers, years/dates
-    raw_prices = re.findall(r'(?<![\d.,])(?<!\d\s)(\d{2,3})\s*(?:kr\b|sek\b|:-|\.-|,-)', text, re.I)
+def assess_lunch_content(text: str) -> Dict[str, Any]:
+    """
+    Tiered classification of lunch menu content.
+    Returns:
+      {
+        'level': 'confirmed' | 'likely' | 'none',
+        'is_confirmed': bool,
+        'signals': List[str],
+        'days_found': List[str],
+        'prices': List[int]
+      }
+    """
+    # 1. Normalize line/sentence breaks (handles both multiline and inline e.g. 'Måndag: ... Tisdag: ...')
+    raw_segments = re.split(r'[\r\n]+|(?<=[.!?])\s+(?=[A-ZÅÄÖa-zåäö])', text)
+    lines = [seg.strip() for seg in raw_segments if seg.strip()]
+    signals: List[str] = []
+
+    # 1. Strip lines that are pure opening hours
+    filtered_lines: List[str] = []
+    for l in lines:
+        if OPENING_HOURS_PATTERN.search(l) and not any(f"{d}:" in l.lower() for d in WEEKDAYS):
+            continue
+        filtered_lines.append(l)
+
+    cleaned_text = "\n".join(filtered_lines)
+    text_lower = cleaned_text.lower()
+
+    # 2. Extract valid Swedish lunch prices (60 - 300 kr)
+    raw_prices = PRICE_PATTERN.findall(cleaned_text)
     prices = [int(p) for p in raw_prices if 60 <= int(p) <= 300]
     if prices:
-        signals.append(f"Found lunch pricing (e.g. {prices[0]} kr)")
+        signals.append(f"Hittade lunchpriser (t.ex. {prices[0]} kr)")
 
-    # Confirmed requires lunch context PLUS either weekdays or pricing
-    is_confirmed = bool(matched_contexts) and (len(days_present) >= 2 or len(prices) > 0)
-    return is_confirmed, signals
+    # 3. Check for weekday headings that have substantive dish text
+    weekday_heading_re = re.compile(
+        r'^(?:vecka\s*\d+\s*)?(måndag|tisdag|onsdag|torsdag|fredag)(?:\s*[:\-])?(?:\s.*)?$',
+        re.I
+    )
+    days_with_dishes = set()
+
+    for i, line in enumerate(filtered_lines):
+        m = weekday_heading_re.match(line)
+        if m:
+            day_name = m.group(1).lower()
+            rest_of_line = line[m.end(1):].lstrip(' :-–—').strip()
+            # If rest of heading line has substantive text (at least 2 words, not opening hours)
+            if len(rest_of_line.split()) >= 2 and not OPENING_HOURS_PATTERN.search(rest_of_line):
+                days_with_dishes.add(day_name)
+            elif i + 1 < len(filtered_lines):
+                next_line = filtered_lines[i + 1]
+                # If next line is not another weekday and has at least 2 words
+                if not weekday_heading_re.match(next_line) and len(next_line.split()) >= 2 and not OPENING_HOURS_PATTERN.search(next_line):
+                    days_with_dishes.add(day_name)
+
+    if days_with_dishes:
+        signals.append(f"Hittade {len(days_with_dishes)} veckodagar med rätter ({', '.join(sorted(days_with_dishes))})")
+
+    # 4. Check primary culinary context words
+    primary_contexts = ['lunchmeny', 'dagens lunch', 'veckans lunch', 'dagens rätt', 'matsedel', 'veckans meny']
+    matched_contexts = [kw for kw in primary_contexts if kw in text_lower]
+    if matched_contexts:
+        signals.append(f"Kontext: {', '.join(matched_contexts[:2])}")
+
+    # Determine confidence level:
+    # Confirmed:
+    # - >= 3 weekdays with distinct dishes
+    # - OR >= 2 weekdays with dishes AND (lunch price found or primary lunch context)
+    if len(days_with_dishes) >= 3 or (len(days_with_dishes) >= 2 and (len(prices) >= 1 or matched_contexts)):
+        level = "confirmed"
+    # Likely:
+    # - primary context AND (>= 2 lunch prices OR >= 1 weekday with dishes)
+    elif matched_contexts and (len(prices) >= 2 or len(days_with_dishes) >= 1):
+        level = "likely"
+    else:
+        level = "none"
+
+    return {
+        "level": level,
+        "is_confirmed": (level == "confirmed"),
+        "signals": signals,
+        "days_found": list(days_with_dishes),
+        "prices": prices
+    }
+
+def check_swedish_lunch_signals(text: str) -> Tuple[bool, List[str]]:
+    """Analyze text to verify if it contains actual lunch menu content."""
+    res = assess_lunch_content(text)
+    # Both 'confirmed' and 'likely' indicate viable lunch signals, with confirmed being high-confidence
+    return (res["level"] in ("confirmed", "likely")), res["signals"]
 
 def research_candidate(candidate: RestaurantCandidate) -> RestaurantCandidate:
     """
@@ -134,7 +212,7 @@ def research_candidate(candidate: RestaurantCandidate) -> RestaurantCandidate:
     subpage_links = find_candidate_lunch_urls(soup, candidate.website)
     
     target_url = candidate.website
-    target_html = home_html
+    target_soup = soup
 
     if subpage_links:
         best_link = subpage_links[0]
@@ -144,10 +222,9 @@ def research_candidate(candidate: RestaurantCandidate) -> RestaurantCandidate:
         # Fetch the lunch subpage
         page_html, page_err = fetch_html(target_url)
         if page_html and not page_err:
-            target_html = page_html
+            target_soup = BeautifulSoup(page_html, "lxml")
             # Recheck if that subpage contains a PDF
-            sub_soup = BeautifulSoup(page_html, "lxml")
-            sub_pdf = find_pdf_links(sub_soup, target_url)
+            sub_pdf = find_pdf_links(target_soup, target_url)
             if sub_pdf and sub_pdf[0]["score"] > 0:
                 candidate.lunch_url = sub_pdf[0]["url"]
                 candidate.lunch_found = True
@@ -156,26 +233,33 @@ def research_candidate(candidate: RestaurantCandidate) -> RestaurantCandidate:
                 candidate.status = DiscoveryStatus.RESEARCHED
                 return candidate
 
-    # 3. Analyze text of chosen page for lunch signals
-    page_soup = BeautifulSoup(target_html, "lxml")
-    body_text = page_soup.get_text(separator="\n", strip=True)
-    is_lunch, signals = check_swedish_lunch_signals(body_text)
+    # 3. Analyze cleaned text of chosen page (headers, nav, footers stripped)
+    body_text = clean_soup_text(target_soup)
+    assessment = assess_lunch_content(body_text)
 
     candidate.lunch_url = target_url
-    candidate.evidence.extend(signals)
+    candidate.evidence.extend(assessment["signals"])
 
-    if is_lunch:
+    if assessment["level"] == "confirmed":
         candidate.lunch_found = True
         candidate.status = DiscoveryStatus.RESEARCHED
+    elif assessment["level"] == "likely":
+        candidate.lunch_found = True
+        candidate.status = DiscoveryStatus.NEEDS_MANUAL_REVIEW
+        candidate.evidence.append("Sidan har sannolik lunch (veckomeny eller priser) men saknar dag-för-dag indelning")
     else:
-        # Check if homepage itself had lunch terms even if subpage didn't
+        # Check if homepage itself had confirmed lunch signals if subpage didn't
         if target_url != candidate.website:
-            home_lunch, home_signals = check_swedish_lunch_signals(soup.get_text(separator="\n", strip=True))
-            if home_lunch:
+            home_body = clean_soup_text(soup)
+            home_assessment = assess_lunch_content(home_body)
+            if home_assessment["level"] in ("confirmed", "likely"):
                 candidate.lunch_url = candidate.website
                 candidate.lunch_found = True
-                candidate.evidence.extend(home_signals)
-                candidate.status = DiscoveryStatus.RESEARCHED
+                candidate.evidence.extend(home_assessment["signals"])
+                if home_assessment["level"] == "likely":
+                    candidate.status = DiscoveryStatus.NEEDS_MANUAL_REVIEW
+                else:
+                    candidate.status = DiscoveryStatus.RESEARCHED
                 return candidate
 
         candidate.status = DiscoveryStatus.RESEARCHED
