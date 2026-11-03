@@ -75,7 +75,8 @@ def check_swedish_lunch_signals(text: str) -> Tuple[bool, List[str]]:
     # Must contain at least one explicit lunch or culinary context keyword
     lunch_context_words = [
         'lunch', 'dagens', 'matsedel', 'lunchmeny', 'veckans lunch',
-        'dagens rätt', 'serveras', 'inklusive sallad', 'veckans meny'
+        'dagens rätt', 'varmrätt', 'lunchbuffé', 'buffé', 'serveras',
+        'inklusive sallad', 'veckans meny'
     ]
     matched_contexts = [kw for kw in lunch_context_words if kw in text_lower]
     if matched_contexts:
@@ -86,8 +87,10 @@ def check_swedish_lunch_signals(text: str) -> Tuple[bool, List[str]]:
     if len(days_present) >= 2:
         signals.append(f"Found {len(days_present)} weekdays ({', '.join(days_present[:3])}...)")
 
-    # 2. Check for lunch pricing
-    prices = re.findall(r'\b(1[0-9]{2}|2[0-9]{2})\s*(?:kr|:-)\b', text, re.I)
+    # 2. Check for lunch pricing (supports 129:-, 145.-, 140,-, 125 kr, 129 SEK, 95 kr)
+    # Excludes thousands like '1 250 kr', decimals '12,50 kr', phone numbers, years/dates
+    raw_prices = re.findall(r'(?<![\d.,])(?<!\d\s)(\d{2,3})\s*(?:kr\b|sek\b|:-|\.-|,-)', text, re.I)
+    prices = [int(p) for p in raw_prices if 60 <= int(p) <= 300]
     if prices:
         signals.append(f"Found lunch pricing (e.g. {prices[0]} kr)")
 

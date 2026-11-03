@@ -75,7 +75,16 @@ class TestDiscoveryAgent(unittest.TestCase):
         self.assertTrue(is_lunch)
         self.assertGreater(len(signals), 0)
 
-        # Negative case
+        # Price format variations (129:-, 145.-, 140,-, 95 kr, 135 SEK)
+        for price_str in ["Lunchbuffé 129:-", "Dagens rätt 145.-", "Varmrätt 140,-", "Dagens 95 kr", "Lunch 135 SEK"]:
+            is_valid, _ = check_swedish_lunch_signals(price_str)
+            self.assertTrue(is_valid, f"Failed on valid price format: {price_str}")
+
+        # Non-lunch or out-of-range prices
+        self.assertFalse(check_swedish_lunch_signals("Presentkort 500 kr")[0])
+        self.assertFalse(check_swedish_lunch_signals("Catering för sällskap 1 250 kr")[0])
+
+        # Negative case without lunch context
         sample_bad = "Välkommen till vår bilverkstad. Vi byter däck måndag till fredag."
         is_lunch_bad, _ = check_swedish_lunch_signals(sample_bad)
         self.assertFalse(is_lunch_bad)
