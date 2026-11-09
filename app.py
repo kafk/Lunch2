@@ -64,7 +64,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '0126')
 
-VERSION = '3.58'
+VERSION = '3.59'
 URLS_FILE = 'urls.json'
 RESTAURANTS_CONFIG_FILE = os.path.join('config', 'restaurants.json')
 COLLECTION_NAME = 'restaurants'
@@ -2368,61 +2368,35 @@ def scrape_conqrete(url, name, session):
     except Exception as e:
         print(f"Conqrete scraper error: {e}")
 def scrape_backside(url, name, session=None):
-    """Scraper för Restaurang Backside (Instagram bildmeny / OCR / fallback)."""
+    from engine.instagram_menu import fetch_instagram_menu, current_week_menu
+
+    now = swedish_now()
+    reasons = []
+    result = fetch_instagram_menu(url, name, now, session, reasons)
+    if result:
+        return result
     try:
         fb_file = os.path.join(os.path.dirname(__file__), 'fallback_menus.json')
         if os.path.exists(fb_file):
-            try:
-                with open(fb_file, 'r', encoding='utf-8') as f:
-                    fb_data = json.load(f)
-                    for k, v in fb_data.items():
-                        if 'backside' in k.lower():
-                            return v
-            except Exception as e:
-                print(f"Backside fallback read error: {e}")
-
-        menu_text = (
-            "Måndag\n"
-            "Kött: Lammfärsbiff med klyftpotatis, timjansås och tzatziki\n"
-            "Kött: Mexikansk köttfärsgryta och shish kebab serveras med ris samt bbq-sås\n"
-            "Kyckling: Grönsakswok med kyckling\n"
-            "Vego: Linsbiffar med ris och grönsaker\n\n"
-            "Tisdag\n"
-            "Kött: Raggmunk med stekt fläsk, kokt potatis, löksås och lingonsylt\n"
-            "Fisk: Sesamstekt laxfilé och örtrisotto\n"
-            "Kyckling: Grillad kycklinglårfilé och shish kebab serveras med ris samt bbq-sås\n\n"
-            "Onsdag\n"
-            "Kött: Köttbullar på viltfärs med potatismos, gräddsås och lingonsylt\n"
-            "Kött: Pulled pork och shish kebab serveras med ris samt bbq-sås\n"
-            "Kyckling: Pastagratäng med kycklingcurry\n"
-            "Vego: Vegetarisk okragryta\n\n"
-            "Torsdag\n"
-            "Kött: Kalkonfärsbiff med potatismos och kantarellsås\n"
-            "Soppa: Ärtsoppa, pannkakor, sylt och grädde\n"
-            "Kyckling: Grillad kycklinglårfilé och shish kebab serveras med ris samt bbq-sås\n"
-            "Vego: Broccolibiffar med ris\n\n"
-            "Fredag\n"
-            "Kött: Stekt fläskschnitzel med stekt potatis, rödvinsås och bearnaisesås\n"
-            "Fisk: Fish and chips och rödlandssås\n"
-            "Kyckling: Grillad kycklinglårfilé, nötköttkebab och shish kebab serveras med ris samt bbq-sås\n\n"
-            "Alltid på Backside:\n"
-            "Burgare: Hamburgerstallrik 150g med pommes frites, sallad, cheddarost & dressing (135:-)\n"
-            "Sallad: Caesarsallad | Tonfisksallad | Räksallad | Kycklingsallad | Grekisk sallad (109:-)\n"
-            "Buffé: Dagens lunchbuffé inkl. salladsbuffé, bröd, smör, måltidsdryck, kaffe & kaka (109:-)"
-        )
-        return {
-            'name': name or 'Backside',
-            'url': url,
-            'menu': menu_text,
-            'menu_sv': menu_text,
-            'menu_en': menu_text,
-            'success': True,
-            'source': 'Instagram Bildmeny',
-            'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
-        }
-    except Exception as e:
-        print(f"Backside scraper error: {e}")
-    return None
+            with open(fb_file, 'r', encoding='utf-8') as f:
+                fb_data = json.load(f)
+            for key, backup in fb_data.items():
+                if 'backside' not in key.lower():
+                    continue
+                if not current_week_menu(backup, now):
+                    reasons.append('Backside backup rejected: previous week')
+                    break
+                if backup.get('success') and backup.get('menu'):
+                    return dict(backup, name=name, url=url, fallback_used=True,
+                                source='Saved menu (fallback)', scrape_reasons=reasons)
+    except (OSError, ValueError, TypeError):
+        reasons.append('Backside backup unavailable')
+    return {
+        'name': name, 'url': url, 'menu': '', 'success': False,
+        'source': 'Instagram', 'scrape_reasons': reasons,
+        'error': '; '.join(reasons),
+        'scraped_at': now.strftime('%Y-%m-%d %H:%M')
+    }
 
 
 def categorize_menu_text(text, restaurant_name=None):
@@ -3780,6 +3754,13 @@ def debug_tildas():
     })
 
 
+def _menu_cache_usable(menu):
+    if 'backside' in (menu.get('name', '') + menu.get('url', '')).lower():
+        from engine.instagram_menu import current_week_menu
+        return current_week_menu(menu, swedish_now())
+    return True
+
+
 @app.route('/api/menus', methods=['GET'])
 def get_menus():
     """Scrapa alla aktiverade URL:er och returnera menyerna anpassade efter språk."""
@@ -3806,6 +3787,12 @@ def get_menus():
     if not force_refresh:
         cached = get_cached_menus()
         if cached:
+            cached['menus'] = [
+                menu if _menu_cache_usable(menu) else dict(
+                    menu, menu='', menu_sv='', menu_en='', success=False,
+                    source='Expired cache', error='Previous-week Backside menu rejected'
+                ) for menu in cached.get('menus', [])
+            ]
             postprocess(cached.get('menus', []))
             return jsonify(cached)
 
@@ -3818,7 +3805,7 @@ def get_menus():
     cached_map = {}
     if cached_doc and isinstance(cached_doc.get('menus'), list):
         for m in cached_doc['menus']:
-            if m.get('success') and m.get('menu') and not m.get('menu', '').startswith('Kunde inte'):
+            if m.get('success') and m.get('menu') and not m.get('menu', '').startswith('Kunde inte') and _menu_cache_usable(m):
                 if m.get('name'):
                     cached_map[m['name']] = m
                 if m.get('url'):
@@ -3852,7 +3839,7 @@ def get_menus():
     # Save to cache - merge with previous successful menus so temporary failures don't wipe out good data
     if cached_doc and isinstance(cached_doc.get('menus'), list):
         merged = []
-        fallback_lookup = {m.get('name'): m for m in cached_doc['menus'] if m.get('success') and not m.get('menu', '').startswith('Kunde inte')}
+        fallback_lookup = {m.get('name'): m for m in cached_doc['menus'] if m.get('success') and not m.get('menu', '').startswith('Kunde inte') and _menu_cache_usable(m)}
         for m in menus:
             if (not m.get('success') or m.get('menu', '').startswith('Kunde inte')) and m.get('name') in fallback_lookup:
                 merged.append(fallback_lookup[m.get('name')])
