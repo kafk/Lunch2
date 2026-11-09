@@ -156,7 +156,9 @@ class BacksideIntegrationTests(unittest.TestCase):
             self.application, 'get_cached_menus', return_value={'menus': [
                 dict(self.backup['Backside'], name='Backside', url=self.url)
             ]}
-        ):
+        ), patch.object(self.application, 'load_urls', return_value=[{'name': 'Backside', 'url': self.url}]), patch.object(
+            self.application, 'scrape_url', return_value={'name': 'Backside', 'url': self.url, 'success': False, 'menu': ''}
+        ), patch.object(self.application, 'save_menus_to_cache'):
             result = self.application.app.test_client().get('/api/menus').get_json()['menus'][0]
             self.assertFalse(result['success'])
             self.assertEqual(result['menu'], '')

@@ -2,7 +2,30 @@
 Validator Module: Performs quality and schema checks on extracted and normalized menu data.
 """
 from typing import List, Tuple
+from datetime import datetime
+import re
 from .models import WeeklyMenuResult, DayMenu
+
+def menu_freshness_error(menu, now):
+    if menu.get('menu_type') == 'standing':
+        return ''
+    year, week = now.isocalendar()[:2]
+    texts = '\n'.join(str(menu.get(key) or '') for key in ('menu', 'menu_sv', 'raw_text', 'source'))
+    weeks = re.findall(r'\b(?:vecka|week|v\.?)[ \t]*(\d{1,2})\b', texts, re.I)
+    if menu.get('menu_week') is not None:
+        weeks.append(str(menu['menu_week']))
+    try:
+        if weeks and any(int(value) != week for value in weeks):
+            return 'Menu is not for the current week'
+        if menu.get('menu_year') is not None and int(menu['menu_year']) != year:
+            return 'Menu is not for the current ISO year'
+        saved_at = datetime.fromisoformat(menu.get('scraped_at', ''))
+        if saved_at.isocalendar()[:2] != (year, week):
+            return 'Saved menu is from a previous week'
+    except (ValueError, TypeError):
+        return 'Menu freshness cannot be verified'
+    return ''
+
 
 def validate_menu_result(result: WeeklyMenuResult) -> Tuple[bool, List[str]]:
     """

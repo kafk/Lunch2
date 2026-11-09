@@ -2,7 +2,6 @@ import base64
 import json
 import os
 import re
-from datetime import datetime
 from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
@@ -11,18 +10,11 @@ from .fetcher import create_session
 from .models import WeeklyMenuResult
 from .normalizer import normalize_text_to_days, format_day_menus_to_text
 from .openai_menu import SourcedMenu
-from .validator import validate_menu_result
+from .validator import validate_menu_result, menu_freshness_error
 
 
 def current_week_menu(menu, now):
-    try:
-        saved_at = datetime.fromisoformat(menu.get('scraped_at', ''))
-        if saved_at.isocalendar()[:2] != now.isocalendar()[:2]:
-            return False
-        weeks = re.findall(r'\b(?:vecka|v\.?)[ \t]*(\d{1,2})\b', menu.get('menu', ''), re.I)
-        return all(int(week) == now.isocalendar().week for week in weeks)
-    except (ValueError, TypeError):
-        return False
+    return not menu_freshness_error(menu, now)
 
 
 def _post_records(value):

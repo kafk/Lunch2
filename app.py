@@ -64,7 +64,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '0126')
 
-VERSION = '3.59'
+VERSION = '3.60'
 URLS_FILE = 'urls.json'
 RESTAURANTS_CONFIG_FILE = os.path.join('config', 'restaurants.json')
 COLLECTION_NAME = 'restaurants'
@@ -297,7 +297,7 @@ def get_restaurant_info(url):
     info['opening_hours'] = list(dict.fromkeys(hour for hour in info['opening_hours'] if hour))
     return info
 
-def get_cached_menus():
+def get_cached_menus(allow_previous=False):
     """Hämta cachade menyer om de är från idag."""
     today = swedish_now().strftime('%Y-%m-%d')
 
@@ -306,7 +306,7 @@ def get_cached_menus():
             cache_doc = db.collection('menu_cache').document('daily').get()
             if cache_doc.exists:
                 data = cache_doc.to_dict()
-                if data.get('date') == today:
+                if data.get('date') == today or allow_previous:
                     return {
                         'menus': data.get('menus', []),
                         'updated_at': data.get('updated_at')
@@ -1661,19 +1661,35 @@ def _current_week():
 
 
 def _weekly_get(url, week_key):
+    year, week = _current_week()
+    if week_key not in (f'{year}-W{week:02d}', f'img-v{week}'):
+        return None
+    from engine.validator import menu_freshness_error
+
+    def usable(text):
+        return not menu_freshness_error(
+            {'menu': text, 'scraped_at': swedish_now().isoformat()}, swedish_now()
+        )
+
     doc_id = hashlib.sha1(url.encode('utf-8')).hexdigest()
     if db:
         try:
             doc = db.collection('menu_weekly').document(doc_id).get()
             data = doc.to_dict() if doc.exists else None
-            return data['text'] if data and data.get('week_key') == week_key else None
+            return data['text'] if data and data.get('week_key') == week_key and usable(data['text']) else None
         except Exception as e:
             print(f'Weekly cache read error: {e}')
     entry = _WEEKLY_MEMORY.get(doc_id)
-    return entry[1] if entry and entry[0] == week_key else None
+    return entry[1] if entry and entry[0] == week_key and usable(entry[1]) else None
 
 
 def _weekly_put(url, week_key, text):
+    year, week = _current_week()
+    from engine.validator import menu_freshness_error
+    if week_key not in (f'{year}-W{week:02d}', f'img-v{week}') or menu_freshness_error(
+        {'menu': text, 'scraped_at': swedish_now().isoformat()}, swedish_now()
+    ):
+        return
     doc_id = hashlib.sha1(url.encode('utf-8')).hexdigest()
     _WEEKLY_MEMORY[doc_id] = (week_key, text)
     if db:
@@ -1908,9 +1924,11 @@ def scrape_kvartersmenyn(url, name, session):
                         fb_data = json.load(f)
                     if name in fb_data and fb_data[name].get('menu'):
                         fb_item = dict(fb_data[name])
-                        fb_item['source'] = f"{fb_item.get('source', 'Fallback')} (fallback)"
-                        fb_item['fallback_used'] = True
-                        return fb_item
+                        if _menu_cache_usable(fb_item):
+                            fb_item['source'] = f"{fb_item.get('source', 'Fallback')} (fallback)"
+                            fb_item['fallback_used'] = True
+                            return fb_item
+                        reasons.append('Saved menu rejected: not current week')
                 except Exception as fb_err:
                     reasons.append(f"fallback_err: {fb_err}")
 
@@ -1944,7 +1962,7 @@ def scrape_nordic_taste_lab(url, name, session):
     try:
         now = swedish_now()
         current_week = now.isocalendar()[1]
-        candidate_weeks = [current_week, current_week + 1, current_week - 1]
+        candidate_weeks = [current_week]
         
         image_url = None
         active_week = current_week
@@ -2523,6 +2541,10 @@ def enrich_menu_languages(result, lang='sv'):
 def scrape_url(url, name, lang='sv'):
     """Scrapa en URL och returnera menyinformation fördelat efter språk."""
     res = _scrape_url_raw(url, name, lang=lang)
+    if res and res.get('success'):
+        res['menu_type'] = _configured_menu_type(url, name)
+        if not _menu_cache_usable(res):
+            return _unavailable_menu(res, 'Fresh source or backup is not for the current week')
     return enrich_menu_languages(res, lang=lang)
 
 
@@ -2648,7 +2670,8 @@ def _scrape_url_raw(url, name, lang='sv'):
                         fb_data = json.load(f)
                         for key, fb_val in fb_data.items():
                             if key.lower() in name.lower() or fb_val.get('url', '').rstrip('/') == url.rstrip('/'):
-                                return fb_val
+                                if _menu_cache_usable(fb_val):
+                                    return dict(fb_val, fallback_used=True, source='Saved menu (fallback)')
                 except Exception as e:
                     print(f"Fallback menus lookup error: {e}")
 
@@ -2659,7 +2682,7 @@ def _scrape_url_raw(url, name, lang='sv'):
                 'menu': desc,
                 'menu_sv': desc,
                 'menu_en': "Today's lunch & buffet.\n\nWeekly menu published as image on Instagram.\nClick the link above to view.",
-                'success': True,
+                'success': False,
                 'source': 'Instagram Bildmeny',
                 'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
             }
@@ -3754,11 +3777,42 @@ def debug_tildas():
     })
 
 
+def _configured_menu_type(url, name):
+    try:
+        with open(RESTAURANTS_CONFIG_FILE, 'r', encoding='utf-8') as config_file:
+            configs = json.load(config_file)
+        if isinstance(configs, list):
+            for config in configs:
+                if config.get('url') == url or config.get('name', '').lower() == name.lower():
+                    return 'standing' if config.get('menu_type') == 'standing' else 'weekly'
+    except (OSError, ValueError, TypeError):
+        pass
+    return 'weekly'
+
+
 def _menu_cache_usable(menu):
-    if 'backside' in (menu.get('name', '') + menu.get('url', '')).lower():
-        from engine.instagram_menu import current_week_menu
-        return current_week_menu(menu, swedish_now())
-    return True
+    from engine.validator import menu_freshness_error
+    typed_menu = dict(menu, menu_type=_configured_menu_type(menu.get('url', ''), menu.get('name', '')))
+    return not menu_freshness_error(typed_menu, swedish_now())
+
+
+def _unavailable_menu(menu, reason):
+    return dict(
+        menu, menu='', menu_sv='', menu_en='', raw_text='', days=[], success=False,
+        source='Unavailable', error='Current menu unavailable: ' + reason,
+        retry_after=(swedish_now() + timedelta(minutes=30)).isoformat()
+    )
+
+
+def _menu_retry_due(menu):
+    try:
+        retry_at = datetime.fromisoformat(menu.get('retry_after', ''))
+        now = swedish_now()
+        if retry_at.tzinfo is None:
+            retry_at = retry_at.replace(tzinfo=now.tzinfo)
+        return now >= retry_at
+    except (ValueError, TypeError):
+        return True
 
 
 @app.route('/api/menus', methods=['GET'])
@@ -3784,24 +3838,29 @@ def get_menus():
                     menu['menu'] = extract_today_section(menu['menu'])
 
     # Try to get cached menus if not forcing refresh
+    retry_cached_only = False
     if not force_refresh:
         cached = get_cached_menus()
         if cached:
-            cached['menus'] = [
-                menu if _menu_cache_usable(menu) else dict(
-                    menu, menu='', menu_sv='', menu_en='', success=False,
-                    source='Expired cache', error='Previous-week Backside menu rejected'
-                ) for menu in cached.get('menus', [])
-            ]
-            postprocess(cached.get('menus', []))
-            return jsonify(cached)
+            needs_retry = any(
+                (not menu.get('success') or not _menu_cache_usable(menu)) and _menu_retry_due(menu)
+                for menu in cached.get('menus', [])
+            )
+            if not needs_retry:
+                cached['menus'] = [
+                    menu if _menu_cache_usable(menu) else _unavailable_menu(menu, 'saved menu expired')
+                    for menu in cached.get('menus', [])
+                ]
+                postprocess(cached.get('menus', []))
+                return jsonify(cached)
+            retry_cached_only = True
 
     # Scrape fresh data
     urls = load_urls()
     enabled = [u for u in urls if u.get('enabled', True)]
 
     # Hämta tidigare cache som fallback om enskilda sajter tillfälligt blockeras
-    cached_doc = get_cached_menus()
+    cached_doc = get_cached_menus(allow_previous=True)
     cached_map = {}
     if cached_doc and isinstance(cached_doc.get('menus'), list):
         for m in cached_doc['menus']:
@@ -3812,24 +3871,34 @@ def get_menus():
                     cached_map[m['url']] = m
 
     def scrape_safe(url_data):
+        previous = cached_map.get(url_data['name']) or cached_map.get(url_data['url'])
+        if retry_cached_only and previous:
+            return previous
+        pending = next((menu for menu in (cached_doc or {}).get('menus', [])
+                        if menu.get('url') == url_data['url']), None)
+        if retry_cached_only and pending and not _menu_retry_due(pending):
+            return pending if _menu_cache_usable(pending) else _unavailable_menu(pending, 'saved menu expired')
         try:
             res = scrape_url(url_data['url'], url_data['name'], lang=lang)
+            if res.get('success') and not _menu_cache_usable(res):
+                res = _unavailable_menu(res, 'menu week is not current')
             if not res.get('success') or not res.get('menu') or res.get('menu', '').startswith('Kunde inte'):
                 fallback = cached_map.get(url_data['name']) or cached_map.get(url_data['url'])
                 if fallback:
-                    return dict(fallback)
+                    return dict(fallback, fallback_used=True, source='Saved menu (fallback)')
+                return _unavailable_menu(res, res.get('error') or 'fresh scraping failed')
             return res
         except Exception as e:
             fallback = cached_map.get(url_data['name']) or cached_map.get(url_data['url'])
             if fallback:
-                return dict(fallback)
-            return {
+                return dict(fallback, fallback_used=True, source='Saved menu (fallback)')
+            return _unavailable_menu({
                 'name': url_data['name'],
                 'url': url_data['url'],
                 'menu': f'Kunde inte hämta sidan: {e}',
                 'success': False,
                 'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
-            }
+            }, 'fresh scraping failed')
 
     # map behåller ordningen så att korten ligger kvar i samma sekvens som urls
     workers = min(32, max(len(enabled), 16))
