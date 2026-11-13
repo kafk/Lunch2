@@ -3844,7 +3844,22 @@ def _configured_menu_type(url, name):
 def _menu_cache_usable(menu):
     from engine.validator import menu_freshness_error
     typed_menu = dict(menu, menu_type=_configured_menu_type(menu.get('url', ''), menu.get('name', '')))
-    return not menu_freshness_error(typed_menu, swedish_now())
+    if menu_freshness_error(typed_menu, swedish_now()):
+        return False
+
+    is_nordic = (
+        'ce576758e5e44ad59e25f885b130d4ca' in menu.get('url', '').lower()
+        or 'nordic taste lab' in menu.get('name', '').lower()
+    )
+    if is_nordic:
+        text = '\n'.join(str(menu.get(key) or '') for key in ('menu', 'menu_sv', 'menu_en'))
+        weekdays = re.findall(
+            r'(?im)^\s*(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY)\b',
+            text
+        )
+        return len({day.upper() for day in weekdays}) >= 3
+
+    return True
 
 
 def _unavailable_menu(menu, reason):

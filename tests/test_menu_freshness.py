@@ -198,6 +198,35 @@ class MenuFreshnessIntegrationTests(unittest.TestCase):
         self.assertEqual(session.head.call_args_list[-1].args[0],
                          'https://www.compass-group.se/contentassets/ce576758e5e44ad59e25f885b130d4ca/svenska-v45-1.png')
 
+    def test_nordic_homepage_description_is_not_a_usable_cached_menu(self):
+        cached_menu = {
+            'name': 'AE - Nordic Taste Lab',
+            'url': 'https://ce576758e5e44ad59e25f885b130d4ca.compass-group.se/',
+            'success': True,
+            'menu': (
+                '13.11.2026 Prästvägen 15 41875 Göteborg\n'
+                'nordictastelab@compass-group.se Välkommen att uppleva Nordic Taste Lab '
+                '– en ny mötesplats för nordiska smaker.'
+            ),
+            'scraped_at': '2026-11-13 08:00'
+        }
+        with patch.object(self.application, 'swedish_now', return_value=self.now):
+            self.assertFalse(self.application._menu_cache_usable(cached_menu))
+
+    def test_nordic_current_week_days_are_a_usable_cached_menu(self):
+        cached_menu = {
+            'name': 'AE - Nordic Taste Lab',
+            'url': 'https://ce576758e5e44ad59e25f885b130d4ca.compass-group.se/',
+            'success': True,
+            'menu': (
+                'Vecka 46\nMåndag\nKyckling: Kycklingbröst\n\n'
+                'Tisdag\nKött: Nötfärslimpa\n\nOnsdag\nKött: Högrevsgryta'
+            ),
+            'scraped_at': '2026-11-13 08:00'
+        }
+        with patch.object(self.application, 'swedish_now', return_value=self.now):
+            self.assertTrue(self.application._menu_cache_usable(cached_menu))
+
     def test_nordic_missing_image_does_not_fall_through_to_homepage(self):
         session = Mock()
         with patch.object(self.application.requests, 'Session', return_value=session), patch.object(
