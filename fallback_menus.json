@@ -35,6 +35,29 @@
     "lang": "sv",
     "detected_lang": "sv"
   },
+  "Backside vecka 46": {
+    "name": "Backside",
+    "url": "https://www.instagram.com/restaurangbackside/",
+    "menu": "Vecka 46\nMåndag\nKött: Helstekt fläskytterfilé med potatisgratäng och kantarellsås\nKyckling: Kycklingwok med nudlar, broccolibiff, köttfärsgryta och shishkebab med ris och BBQ-sås\n\nTisdag\nKött: Stekt fläsk med raggmunk, kokt potatis, löksås och lingonsylt\nKyckling: Grillad kycklingfilé, korv stroganoff, ostfyllda nötfärsbiffar och shishkebab med ris och BBQ-sås\n\nOnsdag\nKött: Grillad fläskfilé med rostad kulpotatis och portvinssås, bearnaisesås\nKyckling: Asiatisk laxwok med nudlar, kycklingspett, kycklinggryta tikka masala och shishkebab med ris och BBQ-sås\n\nTorsdag\nKött: Köttbullar med potatismos och gräddsås, lingonsylt\nSoppa: Ärtsoppa med pannkakor, sylt och grädde\nKyckling: Stekt kycklingfilé, vegetarisk linsgryta och shishkebab med ris och BBQ-sås\n\nFredag\nKött: Stekt fläskschnitzel med klyftpotatis, champinjonsås och gröna ärtor\nKyckling: Chicken Nuggets med pommes frites\nFisk: Pocherad fiskfilé med potatismos och hummersås\nKött: Shishkebab med ris och BBQ-sås\n\nAlltid på Backside:\nBurgare: Hamburgertallrik, 150 g nötkött med pommes frites, sallad, tomat, rödlök, gurka, cheddarost och hamburgardressing (135:-, ingår ej i buffé)\nSallad: Caesarsallad | Tonfisksallad | Räksallad | Kycklingsallad | Grekisk sallad. Quinoa ingår i alla sallader.\nBuffé: Lunchbuffé 109:- inklusive salladsbuffé, bröd, smör, måltidsdryck, kaffe och kaka. Måndag–fredag 10.30–14.30.",
+    "menu_week": 46,
+    "menu_year": 2026,
+    "menu_source_url": "https://www.instagram.com/p/Dffzg9lo3Pz/",
+    "success": true,
+    "source": "Backside publicerad menybild vecka 46 (verifierad från användarens bild)",
+    "scraped_at": "2026-11-13 08:27",
+    "lang": "sv"
+  },
+  "Delissimo": {
+    "name": "Delissimo",
+    "url": "https://delissimo.se/wp-content/uploads/2026/11/Gamlestan.pdf",
+    "menu": "Måndag\nKött: Grillad ryggbiff med grönpepparsås & stekt potatis\nKyckling: Kycklinggratäng med tomatsås, gräddig pestosås & basmatiris\nPasta: Pasta Cappero – stekt kapris, svamp & cocktailtomater i tomatsås med örter & parmesan. Toppas med örtig Ricotta-ost.\n\nTisdag\nKött: Hemgjorda pannbiffar på högrev, gräddsås, potatismos, rårörda lingon & pressgurka\nKyckling: Gorgonzolaspäckad kycklingfilé med blandsvampssås & ugnsbakad potatis\nFisk: Halstrad laxfilé med kaprissås & kokt potatis\nPasta: Pasta Manzo – stekt ryggbiff i gräddsås med rödvin, vitlök, örter & parmesan\n\nOnsdag\nKött: Grillmix med lammkotletter, kycklingspett, biffar, klyftpotatis, aioli & BBQ\nKyckling: Flygande Jakob med rostad potatis\nFisk: Vitvinspocherad koljafilé med lime-vitvinssås & färsk potatis\nPasta: Pasta Tortellini – färska pastaknutar fyllda med spenat & ricotta. Serveras i basilikasås med färsk spenat.\n\nTorsdag\nKött: Italiensk köttgryta med svamp, rödvin, örter, syltlök & kokt potatis\nFisk: Lättpanerad kummelfilé med kall dillsås & potatispuré\nPasta: Pasta Carbonara-Nduja – stekt bacon i parmesansås med het nduja-salami, nymalen svartpeppar & vitlök. Serveras med färsk spaghetti.\n\nFredag\nKött: Grillad Entrecote med skysås, vitlökssmör & fries 159:-\nPasta: Pasta Scampi – vitlök samt chilifrästa scampi i tomatsås med örter, tomatpesto & parmesan\n\nVeckans:\nPizza: Ventricina – frasig surdegspizza med örtig tomatsås, mozzarella fior di latte & kryddig salami Ventricina. Toppas med färsk ruccola.\nSallad: Caesarsallad med grillad kycklingfilé, hickoryrökt bacon, ugnsbakade krutonger & romansallad. Toppas med ruccola & parmesan samt serveras med caesarsås.\nLunch vardagar 11–14, 149:- inklusive salladsbuffé, bröd & kaffe.",
+    "menu_week": 46,
+    "menu_year": 2026,
+    "success": true,
+    "source": "Delissimo Gamlestan PDF (verifierad avskrift)",
+    "scraped_at": "2026-11-13 08:27",
+    "lang": "sv"
+  },
   "Backside": {
     "name": "Backside",
     "url": "https://www.instagram.com/restaurangbackside/",

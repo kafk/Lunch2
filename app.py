@@ -126,6 +126,14 @@ def init_firebase():
 # Initialize Firebase on startup
 firebase_enabled = init_firebase()
 
+def _restaurant_source_url(url):
+    return re.sub(
+        r'(?i)^(https://(?:www\.)?delissimo\.se/wp-content/uploads/\d{4}/\d{2}/)Gamle\.pdf$',
+        r'\1Gamlestan.pdf',
+        url
+    )
+
+
 def load_urls():
     """Ladda sparade URL:er från Firebase eller lokal fil."""
     if db:
@@ -135,7 +143,7 @@ def load_urls():
             for doc in docs:
                 data = doc.to_dict()
                 urls.append({
-                    'url': data.get('url', ''),
+                    'url': _restaurant_source_url(data.get('url', '')),
                     'name': data.get('name', ''),
                     'enabled': data.get('enabled', True),  # Default enabled
                     'id': doc.id
@@ -174,6 +182,7 @@ def load_urls():
             urls = json.load(f)
             # Ensure enabled field exists
             for url in urls:
+                url['url'] = _restaurant_source_url(url['url'])
                 if 'enabled' not in url:
                     url['enabled'] = True
             return urls
@@ -752,9 +761,21 @@ def find_pdf_links(soup, base_url):
 
 def scrape_pdf(url, headers):
     """Hämta och extrahera text från en PDF."""
+    url = _restaurant_source_url(url)
     response = requests.get(url, headers=headers, timeout=15)
     response.raise_for_status()
-    return extract_pdf_text(response.content)
+    text = extract_pdf_text(response.content)
+    if re.match(r'^https://(?:www\.)?delissimo\.se/', url, re.I) and not re.search(
+        r'(?im)^\s*(måndag|tisdag|onsdag|torsdag|fredag)\b', text
+    ):
+        fallback_path = os.path.join(os.path.dirname(__file__), 'fallback_menus.json')
+        with open(fallback_path, 'r', encoding='utf-8') as fallback_file:
+            fallbacks = json.load(fallback_file)
+        for saved in fallbacks.values():
+            if saved.get('url') == url and saved.get('menu') and _menu_cache_usable(saved):
+                return saved['menu']
+        raise ValueError('Delissimo PDF has no readable weekday sections and no current saved menu')
+    return text
 
 def find_lunch_page_link(soup, base_url):
     """Hitta länk till lunch-undersida."""
@@ -1956,7 +1977,8 @@ def _nordic_menu_fallback(url, name, week):
     fallback_path = os.path.join(os.path.dirname(__file__), 'fallback_menus.json')
     try:
         with open(fallback_path, 'r', encoding='utf-8') as fallback_file:
-            fallback = json.load(fallback_file).get(name)
+            fallbacks = json.load(fallback_file)
+            fallback = fallbacks.get(name) or fallbacks.get('AE - Nordic Taste Lab')
     except (OSError, ValueError, TypeError) as e:
         print(f"Nordic Taste Lab fallback read error: {e}")
         return None
@@ -2582,6 +2604,7 @@ def enrich_menu_languages(result, lang='sv'):
 
 def scrape_url(url, name, lang='sv'):
     """Scrapa en URL och returnera menyinformation fördelat efter språk."""
+    url = _restaurant_source_url(url)
     res = _scrape_url_raw(url, name, lang=lang)
     if res and res.get('success'):
         res['menu_type'] = _configured_menu_type(url, name)
@@ -3849,7 +3872,8 @@ def _menu_cache_usable(menu):
 
     is_nordic = (
         'ce576758e5e44ad59e25f885b130d4ca' in menu.get('url', '').lower()
-        or 'nordic taste lab' in menu.get('name', '').lower()
+        or 'nordic-taste-lab' in menu.get('url', '').lower()
+        or re.search(r'nordic (?:taste|test) lab', menu.get('name', ''), re.I)
     )
     if is_nordic:
         text = '\n'.join(str(menu.get(key) or '') for key in ('menu', 'menu_sv', 'menu_en'))
