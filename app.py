@@ -1952,6 +1952,27 @@ def scrape_kvartersmenyn(url, name, session):
         return None
 
 
+def _nordic_menu_fallback(url, name, week):
+    fallback_path = os.path.join(os.path.dirname(__file__), 'fallback_menus.json')
+    try:
+        with open(fallback_path, 'r', encoding='utf-8') as fallback_file:
+            fallback = json.load(fallback_file).get(name)
+    except (OSError, ValueError, TypeError) as e:
+        print(f"Nordic Taste Lab fallback read error: {e}")
+        return None
+
+    if not isinstance(fallback, dict) or not fallback.get('menu'):
+        return None
+    try:
+        if int(fallback.get('menu_week', 0)) != week:
+            return None
+    except (TypeError, ValueError):
+        return None
+    if not _menu_cache_usable(fallback):
+        return None
+    return dict(fallback, name=name, url=url, fallback_used=True)
+
+
 def scrape_nordic_taste_lab(url, name, session):
     """Custom scraper för Nordic Taste Lab (Compass Group).
     
@@ -1963,21 +1984,31 @@ def scrape_nordic_taste_lab(url, name, session):
         now = swedish_now()
         current_week = now.isocalendar()[1]
         candidate_weeks = [current_week]
+        menu_fallback = _nordic_menu_fallback(url, name, current_week)
         
         image_url = None
         active_week = current_week
+        image_candidates = [
+            f"https://www.compass-group.se/contentassets/ce576758e5e44ad59e25f885b130d4ca/svenska-v{week}{suffix}.png"
+            for week in candidate_weeks
+            for suffix in ('', '-1')
+        ]
+        if menu_fallback and menu_fallback.get('image_url'):
+            image_candidates.append(menu_fallback['image_url'])
         
-        # Sök efter veckans menybild
-        for week in candidate_weeks:
-            test_url = f"https://www.compass-group.se/contentassets/ce576758e5e44ad59e25f885b130d4ca/svenska-v{week}.png"
+        # Compass can publish a revised image with a -1 suffix.
+        for test_url in image_candidates:
             try:
                 res = session.head(test_url, timeout=3)
                 if res.status_code == 200:
                     image_url = test_url
-                    active_week = week
                     break
             except Exception:
                 pass
+        if image_url:
+            active_week = current_week
+        elif menu_fallback:
+            return menu_fallback
                 
         if not image_url:
             return None
@@ -1986,6 +2017,13 @@ def scrape_nordic_taste_lab(url, name, session):
         gemini_key = os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY')
         debug_status = "Ingen GEMINI_API_KEY hittades i miljövariabler" if not gemini_key else "Key laddad"
         
+        def saved_menu_fallback():
+            return dict(
+                menu_fallback,
+                source='Compass Group menybild (vecka ' + str(current_week) + ', sparad meny)',
+                fallback_used=True
+            ) if menu_fallback else None
+
         if gemini_key:
             cache_key = f'img-v{active_week}'
             cached_text = None if _BYPASS_WEEKLY_CACHE.get() else _weekly_get(image_url, cache_key)
@@ -2051,6 +2089,10 @@ def scrape_nordic_taste_lab(url, name, session):
                         debug_status = f"{model} error: {str(me)}"
             except Exception as e:
                 debug_status = f"Img/API fel: {str(e)}"
+
+        saved_fallback = saved_menu_fallback()
+        if saved_fallback:
+            return saved_fallback
 
         # Fallback om OCR inte är konfigurerat eller misslyckades: visa information och bildlänk
         menu_desc = f"🖼️ Veckomeny (Vecka {active_week})\n\nMenyn publiceras som bild för vecka {active_week}.\n\nBildlänk:\n{image_url}"
@@ -2431,7 +2473,7 @@ def categorize_menu_text(text, restaurant_name=None):
     if not CLASSIFIER_AVAILABLE or not classifier:
         return text
 
-    if restaurant_name and any(x in restaurant_name.lower() for x in ['tsukihana', 'albatross', 'nordic', 'tilda', 'the grill', 'zäta', 'zata', 'grand central', 'spirafood', 'roots']):
+    if restaurant_name and any(x in restaurant_name.lower() for x in ['tsukihana', 'albatross', 'nordic', 'the grill', 'zäta', 'zata', 'grand central', 'spirafood', 'roots']):
         return text
 
     lines = text.split('\n')
@@ -2585,6 +2627,15 @@ def _scrape_url_raw(url, name, lang='sv'):
             result = scrape_nordic_taste_lab(url, name, session)
             if result:
                 return result
+            return {
+                'name': name,
+                'url': url,
+                'menu': '',
+                'success': False,
+                'source': 'Compass Group',
+                'error': 'Kunde inte hitta den aktuella veckans menybild hos Compass Group.',
+                'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+            }
 
         # SPECIAL: Kvartersmenyn.se-restauranger
         if 'kvartersmenyn.se' in url.lower():

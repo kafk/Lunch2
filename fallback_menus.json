@@ -83,6 +83,19 @@
     "lang": "sv",
     "detected_lang": "sv"
   },
+  "AE - Nordic Taste Lab": {
+    "name": "AE - Nordic Taste Lab",
+    "url": "https://ce576758e5e44ad59e25f885b130d4ca.compass-group.se/",
+    "image_url": "https://www.compass-group.se/contentassets/ce576758e5e44ad59e25f885b130d4ca/svenska-v45-1.png",
+    "menu": "Vecka 46\nMåndag\nKyckling: Kycklingbröst med bacon, salvia & lök, stekt potatis, fänkålscrudité & mustig balsamicosky\nFisk: Sej med krämig dillmörsås, matvete med rostad rödbeta, krispigt rågsmul & sockertång\nVegetariskt: Blomkålsbiff med krämig dillmörsås, matvete med rostad rödbeta, krispigt rågsmul & sockertång\n\nTisdag\nKött: Nötfärslimpa 50/50 med fetaost, soltorkad tomat, paprikasås, potatispuré, brysselkålssallad och plommon/stjärnanismarmelad från Dahlia's\nFisk: Misobakad rödtunga med fermenterad chilicrème, krämig risotto med Grana Padano & syltad svamp med stjärnanis\nVegetariskt: Kikärtskrokett med rostad paprikasås, len potatispuré & brysselkålssallad med äpple och katrinplommon\n\nOnsdag\nKött: Högrevsgryta med svamp, rotfrukter, jasminris, rårörda lingon & krispig grönkål\nFisk: Dill- & laxfrikadell med ångkokt potatis, rostad fänkål, len gräslökskräm & picklad lök\nVegetariskt: Gulärtsgryta med svamp, enbär, jasminris, lingon & krispig grönkål\n\nTorsdag\nKött: Fläsksida med rostad potatis, len pumpapuré, spice-marmelad från Dahlias & picklad silverlök\nFisk: Röding med potatispuré med pepparrot, smörig äppelsås, vinteräppelmarmelad från Dahlias & rostad fänkål\nVegetariskt: Tofu med len pepparrots-potatispuré, smörig äppelsås, vinteräppelmarmelad från Dahlias & rostad fänkål\n\nFredag\nKött: NTL:s burgare med korianderkräm, guacamole, krispig sallad med majs & fermenterade pommes\nFisk: Kummel med ägg- & dillsås, kornbulgur med gröna ärtor, färskriven pepparrot & picklad rödlök\nVegetariskt: Halloumiburgare med korianderkräm, guacamole, krispig sallad med majs & fermenterade pommes",
+    "menu_week": 46,
+    "menu_year": 2026,
+    "success": true,
+    "source": "Compass Group menybild vecka 46",
+    "scraped_at": "2026-11-13 08:00",
+    "lang": "sv",
+    "detected_lang": "sv"
+  },
   "Tegel": {
     "name": "Tegel",
     "url": "https://www.restaurangtegel.com/lunch/",

@@ -155,10 +155,63 @@ class MenuFreshnessIntegrationTests(unittest.TestCase):
     def test_nordic_does_not_probe_previous_week_image(self):
         session = Mock()
         session.head.return_value.status_code = 404
-        with patch.object(self.application, 'swedish_now', return_value=self.now):
+        with patch.object(self.application, 'swedish_now', return_value=self.now), patch.object(
+            self.application, '_nordic_menu_fallback', return_value=None
+        ):
             self.assertIsNone(self.application.scrape_nordic_taste_lab('https://example.test/', 'Nordic', session))
-        self.assertEqual(session.head.call_count, 1)
-        self.assertIn('svenska-v46.png', session.head.call_args.args[0])
+        self.assertEqual(session.head.call_count, 2)
+        probed_urls = [call.args[0] for call in session.head.call_args_list]
+        self.assertIn('svenska-v46.png', probed_urls[0])
+        self.assertIn('svenska-v46-1.png', probed_urls[1])
+        self.assertTrue(all('v45' not in url for url in probed_urls))
+
+    def test_nordic_uses_current_week_revised_image(self):
+        session = Mock()
+        session.head.side_effect = [Mock(status_code=404), Mock(status_code=200)]
+        with patch.object(self.application, 'swedish_now', return_value=self.now), patch.object(
+            self.application, '_nordic_menu_fallback', return_value=None
+        ), patch.dict(
+            os.environ, {'GEMINI_API_KEY': '', 'GOOGLE_API_KEY': ''}
+        ):
+            result = self.application.scrape_nordic_taste_lab('https://example.test/', 'Nordic', session)
+
+        self.assertTrue(result['success'])
+        self.assertIn('svenska-v46-1.png', result['menu'])
+        self.assertIn('Bild (v46)', result['source'])
+
+    def test_nordic_uses_saved_week_46_menu_and_image(self):
+        session = Mock()
+        session.head.side_effect = [Mock(status_code=404), Mock(status_code=404), Mock(status_code=200)]
+        with patch.object(self.application, 'swedish_now', return_value=self.now), patch.object(
+            self.application, '_menu_cache_usable', return_value=True
+        ), patch.dict(os.environ, {'GEMINI_API_KEY': '', 'GOOGLE_API_KEY': ''}):
+            result = self.application.scrape_nordic_taste_lab(
+                'https://ce576758e5e44ad59e25f885b130d4ca.compass-group.se/',
+                'AE - Nordic Taste Lab',
+                session
+            )
+
+        self.assertTrue(result['success'])
+        self.assertTrue(result['fallback_used'])
+        self.assertIn('Vecka 46', result['menu'])
+        self.assertIn('Kött: Nötfärslimpa', result['menu'])
+        self.assertEqual(session.head.call_args_list[-1].args[0],
+                         'https://www.compass-group.se/contentassets/ce576758e5e44ad59e25f885b130d4ca/svenska-v45-1.png')
+
+    def test_nordic_missing_image_does_not_fall_through_to_homepage(self):
+        session = Mock()
+        with patch.object(self.application.requests, 'Session', return_value=session), patch.object(
+            self.application, 'scrape_nordic_taste_lab', return_value=None
+        ), patch.object(self.application, 'swedish_now', return_value=self.now):
+            result = self.application._scrape_url_raw(
+                'https://ce576758e5e44ad59e25f885b130d4ca.compass-group.se/',
+                'AE - Nordic Taste Lab'
+            )
+
+        self.assertFalse(result['success'])
+        self.assertEqual(result['menu'], '')
+        self.assertIn('veckans menybild', result['error'])
+        session.get.assert_not_called()
 
 
 if __name__ == '__main__':

@@ -222,7 +222,7 @@ class DishClassifier:
 
         # 8. Kött & Chark (Nöt, Fläsk, Lamm, Färs, Korv m.m.)
         meat_keywords = [
-            'kött', 'biff', 'biffar', 'kalvfärs', 'oxfilé', 'ryggbiff', 'entrecôte', 'entrecote', 'högrev', 'kalv',
+            'kött', 'biff', 'biffar', 'flankstek', 'pepparstek', 'pepparbiff', 'kalvfärs', 'oxfilé', 'ryggbiff', 'entrecôte', 'entrecote', 'högrev', 'kalv',
             'fläsk', 'fläskfilé', 'fläskkarré', 'fläskytterfilé', 'kotlett', 'sidfläsk', 'karré', 'bacon',
             'lamm', 'färs', 'nötfärs', 'köttfärs', 'köttbullar', 'kalvköttbullar', 'pannbiff', 'wallenbergare', 'schnitzel',
             'korv', 'korvstroganoff', 'stroganoff', 'falukorv', 'isterband', 'chorizo', 'bratwurst',
@@ -260,6 +260,12 @@ class DishClassifier:
             if not d or not d.strip():
                 continue
             cat = self.get_cached(d)
+            if cat == "Övrigt":
+                h_cat = self.heuristic_classify(d)
+                if h_cat:
+                    self.set_cached(d, h_cat, source="heuristic")
+                    output[d] = h_cat
+                    continue
             if cat:
                 output[d] = cat
             else:

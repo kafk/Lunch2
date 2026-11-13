@@ -2453,6 +2453,10 @@
         if (/lunchlabbet/i.test(name)) {
             text = text.split('\n').filter(l => !/tel:|mail:|flygplatsväg|^\s*@/i.test(l)).join('\n');
         }
+        if (/tilda/i.test(name)) {
+            const promoStart = text.search(/(?:^|\n)\s*(?:Ta med dig lunchen|Hämta take-away lunch)\b/i);
+            if (promoStart > 0) text = text.slice(0, promoStart);
+        }
         if (/kock/i.test(name)) {
             text = text.split('\n').filter(l => !/^(?:pasta\s*:\s*)?pasta\s*luckan:?$/i.test(l.trim())).join('\n');
         }
@@ -2509,7 +2513,7 @@
         }
 
         // 8. Kött (Nöt, Fläsk, Lamm, Färs, Korv, Stek m.m.)
-        if (/\b(kött|biff|biffar|oxfärs|oxfärsbiff|kalvfärs|oxfilé|ryggbiff|entrecôte|entrecote|högrev|kalv|fläsk|fläskfilé|fläskkarré|fläskytterfilé|kotlett|sidfläsk|karré|bacon|lamm|färs|nötfärs|köttfärs|köttbullar|kalvköttbullar|pannbiff|wallenbergare|schnitzel|fläskschnitzel|korv|korvstroganoff|stroganoff|falukorv|isterband|chorizo|bratwurst|skinka|raggmunk|pyttipanna|pytt i panna|kebab|gyros|kalops|rostbiff|revben|revbensspjäll|slottstek|oxstek|stek|kassler|kåldolmar|kålpudding|oxbringa|bringa|gulasch|gulaschgryta|enchiladas|enchilada|fläsklägg|pulled pork|köttfärslimpa|viltgryta|vilt|meat|beef|pork)\b/i.test(t) || /(kalvfärs|fläskfilé|fläskytterfilé|biffar|kebab|stroganoff|slottstek|oxfärs|kåldolmar|kålpudding|oxbringa|pyttipanna|fläskschnitzel|pulled pork|köttbull|kalvköttbull|gulasch|enchilada|nötfärs)/i.test(t)) {
+        if (/\b(kött|biff|biffar|flankstek|pepparstek|pepparbiff|oxfärs|oxfärsbiff|kalvfärs|oxfilé|ryggbiff|entrecôte|entrecote|högrev|kalv|fläsk|fläskfilé|fläskkarré|fläskytterfilé|kotlett|sidfläsk|karré|bacon|lamm|färs|nötfärs|köttfärs|köttbullar|kalvköttbullar|pannbiff|wallenbergare|schnitzel|fläskschnitzel|korv|korvstroganoff|stroganoff|falukorv|isterband|chorizo|bratwurst|skinka|raggmunk|pyttipanna|pytt i panna|kebab|gyros|kalops|rostbiff|revben|revbensspjäll|slottstek|oxstek|stek|kassler|kåldolmar|kålpudding|oxbringa|bringa|gulasch|gulaschgryta|enchiladas|enchilada|fläsklägg|pulled pork|köttfärslimpa|viltgryta|vilt|meat|beef|pork)\b/i.test(t) || /(flankstek|pepparstek|pepparbiff|kalvfärs|fläskfilé|fläskytterfilé|biffar|kebab|stroganoff|slottstek|oxfärs|kåldolmar|kålpudding|oxbringa|pyttipanna|fläskschnitzel|pulled pork|köttbull|kalvköttbull|gulasch|enchilada|nötfärs)/i.test(t)) {
             return currentLang === 'en' ? 'Meat' : 'Kött';
         }
         return '';
