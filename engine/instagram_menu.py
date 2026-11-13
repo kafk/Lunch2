@@ -2,9 +2,12 @@ import base64
 import json
 import os
 import re
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urljoin, urlparse
 
+import requests
 from bs4 import BeautifulSoup
+from pydantic import ValidationError
 
 from .fetcher import create_session
 from .models import WeeklyMenuResult
@@ -103,6 +106,96 @@ def _image_menu(image_url, post_url, session, now, reasons):
         ('M\u00e5ndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag')
     ))
     return '\n\n'.join(labels[day.day] + '\n' + '\n'.join(day.dishes) for day in menu.days)
+
+
+def fetch_apify_menu(url, name, now, session=None, reasons=None):
+    reasons = reasons if reasons is not None else []
+    token = os.environ.get('APIFY_API_TOKEN', '').strip()
+    task = os.environ.get('APIFY_BACKSIDE_TASK_ID', '').strip()
+    if not token and not task:
+        return None
+    if not token or not task:
+        reasons.append('Apify: APIFY_API_TOKEN and APIFY_BACKSIDE_TASK_ID are both required')
+        return None
+    if not re.fullmatch(r'[A-Za-z0-9_-]+(?:~[A-Za-z0-9_-]+)?', task):
+        reasons.append('Apify: invalid task ID')
+        return None
+    session = session or create_session()
+    try:
+        response = session.get(
+            f'https://api.apify.com/v2/actor-tasks/{task}/runs/last/dataset/items',
+            headers={'Authorization': f'Bearer {token}'},
+            params={'status': 'SUCCEEDED', 'format': 'json', 'clean': 'true', 'limit': 5},
+            timeout=12, allow_redirects=False,
+        )
+        if response.status_code != 200:
+            reasons.append(f'Apify dataset HTTP {response.status_code}')
+            return None
+        posts = response.json()
+        if not isinstance(posts, list) or any(not isinstance(post, dict) for post in posts):
+            reasons.append('Apify: invalid dataset response')
+            return None
+        current = now if now.tzinfo else now.replace(tzinfo=timezone.utc)
+        monday = (current - timedelta(days=current.weekday())).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        # Restaurants often publish Monday's menu on the preceding Sunday.
+        earliest = monday - timedelta(days=1)
+        username = urlparse(url).path.strip('/').lower()
+        candidates = []
+        for post in posts[:5]:
+            if post.get('ownerUsername', '').lower() != username:
+                continue
+            try:
+                published = datetime.fromisoformat(post.get('timestamp', '').replace('Z', '+00:00'))
+            except (ValueError, TypeError, AttributeError):
+                reasons.append('Apify: invalid post timestamp')
+                continue
+            if not published.tzinfo or not earliest <= published <= current:
+                continue
+            caption = _caption(post)
+            weeks = re.findall(r'\b(?:vecka|v\.?)[ \t]*(\d{1,2})\b', caption, re.I)
+            if weeks and any(int(week) != now.isocalendar().week for week in weeks):
+                continue
+            candidates.append((published, post))
+        attempts = 0
+        seen_images = set()
+        for _, post in sorted(candidates, key=lambda item: item[0], reverse=True):
+            code = post.get('shortCode', '')
+            if not isinstance(code, str) or not re.fullmatch(r'[A-Za-z0-9_-]+', code):
+                reasons.append('Apify: invalid post shortcode')
+                continue
+            post_url = f'https://www.instagram.com/p/{code}/'
+            images = [post.get('displayUrl')]
+            images.extend(post.get('images') or [])
+            images.extend(
+                child.get('displayUrl') for child in (post.get('childPosts') or [])
+                if isinstance(child, dict)
+            )
+            for image_url in images:
+                if not isinstance(image_url, str) or image_url in seen_images:
+                    continue
+                parsed = urlparse(image_url)
+                host = parsed.hostname or ''
+                if (parsed.scheme != 'https' or parsed.username or parsed.password
+                        or not host.endswith(('.cdninstagram.com', '.fbcdn.net'))):
+                    reasons.append('Apify: untrusted menu image URL')
+                    continue
+                seen_images.add(image_url)
+                if attempts >= 2:
+                    break
+                attempts += 1
+                text = _image_menu(image_url, post_url, session, now, reasons)
+                result = _validated_menu(text, url, name, now, 'Apify Instagram image OCR')
+                if result:
+                    result.update(menu_source_url=post_url, fallback_used=False,
+                                  menu_year=now.isocalendar().year,
+                                  menu_week=now.isocalendar().week)
+                    return result
+        reasons.append('Apify: no verified current-week menu')
+    except (requests.RequestException, ValidationError, ValueError, KeyError, TypeError) as error:
+        reasons.append(f'Apify fetch failed: {type(error).__name__}')
+    return None
 
 
 def fetch_instagram_menu(url, name, now, session=None, reasons=None):

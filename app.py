@@ -2461,12 +2461,16 @@ def scrape_conqrete(url, name, session):
     except Exception as e:
         print(f"Conqrete scraper error: {e}")
 def scrape_backside(url, name, session=None):
-    from engine.instagram_menu import fetch_instagram_menu, current_week_menu
+    from engine.instagram_menu import fetch_apify_menu, fetch_instagram_menu, current_week_menu
 
     now = swedish_now()
     reasons = []
+    result = fetch_apify_menu(url, name, now, session, reasons)
+    if result:
+        return result
     result = fetch_instagram_menu(url, name, now, session, reasons)
     if result:
+        result['scrape_reasons'] = reasons
         return result
     try:
         fb_file = os.path.join(os.path.dirname(__file__), 'fallback_menus.json')

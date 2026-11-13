@@ -105,6 +105,9 @@ class BacksideIntegrationTests(unittest.TestCase):
     def setUp(self):
         self.now = datetime(2026, 11, 9, 10)
         self.url = 'https://www.instagram.com/restaurangbackside/'
+        apify = patch('engine.instagram_menu.fetch_apify_menu', return_value=None)
+        self.apify = apify.start()
+        self.addCleanup(apify.stop)
         self.backup = {'Backside': {'menu': 'Saved menu', 'success': True,
                                     'scraped_at': '2026-11-02 21:50', 'source': 'Instagram Bildmeny (OCR)'}}
 
@@ -121,6 +124,24 @@ class BacksideIntegrationTests(unittest.TestCase):
     def test_fresh_fetch_precedes_backup(self):
         fresh = {'menu': 'Fresh menu', 'success': True}
         self.assertIs(self.scrape(fresh), fresh)
+
+    def test_apify_precedes_direct_instagram_and_backup(self):
+        fresh = {'menu': 'Verified Apify menu', 'success': True}
+        self.apify.return_value = fresh
+        with patch('engine.instagram_menu.fetch_instagram_menu') as direct:
+            result = self.application.scrape_backside(self.url, 'Backside', Mock())
+        self.assertIs(result, fresh)
+        self.apify.assert_called_once()
+        direct.assert_not_called()
+
+    def test_apify_failure_remains_visible_with_direct_success(self):
+        def unavailable(url, name, now, session, reasons):
+            reasons.append('Apify dataset HTTP 401')
+            return None
+
+        self.apify.side_effect = unavailable
+        result = self.scrape({'menu': 'Direct menu', 'success': True})
+        self.assertIn('Apify dataset HTTP 401', result['scrape_reasons'])
 
     def test_old_backup_not_reported_as_success(self):
         result = self.scrape()
