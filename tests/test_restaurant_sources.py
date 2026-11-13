@@ -58,6 +58,23 @@ class RestaurantSourceTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'no current saved menu'):
                 self.application.scrape_pdf(self.pdf, {})
 
+    def test_pdf_with_empty_days_uses_verified_menu(self):
+        malformed = 'Måndag\nVeckans pizza\nTisdag\nAll dishes in the wrong block\nOnsdag\nTorsdag\nFredag'
+        with patch.object(self.application.requests, 'get', return_value=Mock(content=b'pdf')), patch.object(
+            self.application, 'extract_pdf_text', return_value=malformed
+        ), patch.object(self.application, 'swedish_now', return_value=self.now):
+            text = self.application.scrape_pdf(self.pdf, {})
+        self.assertIn('Fredag\nKött: Grillad Entrecote', text)
+
+    def test_wrongly_ordered_pdf_cache_is_rejected(self):
+        menu = {
+            'name': 'Delissimo', 'url': self.pdf, 'success': True,
+            'menu': 'Måndag\nVeckans pizza\nTisdag\nAll dishes\nOnsdag\nTorsdag\nFredag',
+            'scraped_at': '2026-11-13 08:33'
+        }
+        with patch.object(self.application, 'swedish_now', return_value=self.now):
+            self.assertFalse(self.application._menu_cache_usable(menu))
+
     def test_backside_login_failure_uses_verified_week_46_menu(self):
         with patch('engine.instagram_menu.fetch_instagram_menu', return_value=None), patch.object(
             self.application, 'swedish_now', return_value=self.now

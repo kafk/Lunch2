@@ -759,15 +759,26 @@ def find_pdf_links(soup, base_url):
     pdf_links.sort(key=lambda x: 0 if x['priority'] else 1)
     return pdf_links
 
+def _complete_weekday_menu(text):
+    days = list(re.finditer(
+        r'(?im)^\s*(måndag|tisdag|onsdag|torsdag|fredag)\b[^\S\n]*:?[^\S\n]*',
+        text
+    ))
+    if [day.group(1).lower() for day in days] != ['måndag', 'tisdag', 'onsdag', 'torsdag', 'fredag']:
+        return False
+    return all(
+        len(text[day.end():days[index + 1].start() if index + 1 < len(days) else len(text)].strip()) >= 10
+        for index, day in enumerate(days)
+    )
+
+
 def scrape_pdf(url, headers):
     """Hämta och extrahera text från en PDF."""
     url = _restaurant_source_url(url)
     response = requests.get(url, headers=headers, timeout=15)
     response.raise_for_status()
     text = extract_pdf_text(response.content)
-    if re.match(r'^https://(?:www\.)?delissimo\.se/', url, re.I) and not re.search(
-        r'(?im)^\s*(måndag|tisdag|onsdag|torsdag|fredag)\b', text
-    ):
+    if re.match(r'^https://(?:www\.)?delissimo\.se/', url, re.I) and not _complete_weekday_menu(text):
         fallback_path = os.path.join(os.path.dirname(__file__), 'fallback_menus.json')
         with open(fallback_path, 'r', encoding='utf-8') as fallback_file:
             fallbacks = json.load(fallback_file)
@@ -3869,6 +3880,8 @@ def _menu_cache_usable(menu):
     typed_menu = dict(menu, menu_type=_configured_menu_type(menu.get('url', ''), menu.get('name', '')))
     if menu_freshness_error(typed_menu, swedish_now()):
         return False
+    if re.match(r'^https://(?:www\.)?delissimo\.se/', menu.get('url', ''), re.I):
+        return _complete_weekday_menu(menu.get('menu_sv') or menu.get('menu') or '')
 
     is_nordic = (
         'ce576758e5e44ad59e25f885b130d4ca' in menu.get('url', '').lower()
