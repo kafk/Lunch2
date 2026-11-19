@@ -1,0 +1,68 @@
+    const MONTHS_SV = ['jan','feb','mar','apr','maj','jun','jul','aug','sep','okt','nov','dec'];
+
+    function formatDate(dateStr) {
+        const d = new Date(dateStr + 'T12:00:00');
+        return `${d.getDate()} ${MONTHS_SV[d.getMonth()]}`;
+    }
+
+    async function fetchDailyVisits(days) {
+        const response = await fetch(`{{ url_for('api_analytics') }}?days=${days}`);
+        if (!response.ok) throw new Error(`Analytics request failed (${response.status})`);
+        return response.json();
+    }
+
+    function showChartError() {
+        document.getElementById('chartBars').innerHTML = '<div class="loading-state" role="status">Kunde inte ladda data</div>';
+    }
+
+    const tooltip = document.getElementById('chartTooltip');
+
+    function showTooltip(e, label, visits, unique) {
+        document.getElementById('tooltipDate').textContent = label;
+        document.getElementById('tooltipVisits').textContent = `${visits} besök`;
+        document.getElementById('tooltipUnique').textContent = `${unique} unika`;
+        positionTooltip(e);
+        tooltip.classList.add('visible');
+    }
+
+    function positionTooltip(e) {
+        const tw = tooltip.offsetWidth || 160;
+        const th = tooltip.offsetHeight || 80;
+        let x = e.clientX - tw / 2;
+        let y = e.clientY - th - 16;
+        // keep within viewport
+        x = Math.max(8, Math.min(x, window.innerWidth - tw - 8));
+        if (y < 8) y = e.clientY + 16;
+        tooltip.style.left = x + 'px';
+        tooltip.style.top = y + 'px';
+    }
+
+    function hideTooltip() {
+        tooltip.classList.remove('visible');
+    }
+
+    function renderChart(data) {
+        const maxVisits = Math.max(...data.map(d => d.visits), 1);
+        const container = document.getElementById('chartBars');
+        container.innerHTML = '';
+
+        data.forEach(d => {
+            const visitH = Math.max(Math.round((d.visits / maxVisits) * 130), d.visits > 0 ? 4 : 0);
+            const uniqueH = Math.max(Math.round((d.unique / maxVisits) * 130), d.unique > 0 ? 4 : 0);
+            const label = formatDate(d.date);
+
+            const group = document.createElement('div');
+            group.className = 'bar-group';
+            group.innerHTML = `
+                <div class="bar-pair">
+                    <div class="bar bar-visits" style="height:${visitH}px"></div>
+                    <div class="bar bar-unique" style="height:${uniqueH}px"></div>
+                </div>
+                <div class="bar-label">${label}</div>
+            `;
+            group.addEventListener('mouseenter', e => showTooltip(e, label, d.visits, d.unique));
+            group.addEventListener('mousemove', positionTooltip);
+            group.addEventListener('mouseleave', hideTooltip);
+            container.appendChild(group);
+        });
+    }

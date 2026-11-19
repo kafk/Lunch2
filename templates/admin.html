@@ -412,6 +412,7 @@
         display: flex; gap: 8px; padding: 10px 16px;
         border-top: 1px solid #f3f4f6; background: #fafafa; align-items: center;
     }
+    {% include "analytics_chart_styles.html" %}
 </style>
 
 <div class="admin-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
@@ -439,7 +440,8 @@
 
 <section class="acard" aria-labelledby="analyticsTitle">
     <h2 class="acard-title" id="analyticsTitle">Analytics / Besöksstatistik</h2>
-    <p>Sidbesök, unika besökare och dagens besökshistorik.</p>
+    <p style="margin-bottom:12px;">Senaste 7 dagarna, inklusive idag.</p>
+    {% include "analytics_chart.html" %}
     <a href="{{ url_for('admin_analytics') }}" class="btn-outline" style="text-decoration:none; display:inline-block; margin-top:12px;">Öppna Analytics →</a>
 </section>
 
@@ -1482,6 +1484,16 @@
         if (event.persisted) refreshRestaurantTips();
     });
 
+    async function loadAdminVisitsChart() {
+        {% include "analytics_chart_script.html" %}
+        try {
+            renderChart(await fetchDailyVisits(7));
+        } catch {
+            showChartError();
+        }
+    }
+
+    loadAdminVisitsChart();
     loadSystemInfo();
     loadRestaurants();
     loadTodayStatus();

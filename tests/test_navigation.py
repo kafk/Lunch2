@@ -176,10 +176,16 @@ class NavigationTests(unittest.TestCase):
         dashboard = self.client.get('/admin').data
         self.assertIn(b'href="/admin/analytics"', dashboard)
         self.assertLess(dashboard.index(b'Analytics / Bes'), dashboard.index(b'id="sys-firebase"'))
+        self.assertLess(dashboard.index(b'id="chartBars"'), dashboard.index(b'id="sys-firebase"'))
+        self.assertIn(b'renderChart(await fetchDailyVisits(7))', dashboard)
+        self.assertNotIn(b'id="todayBody"', dashboard)
         response = self.client.get('/analytics', follow_redirects=True)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.request.path, '/admin/analytics')
         self.assertIn(b'<h1>Analytics</h1>', response.data)
+        for element_id in (b'chartBars', b'tableBody', b'todayBody'):
+            self.assertIn(b'id="' + element_id + b'"', response.data)
+        self.assertIn(b'loadAnalytics(30, this)', response.data)
         stats = self.client.get('/api/analytics?days=1')
         self.assertEqual(stats.status_code, 200)
         self.assertEqual(len(stats.get_json()), 1)

@@ -1,0 +1,28 @@
+<div class="chart-card">
+    <div class="chart-title">Besök per dag</div>
+    <div class="chart-legend">
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#22c55e"></div> Besök
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#86efac"></div> Unika besökare
+        </div>
+    </div>
+    <div class="chart-wrap">
+        <div class="chart-bars" id="chartBars">
+            <div class="loading-state">Laddar...</div>
+        </div>
+    </div>
+</div>
+
+<div class="chart-tooltip" id="chartTooltip">
+    <div class="chart-tooltip-date" id="tooltipDate"></div>
+    <div class="chart-tooltip-row">
+        <div class="chart-tooltip-dot" style="background:#22c55e"></div>
+        <span id="tooltipVisits"></span>
+    </div>
+    <div class="chart-tooltip-row">
+        <div class="chart-tooltip-dot" style="background:#86efac; border: 1.5px solid #4ade80"></div>
+        <span id="tooltipUnique"></span>
+    </div>
+</div>
