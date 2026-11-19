@@ -174,7 +174,11 @@ class NavigationTests(unittest.TestCase):
         with self.client.session_transaction() as session:
             session['admin'] = True
         dashboard = self.client.get('/admin').data
-        self.assertIn(b'href="/admin/analytics"', dashboard)
+        analytics_section = dashboard.split(b'aria-labelledby="analyticsTitle">', 1)[1].split(b'</section>', 1)[0]
+        header = analytics_section.split(b'<div class="analytics-card-header">', 1)[1].split(b'</div>', 1)[0]
+        self.assertIn(b'id="analyticsTitle"', header)
+        self.assertIn(b'href="/admin/analytics"', header)
+        self.assertEqual(analytics_section.count(b'href="/admin/analytics"'), 1)
         self.assertLess(dashboard.index(b'Analytics / Bes'), dashboard.index(b'id="sys-firebase"'))
         self.assertLess(dashboard.index(b'id="chartBars"'), dashboard.index(b'id="sys-firebase"'))
         self.assertIn(b'renderChart(await fetchDailyVisits(7))', dashboard)

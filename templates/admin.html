@@ -96,6 +96,18 @@
         align-items: center;
         gap: 8px;
     }
+    .analytics-card-header {
+        display: flex;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+        margin-bottom: 12px;
+    }
+    .analytics-card-header .acard-title { margin-bottom: 0; }
+    .analytics-card-header .btn-outline {
+        margin-inline-start: auto;
+        text-decoration: none;
+    }
     .acard-title .badge {
         background: #f3f4f6;
         color: #6b7280;
@@ -439,10 +451,12 @@
 </section>
 
 <section class="acard" aria-labelledby="analyticsTitle">
-    <h2 class="acard-title" id="analyticsTitle">Analytics / Besöksstatistik</h2>
+    <div class="analytics-card-header">
+        <h2 class="acard-title" id="analyticsTitle">Analytics / Besöksstatistik</h2>
+        <a href="{{ url_for('admin_analytics') }}" class="btn-outline">Öppna Analytics →</a>
+    </div>
     <p style="margin-bottom:12px;">Senaste 7 dagarna, inklusive idag.</p>
     {% include "analytics_chart.html" %}
-    <a href="{{ url_for('admin_analytics') }}" class="btn-outline" style="text-decoration:none; display:inline-block; margin-top:12px;">Öppna Analytics →</a>
 </section>
 
 <!-- System status row -->
