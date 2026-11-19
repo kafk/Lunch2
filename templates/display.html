@@ -9,6 +9,7 @@
     <div class="header-left">
         <div class="header-info">
             <h1 class="header-temp" id="headerTitle" style="font-size: 32px;">Lunchöversikt</h1>
+            <a href="{{ url_for('suggest_restaurant') }}" class="header-add-link" id="suggestRestaurantLink">Tipsa om en restaurang</a>
         </div>
     </div>
     <div class="header-right">
@@ -1059,6 +1060,7 @@
     const I18N = {
         sv: {
             headerTitle: "Lunchöversikt",
+            suggestRestaurant: "Tipsa om en restaurang",
             emptyRestaurants: "Inga restauranger",
             refresh: "Uppdatera",
             cards: "Kort",
@@ -1083,6 +1085,7 @@
         },
         en: {
             headerTitle: "Lunch Overview",
+            suggestRestaurant: "Suggest a restaurant",
             emptyRestaurants: "No restaurants",
             refresh: "Refresh",
             cards: "Cards",
@@ -1282,6 +1285,10 @@
 
         const title = document.getElementById('headerTitle');
         if (title) title.textContent = t.headerTitle;
+
+        const suggestion = document.getElementById('suggestRestaurantLink');
+        suggestion.textContent = t.suggestRestaurant;
+        suggestion.href = "{{ url_for('suggest_restaurant') }}" + (currentLang === 'en' ? '?lang=en' : '');
 
         const emptyRestaurants = document.getElementById('emptyRestaurantsText');
         if (emptyRestaurants) emptyRestaurants.textContent = t.emptyRestaurants;

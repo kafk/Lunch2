@@ -33,6 +33,7 @@ def swedish_now():
 try:
     import firebase_admin
     from firebase_admin import credentials, firestore
+    from google.api_core.exceptions import AlreadyExists, GoogleAPICallError
     FIREBASE_AVAILABLE = True
 except ImportError:
     FIREBASE_AVAILABLE = False
@@ -67,7 +68,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '0126')
 
-VERSION = '3.64'
+VERSION = '3.65'
 URLS_FILE = 'urls.json'
 RESTAURANTS_CONFIG_FILE = os.path.join('config', 'restaurants.json')
 COLLECTION_NAME = 'restaurants'
@@ -3099,6 +3100,55 @@ def demo():
     track_visit('/demo')
     return render_template('demo.html', version=VERSION)
 
+
+@app.route('/tipsa', methods=['GET', 'POST'])
+def suggest_restaurant():
+    lang = 'en' if request.args.get('lang') == 'en' else 'sv'
+    if request.method == 'GET':
+        return render_template('suggest_restaurant.html', version=VERSION, lang=lang,
+                               name='', url='', sent=session.pop('restaurant_tip_sent', False))
+
+    name = request.form.get('name', '').strip()
+    url = request.form.get('url', '').strip()
+    context = dict(version=VERSION, lang=lang, name=name[:120], url=url[:2048])
+    if not name or len(name) > 120 or len(url) > 2048:
+        return render_template('suggest_restaurant.html', **context, error='invalid'), 400
+
+    try:
+        parsed = urlsplit(url)
+        hostname = (parsed.hostname or '').encode('idna').decode('ascii')
+        valid_url = (
+            parsed.scheme in ('http', 'https')
+            and not any(char.isspace() or ord(char) < 32 or char == '\\' for char in url)
+            and parsed.username is None and parsed.password is None and parsed.port is None
+            and re.fullmatch(r'(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{1,62}', hostname, re.I)
+        )
+    except ValueError:
+        valid_url = False
+    if not valid_url:
+        return render_template('suggest_restaurant.html', **context, error='invalid'), 400
+
+    entry = {
+        'name': name, 'url': parsed._replace(fragment='').geturl(), 'source_index': None,
+        'note': 'Restaurangtips från Lunchdejt', 'public_suggestion': True,
+        'created_at_str': swedish_now().isoformat(),
+    }
+    key = hashlib.sha256(entry['url'].encode()).hexdigest()
+    if db is not None:
+        try:
+            db.collection('restaurants_staging').document(f'tip-{key}').create(entry)
+        except AlreadyExists:
+            pass
+        except GoogleAPICallError:
+            app.logger.exception('Could not save restaurant suggestion')
+            return render_template('suggest_restaurant.html', **context, error='storage'), 503
+    else:
+        app.logger.warning('Restaurant suggestion storage is not configured')
+        return render_template('suggest_restaurant.html', **context, error='storage'), 503
+    session['restaurant_tip_sent'] = True
+    return redirect(url_for('suggest_restaurant', lang=lang), code=303)
+
+
 @app.route('/api/urls', methods=['GET'])
 def get_urls():
     """Hämta alla sparade URL:er."""
@@ -3634,6 +3684,14 @@ def admin():
     return render_template('admin.html', version=VERSION)
 
 
+@app.route('/admin/restaurangtips')
+def admin_restaurant_tips():
+    if not session.get('admin'):
+        return redirect(url_for('admin_login'))
+    tips = [entry for entry in load_staging() if entry.get('public_suggestion')]
+    return render_template('admin_restaurant_tips.html', version=VERSION, tips=reversed(tips))
+
+
 @app.route('/api/admin/clear-cache', methods=['POST'])
 def admin_clear_cache():
     """Rensa dagens menycache från Firestore."""
@@ -3772,11 +3830,15 @@ def save_version_entry(entry):
 
 @app.route('/api/admin/staging', methods=['GET'])
 def get_staging():
+    if not session.get('admin'):
+        return jsonify({'error': 'Inloggning krävs'}), 401
     return jsonify(load_staging())
 
 
 @app.route('/api/admin/staging', methods=['POST'])
 def add_staging():
+    if not session.get('admin'):
+        return jsonify({'error': 'Inloggning krävs'}), 401
     data = request.get_json(silent=True) or {}
     url = data.get('url', '').strip()
     name = data.get('name', '').strip()
@@ -3813,6 +3875,8 @@ def add_staging():
 
 @app.route('/api/admin/staging/<staging_id>', methods=['DELETE'])
 def delete_staging(staging_id):
+    if not session.get('admin'):
+        return jsonify({'error': 'Inloggning krävs'}), 401
     if db:
         try:
             db.collection('restaurants_staging').document(staging_id).delete()
@@ -3827,10 +3891,14 @@ def delete_staging(staging_id):
 @app.route('/api/admin/staging/<staging_id>/test', methods=['POST'])
 def test_staging(staging_id):
     """Skrapa staging-URL och jämför med live-versionen."""
+    if not session.get('admin'):
+        return jsonify({'error': 'Inloggning krävs'}), 401
     entries = load_staging()
     entry = next((e for e in entries if e.get('id') == staging_id), None)
     if not entry:
         return jsonify({'error': 'Hittades inte'}), 404
+    if entry.get('public_suggestion'):
+        return jsonify({'error': 'Granska tipset och lägg till det manuellt.'}), 400
 
     staging_result = scrape_url(entry['url'], entry['name'])
     if staging_result.get('menu'):
@@ -3852,6 +3920,8 @@ def test_staging(staging_id):
 @app.route('/api/admin/staging/<staging_id>/promote', methods=['POST'])
 def promote_staging(staging_id):
     """Lansera staging → ersätter live-restaurangen."""
+    if not session.get('admin'):
+        return jsonify({'error': 'Inloggning krävs'}), 401
     entries = load_staging()
     entry = next((e for e in entries if e.get('id') == staging_id), None)
     if not entry:

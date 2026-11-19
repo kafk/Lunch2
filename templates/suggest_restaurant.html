@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% set english = lang == 'en' %}
+{% set heading = 'Suggest a restaurant' if english else 'Tipsa om en restaurang' %}
+
+{% block title %}{{ heading }} – Lunchdejt{% endblock %}
+
+{% block styles %}
+<style>
+    .suggestion-card { width: 100%; max-width: 34rem; margin-inline: auto; }
+    .suggestion-card h1, .suggestion-card p { margin-bottom: 1rem; }
+    .suggestion-card form { display: grid; gap: .75rem; margin-bottom: 1rem; }
+    .suggestion-card input {
+        width: 100%;
+        border: 1px solid #6b7280;
+        border-radius: .4rem;
+        padding: .65rem;
+        font: inherit;
+    }
+    .suggestion-card button { justify-self: start; }
+    .suggestion-card [role="alert"] { color: #991b1b; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="card suggestion-card" lang="{{ lang }}">
+    <h1>{{ heading }}</h1>
+    {% if sent %}
+        <p>{{ 'Thanks for your suggestion! It will be reviewed before anything is published.' if english else 'Tack för tipset! Vi granskar det innan något publiceras.' }}</p>
+    {% else %}
+        <p>{{ 'Send us the name and a link to the lunch menu or website.' if english else 'Skicka restaurangens namn och en länk till lunchmenyn eller webbplatsen.' }}</p>
+        {% if error == 'invalid' %}
+            <p role="alert">{{ 'Enter a name and a valid website address starting with http:// or https://.' if english else 'Ange ett namn och en giltig webbadress som börjar med http:// eller https://.' }}</p>
+        {% elif error == 'storage' %}
+            <p role="alert">{{ 'Your suggestion could not be saved. Please try again later.' if english else 'Tipset kunde inte sparas. Försök igen senare.' }}</p>
+        {% endif %}
+        <form action="{{ url_for('suggest_restaurant', lang=lang) }}" method="post">
+            <label for="suggestName">{{ 'Restaurant name' if english else 'Restaurangens namn' }}</label>
+            <input id="suggestName" name="name" maxlength="120" value="{{ name }}" required>
+            <label for="suggestUrl">{{ 'Menu or website link' if english else 'Länk till meny eller webbplats' }}</label>
+            <input id="suggestUrl" name="url" type="url" maxlength="2048" placeholder="https://" value="{{ url }}" required>
+            <button type="submit" class="btn">{{ 'Send suggestion' if english else 'Skicka tips' }}</button>
+        </form>
+    {% endif %}
+    <a href="{{ url_for('display') }}">{{ 'Back to lunch menus' if english else 'Tillbaka till lunchöversikten' }}</a>
+</section>
+{% endblock %}
