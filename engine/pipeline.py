@@ -4,6 +4,8 @@ Pipeline Module: Orchestrates the Fetch -> Extract -> Normalize -> Validate flow
 from typing import Dict, Any, List, Optional
 import json
 import os
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from bs4 import BeautifulSoup
 
 from .models import WeeklyMenuResult
@@ -11,6 +13,7 @@ from .fetcher import fetch_html, fetch_pdf_text
 from .extractor import extract_by_selector, extract_auto_html, find_pdf_links
 from .normalizer import normalize_text_to_days, format_day_menus_to_text
 from .validator import validate_menu_result
+from . import barrique
 
 def scrape_restaurant(config: Dict[str, Any]) -> WeeklyMenuResult:
     """
@@ -35,6 +38,7 @@ def scrape_restaurant(config: Dict[str, Any]) -> WeeklyMenuResult:
     # 1. FETCH STEP
     raw_text = ""
     source = "HTML"
+    preformatted = False
     
     # Direct PDF check
     if url.lower().endswith(".pdf"):
@@ -67,7 +71,15 @@ def scrape_restaurant(config: Dict[str, Any]) -> WeeklyMenuResult:
 
         # 2. EXTRACT STEP
         ext_type = extractor_cfg.get("type", "auto")
-        if ext_type == "css" and "selector" in extractor_cfg:
+        if ext_type == "custom" and extractor_cfg.get("handler") == "barrique" and barrique.is_barrique_lunch(url):
+            source = barrique.MENU_SOURCE
+            try:
+                raw_text = barrique.parse_menu(html, datetime.now(ZoneInfo("Europe/Stockholm")))["menu_sv"]
+            except ValueError as exc:
+                return WeeklyMenuResult(restaurant_id=rest_id, name=name, url=url, success=False,
+                                        source=source, error=str(exc))
+            preformatted = True
+        elif ext_type == "css" and "selector" in extractor_cfg:
             extracted = extract_by_selector(soup, extractor_cfg["selector"])
             raw_text = extracted or ""
         else:
@@ -84,7 +96,7 @@ def scrape_restaurant(config: Dict[str, Any]) -> WeeklyMenuResult:
 
     # 3. NORMALIZE STEP
     days = normalize_text_to_days(raw_text)
-    if days:
+    if days and not preformatted:
         formatted = format_day_menus_to_text(days)
     else:
         # Fallback to cleaned raw text if weekday parsing was not matched

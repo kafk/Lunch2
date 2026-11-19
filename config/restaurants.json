@@ -125,6 +125,20 @@
     }
   },
   {
+    "id": "barrique",
+    "name": "Barrique",
+    "url": "https://www.barrique.nu/lunch",
+    "enabled": true,
+    "menu_type": "weekly",
+    "fetcher": {
+      "type": "http"
+    },
+    "extractor": {
+      "type": "custom",
+      "handler": "barrique"
+    }
+  },
+  {
     "id": "test_instagram_cafe",
     "name": "Test Instagram Cafe",
     "url": "https://www.instagram.com/testcafegbg/",

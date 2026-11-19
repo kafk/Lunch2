@@ -16,6 +16,7 @@ import base64
 from urllib.parse import urlsplit
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
+from engine import barrique
 from engine.delissimo import HOME as DELISSIMO_HOME, extract_layout_menu, gamlestaden_pdf_url
 try:
     from zoneinfo import ZoneInfo
@@ -69,7 +70,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '0126')
 
-VERSION = '3.69'
+VERSION = '3.70'
 URLS_FILE = 'urls.json'
 RESTAURANTS_CONFIG_FILE = os.path.join('config', 'restaurants.json')
 COLLECTION_NAME = 'restaurants'
@@ -2794,6 +2795,20 @@ def _scrape_url_raw(url, name, lang='sv'):
         }
         session.headers.update(headers)
 
+        if barrique.is_barrique_lunch(url):
+            now = swedish_now()
+            result = {
+                'name': name, 'url': url, 'menu_source_url': barrique.MENU_URL,
+                'source': barrique.MENU_SOURCE, 'scraped_at': now.strftime('%Y-%m-%d %H:%M'),
+            }
+            try:
+                response = session.get(barrique.MENU_URL, timeout=12)
+                response.raise_for_status()
+                return dict(result, **barrique.parse_menu(response.content, now), success=True)
+            except (requests.RequestException, ValueError) as error:
+                print(f'Barrique lunch scrape failed: {error}')
+                return dict(result, menu='', success=False, error=str(error))
+
         if gamlestaden_pdf_url(url) or (
                 url.rstrip('/') == DELISSIMO_HOME.rstrip('/') and name.strip().casefold() == 'delissimo'):
             return _scrape_delissimo(url, name, session)
@@ -4118,6 +4133,10 @@ def _configured_menu_type(url, name):
 
 def _menu_cache_usable(menu):
     from engine.validator import menu_freshness_error
+    if barrique.is_barrique_lunch(menu.get('url') or '') and (
+        menu.get('menu_source_url') != barrique.MENU_URL or menu.get('menu_week') is None
+    ):
+        return False
     typed_menu = dict(menu, menu_type=_configured_menu_type(menu.get('url', ''), menu.get('name', '')))
     if menu_freshness_error(typed_menu, swedish_now()):
         return False
