@@ -428,6 +428,21 @@
     </form>
 </div>
 
+<section class="acard" aria-labelledby="restaurantTipsTitle">
+    <h2 class="acard-title" id="restaurantTipsTitle">Nya restaurangtips</h2>
+    <div id="restaurantTipsSummary" aria-live="polite">
+        {% include "admin_restaurant_tips_summary.html" %}
+    </div>
+    <small>Uppdateras automatiskt var 30:e sekund medan Admin är öppet.</small><br>
+    <a href="{{ url_for('admin_restaurant_tips') }}" class="btn-outline" style="text-decoration:none; display:inline-block; margin-top:12px;">Granska restaurangtips →</a>
+</section>
+
+<section class="acard" aria-labelledby="analyticsTitle">
+    <h2 class="acard-title" id="analyticsTitle">Analytics / Besöksstatistik</h2>
+    <p>Sidbesök, unika besökare och dagens besökshistorik.</p>
+    <a href="{{ url_for('admin_analytics') }}" class="btn-outline" style="text-decoration:none; display:inline-block; margin-top:12px;">Öppna Analytics →</a>
+</section>
+
 <!-- System status row -->
 <div class="sys-grid">
     <div class="sys-card">
@@ -541,20 +556,6 @@
                         <div class="action-row-desc">Tar bort dagens cachade menyer</div>
                     </div>
                     <button class="btn-outline" onclick="clearCache()">Rensa</button>
-                </div>
-                <div class="action-row">
-                    <div class="action-row-info">
-                        <div class="action-row-label">Analytics</div>
-                        <div class="action-row-desc">Visa besöksstatistik</div>
-                    </div>
-                    <a href="{{ url_for('admin_analytics') }}" class="btn-outline" style="text-decoration:none; display:inline-block;">Öppna</a>
-                </div>
-                <div class="action-row">
-                    <div class="action-row-info">
-                        <div class="action-row-label">Restaurangtips</div>
-                        <div class="action-row-desc">Granska restauranger som besökare har tipsat om</div>
-                    </div>
-                    <a href="{{ url_for('admin_restaurant_tips') }}" class="btn-outline" style="text-decoration:none; display:inline-block;">Öppna</a>
                 </div>
             </div>
             <div id="action-msg"></div>
@@ -1455,6 +1456,29 @@
     }
 
     // ── Boot ─────────────────────────────────────────────────────────────────
+
+    const tipsSummary = document.getElementById('restaurantTipsSummary');
+    let tipsRefreshRunning = false;
+    async function refreshRestaurantTips() {
+        if (document.hidden || tipsRefreshRunning) return;
+        tipsRefreshRunning = true;
+        try {
+            const response = await fetch('{{ url_for("admin_restaurant_tips_summary") }}', { cache: 'no-store' });
+            if (response.status === 401) {
+                clearInterval(tipsRefreshTimer);
+                tipsSummary.textContent = 'Sessionen har löpt ut. Logga in igen för att se restaurangtips.';
+                return;
+            }
+            if (!response.ok) throw new Error('Restaurant tips unavailable');
+            const html = (await response.text()).trim();
+            if (tipsSummary.innerHTML.trim() !== html) tipsSummary.innerHTML = html;
+        } catch {
+            tipsSummary.textContent = 'Restaurangtips kunde inte hämtas. Försöker igen automatiskt.';
+        } finally {
+            tipsRefreshRunning = false;
+        }
+    }
+    const tipsRefreshTimer = setInterval(refreshRestaurantTips, 30000);
 
     loadSystemInfo();
     loadRestaurants();

@@ -1,0 +1,15 @@
+{% if tips_unavailable %}
+    <p role="status">Restaurangtips kunde inte hämtas. Försöker igen automatiskt.</p>
+{% elif tips %}
+    <p><strong class="badge">{{ tips | length }}</strong> {{ 'nytt tips att granska' if tips | length == 1 else 'nya tips att granska' }}</p>
+    <ul style="list-style:none; margin-top:8px; overflow-wrap:anywhere;">
+        {% for tip in tips[:3] %}
+        <li>
+            <strong>{{ tip.name }}</strong>
+            {% if tip.created_at_str %}<small> · {{ tip.created_at_str[:16] | replace('T', ' ') }}</small>{% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>Inga nya restaurangtips att granska.</p>
+{% endif %}

@@ -98,10 +98,13 @@ class NavigationTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 401)
         with self.client.session_transaction() as session:
             session['admin'] = True
+        tip = {'id': 'tip-1', 'public_suggestion': True, 'name': 'Test Bistro', 'url': 'https://example.com'}
         with patch.object(self.application, 'load_staging', return_value=[
-            {'id': 'tip-1', 'public_suggestion': True, 'name': 'Test Bistro', 'url': 'https://example.com'},
+            tip,
             {'id': 'staging-1', 'name': 'Internal draft', 'url': 'https://example.org'},
-        ]), patch.object(self.application, 'scrape_url') as scrape:
+        ]), patch.object(self.application, 'restaurant_tips_context', return_value={
+            'tips': [tip], 'tips_unavailable': False,
+        }), patch.object(self.application, 'scrape_url') as scrape:
             self.assertEqual(self.client.get('/api/admin/staging').get_json()[0]['id'], 'tip-1')
             self.assertEqual(self.client.post('/api/admin/staging/tip-1/test').status_code, 400)
             self.assertIn(b'href="/admin/restaurangtips"', self.client.get('/admin').data)
@@ -113,6 +116,48 @@ class NavigationTests(unittest.TestCase):
         scrape.assert_not_called()
         anonymous = self.application.app.test_client()
         self.assertEqual(anonymous.get('/admin/restaurangtips').location, '/admin/login')
+        self.assertEqual(anonymous.get('/admin/restaurangtips/summary').status_code, 401)
+
+    def test_submitted_tip_appears_in_admin_summary_without_reloading_dashboard(self):
+        stored = {}
+        firestore = Mock()
+        collection = firestore.collection.return_value
+        collection.document.return_value.create.side_effect = lambda entry: stored.update(entry)
+        collection.document.return_value.delete.side_effect = stored.clear
+        document = Mock(id='tip-1')
+        document.to_dict.side_effect = lambda: dict(stored)
+        collection.where.return_value.stream.side_effect = lambda **_: [document] if stored else []
+        with self.client.session_transaction() as session:
+            session['admin'] = True
+        with patch.object(self.application, 'db', firestore), patch.object(
+            self.application, 'FieldFilter', create=True
+        ) as field_filter, patch.object(self.application, 'track_visit'):
+            dashboard = self.client.get('/admin').get_data(as_text=True)
+            self.assertIn('Inga nya restaurangtips', dashboard)
+            self.assertIn('setInterval(refreshRestaurantTips, 30000)', dashboard)
+            public = self.application.app.test_client()
+            response = public.post('/tipsa', data={
+                'name': '<b>New Bistro</b>', 'url': 'https://example.com/lunch',
+            })
+            self.assertEqual(response.status_code, 303)
+            summary = self.client.get('/admin/restaurangtips/summary')
+            self.assertEqual(summary.status_code, 200)
+            self.assertIn('no-store', summary.headers['Cache-Control'])
+            self.assertIn(b'>1</strong> nytt tips att granska', summary.data)
+            self.assertIn(b'&lt;b&gt;New Bistro&lt;/b&gt;', summary.data)
+            self.assertIn(b'New Bistro', self.client.get('/admin').data)
+            field_filter.assert_called_with('public_suggestion', '==', True)
+            collection.where.assert_called_with(filter=field_filter.return_value)
+            self.assertEqual(self.client.delete('/api/admin/staging/tip-1').status_code, 200)
+            self.assertIn(b'Inga nya restaurangtips', self.client.get('/admin/restaurangtips/summary').data)
+
+    def test_unavailable_inbox_is_not_reported_as_empty(self):
+        with self.client.session_transaction() as session:
+            session['admin'] = True
+        summary = self.client.get('/admin/restaurangtips/summary')
+        self.assertEqual(summary.status_code, 503)
+        self.assertIn(b'Restaurangtips kunde inte', summary.data)
+        self.assertNotIn(b'Inga nya restaurangtips', summary.data)
 
     def test_anonymous_analytics_page_and_data_are_not_public(self):
         self.assertEqual(self.client.get('/analytics').location, '/admin/analytics')
@@ -125,7 +170,9 @@ class NavigationTests(unittest.TestCase):
     def test_admin_can_open_analytics_and_read_stats(self):
         with self.client.session_transaction() as session:
             session['admin'] = True
-        self.assertIn(b'href="/admin/analytics"', self.client.get('/admin').data)
+        dashboard = self.client.get('/admin').data
+        self.assertIn(b'href="/admin/analytics"', dashboard)
+        self.assertLess(dashboard.index(b'Analytics / Bes'), dashboard.index(b'id="sys-firebase"'))
         response = self.client.get('/analytics', follow_redirects=True)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.request.path, '/admin/analytics')

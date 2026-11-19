@@ -6,18 +6,23 @@
 <section class="card">
     <a href="{{ url_for('admin') }}">← Tillbaka till Admin</a>
     <h1>Restaurangtips</h1>
-    <p>Kontrollera länken. Om tipset är relevant, använd ”Lägg till restaurang” i Admin. Inga tips publiceras automatiskt.</p>
+    <p>Kontrollera länken. Om tipset är relevant, använd ”Lägg till restaurang” i Admin. Ta sedan bort tipset för att rensa det från inkorgen. Inga tips publiceras automatiskt.</p>
+    {% if tips_unavailable %}
+    <p role="alert">Restaurangtips kunde inte hämtas. Ladda om sidan för att försöka igen.</p>
+    {% else %}
     <ul>
         {% for tip in tips %}
         <li style="margin-block: 1rem; overflow-wrap: anywhere;">
             <strong>{{ tip.name }}</strong><br>
             <span>{{ tip.url }}</span><br>
+            {% if tip.created_at_str %}<small>Inkom {{ tip.created_at_str[:16] | replace('T', ' ') }}</small><br>{% endif %}
             <button type="button" class="btn dismiss-tip" data-delete-url="{{ url_for('delete_staging', staging_id=tip.id) }}">Ta bort tipset</button>
         </li>
         {% else %}
         <li>Inga restaurangtips att granska.</li>
         {% endfor %}
     </ul>
+    {% endif %}
     <p id="tipError" role="alert"></p>
 </section>
 {% endblock %}

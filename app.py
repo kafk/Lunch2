@@ -34,6 +34,7 @@ try:
     import firebase_admin
     from firebase_admin import credentials, firestore
     from google.api_core.exceptions import AlreadyExists, GoogleAPICallError
+    from google.cloud.firestore_v1.base_query import FieldFilter
     FIREBASE_AVAILABLE = True
 except ImportError:
     FIREBASE_AVAILABLE = False
@@ -68,7 +69,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '0126')
 
-VERSION = '3.66'
+VERSION = '3.67'
 URLS_FILE = 'urls.json'
 RESTAURANTS_CONFIG_FILE = os.path.join('config', 'restaurants.json')
 COLLECTION_NAME = 'restaurants'
@@ -3681,15 +3682,45 @@ def admin():
     if not session.get('admin'):
         return redirect(url_for('admin_login'))
     track_visit('/admin')
-    return render_template('admin.html', version=VERSION)
+    return render_template('admin.html', version=VERSION, **restaurant_tips_context()), 200, {
+        'Cache-Control': 'private, no-store',
+    }
+
+
+def restaurant_tips_context():
+    if db is None:
+        return {'tips': [], 'tips_unavailable': True}
+    try:
+        query = db.collection('restaurants_staging').where(
+            filter=FieldFilter('public_suggestion', '==', True)
+        )
+        tips = [dict(doc.to_dict(), id=doc.id) for doc in query.stream(retry=None, timeout=5)]
+    except GoogleAPICallError:
+        app.logger.exception('Could not load restaurant suggestions')
+        return {'tips': [], 'tips_unavailable': True}
+    tips.sort(key=lambda entry: (entry.get('created_at_str', ''), entry['id']), reverse=True)
+    return {'tips': tips, 'tips_unavailable': False}
+
+
+@app.route('/admin/restaurangtips/summary')
+def admin_restaurant_tips_summary():
+    if not session.get('admin'):
+        return '', 401
+    context = restaurant_tips_context()
+    return (
+        render_template('admin_restaurant_tips_summary.html', **context),
+        503 if context['tips_unavailable'] else 200,
+        {'Cache-Control': 'private, no-store'},
+    )
 
 
 @app.route('/admin/restaurangtips')
 def admin_restaurant_tips():
     if not session.get('admin'):
         return redirect(url_for('admin_login'))
-    tips = [entry for entry in load_staging() if entry.get('public_suggestion')]
-    return render_template('admin_restaurant_tips.html', version=VERSION, tips=reversed(tips))
+    return render_template('admin_restaurant_tips.html', version=VERSION, **restaurant_tips_context()), 200, {
+        'Cache-Control': 'private, no-store',
+    }
 
 
 @app.route('/api/admin/clear-cache', methods=['POST'])
