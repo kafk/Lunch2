@@ -42,6 +42,18 @@ class RestaurantSourceTests(unittest.TestCase):
         self.assertEqual(self.application._restaurant_source_url(url), url)
         self.assertEqual(self.application._restaurant_source_url(self.pdf), self.pdf)
 
+    def test_firestore_test_lab_name_is_returned_as_taste_lab(self):
+        database = Mock()
+        document = Mock(id='nordic')
+        document.to_dict.return_value = {
+            'name': 'AE - Nordic Test Lab',
+            'url': 'https://www.compass-group.se/restauranger-och-menyer/ovriga-restauranger/restaurang-nordic-taste-lab/'
+        }
+        database.collection.return_value.order_by.return_value.stream.return_value = [document]
+        with patch.object(self.application, 'db', database):
+            result = self.application.load_urls()
+        self.assertEqual(result[0]['name'], 'AE - Nordic Taste Lab')
+
     def test_letter_spaced_delissimo_pdf_uses_verified_current_menu(self):
         with patch.object(self.application.requests, 'get', return_value=Mock(content=b'pdf')) as fetch, patch.object(
             self.application, 'extract_pdf_text', return_value='M Å N D A G\nK Ö T T : G r i l l a d'
@@ -105,7 +117,7 @@ class RestaurantSourceTests(unittest.TestCase):
             response = self.application.app.test_client().get('/api/menus')
         result = response.get_json()['menus'][0]
         self.assertTrue(result['success'])
-        self.assertEqual(result['name'], restaurant['name'])
+        self.assertEqual(result['name'], 'AE - Nordic Taste Lab')
         self.assertEqual(result['url'], url)
         self.assertIn('Fisk: Kummel', result['menu'])
         self.assertNotIn('Prästvägen', result['menu'])

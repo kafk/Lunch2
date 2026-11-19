@@ -213,19 +213,45 @@ class MenuFreshnessIntegrationTests(unittest.TestCase):
         with patch.object(self.application, 'swedish_now', return_value=self.now):
             self.assertFalse(self.application._menu_cache_usable(cached_menu))
 
-    def test_nordic_current_week_days_are_a_usable_cached_menu(self):
+    def test_nordic_cache_requires_a_complete_five_day_menu(self):
         cached_menu = {
             'name': 'AE - Nordic Taste Lab',
             'url': 'https://ce576758e5e44ad59e25f885b130d4ca.compass-group.se/',
             'success': True,
             'menu': (
                 'Vecka 46\nMåndag\nKyckling: Kycklingbröst\n\n'
-                'Tisdag\nKött: Nötfärslimpa\n\nOnsdag\nKött: Högrevsgryta'
+                'Tisdag\nKött: Nötfärslimpa\n\nOnsdag\nKött: Högrevsgryta\n\n'
+                'Torsdag\nFisk: Röding\n\nFredag\nFisk: Kummel'
             ),
             'scraped_at': '2026-11-13 08:00'
         }
         with patch.object(self.application, 'swedish_now', return_value=self.now):
             self.assertTrue(self.application._menu_cache_usable(cached_menu))
+            cached_menu['menu'] = cached_menu['menu'].rsplit('\n\nFredag', 1)[0]
+            self.assertFalse(self.application._menu_cache_usable(cached_menu))
+
+    def test_nordic_current_week_47_fallback_is_complete_and_selected_by_week(self):
+        now = datetime(2026, 11, 19, 9, 25)
+        url = 'https://www.compass-group.se/restauranger-och-menyer/ovriga-restauranger/restaurang-nordic-taste-lab/'
+        with patch.object(self.application, 'swedish_now', return_value=now):
+            fallback = self.application._nordic_menu_fallback(url, 'AE - Nordic Taste Lab', 47)
+        self.assertIsNotNone(fallback)
+        self.assertEqual(fallback['menu_week'], 47)
+        self.assertEqual(fallback['menu_year'], 2026)
+        self.assertIn('Krispig sej', fallback['menu'])
+        self.assertIn('Stekt kungsflundra', fallback['menu'])
+        self.assertTrue(self.application._menu_cache_usable(fallback))
+
+    def test_nordic_rejects_truncated_ocr_and_uses_verified_week_fallback(self):
+        now = datetime(2026, 11, 19, 9, 25)
+        url = 'https://www.compass-group.se/restauranger-och-menyer/ovriga-restauranger/restaurang-nordic-taste-lab/'
+        with patch.object(self.application, 'swedish_now', return_value=now):
+            result = self.application.scrape_nordic_taste_lab(url, 'AE - Nordic Taste Lab', Mock())
+        self.assertTrue(result['success'])
+        self.assertTrue(result['fallback_used'])
+        self.assertEqual(result['menu_week'], 47)
+        self.assertIn('Krispig sej', result['menu'])
+        self.assertIn('Halloumiburgare', result['menu'])
 
     def test_nordic_missing_image_does_not_fall_through_to_homepage(self):
         session = Mock()
@@ -241,6 +267,30 @@ class MenuFreshnessIntegrationTests(unittest.TestCase):
         self.assertEqual(result['menu'], '')
         self.assertIn('veckans menybild', result['error'])
         session.get.assert_not_called()
+
+    def test_cached_nordic_test_lab_name_is_normalized_in_menu_response(self):
+        url = (
+            'https://www.compass-group.se/restauranger-och-menyer/ovriga-restauranger/'
+            'restaurang-nordic-taste-lab/'
+        )
+        restaurant = {'name': 'AE - Nordic Taste Lab', 'url': url, 'enabled': True}
+        old_name_menu = dict(
+            {'name': 'AE - Nordic Test Lab', 'url': url},
+            success=True,
+            menu='Måndag\nKycklinggryta med ris och grönsaker\n\n'
+                 'Tisdag\nFiskgratäng med potatis och sallad\n\n'
+                 'Onsdag\nKöttbullar med potatismos och lingonsylt\n\n'
+                 'Torsdag\nGrillad chorizo med rostad paprika och potatispuré\n\n'
+                 'Fredag\nHalloumiburgare med tillbehör och pommes frites',
+            scraped_at='2026-11-09 08:00'
+        )
+        with patch.object(self.application, 'swedish_now', return_value=self.now), patch.object(
+            self.application, 'load_urls', return_value=[restaurant]
+        ), patch.object(self.application, 'get_cached_menus', return_value=None), patch.object(
+            self.application, 'scrape_url', return_value=old_name_menu
+        ), patch.object(self.application, 'save_menus_to_cache'):
+            response = self.application.app.test_client().get('/api/menus?refresh=true')
+        self.assertEqual(response.get_json()['menus'][0]['name'], 'AE - Nordic Taste Lab')
 
 
 if __name__ == '__main__':

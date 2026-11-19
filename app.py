@@ -134,6 +134,12 @@ def _restaurant_source_url(url):
     )
 
 
+def _restaurant_display_name(name):
+    if name == 'AE - Nordic Test Lab':
+        return 'AE - Nordic Taste Lab'
+    return name
+
+
 def load_urls():
     """Ladda sparade URL:er från Firebase eller lokal fil."""
     if db:
@@ -144,7 +150,7 @@ def load_urls():
                 data = doc.to_dict()
                 urls.append({
                     'url': _restaurant_source_url(data.get('url', '')),
-                    'name': data.get('name', ''),
+                    'name': _restaurant_display_name(data.get('name', '')),
                     'enabled': data.get('enabled', True),  # Default enabled
                     'id': doc.id
                 })
@@ -183,6 +189,7 @@ def load_urls():
             # Ensure enabled field exists
             for url in urls:
                 url['url'] = _restaurant_source_url(url['url'])
+                url['name'] = _restaurant_display_name(url.get('name', ''))
                 if 'enabled' not in url:
                     url['enabled'] = True
             return urls
@@ -1989,7 +1996,13 @@ def _nordic_menu_fallback(url, name, week):
     try:
         with open(fallback_path, 'r', encoding='utf-8') as fallback_file:
             fallbacks = json.load(fallback_file)
-            fallback = fallbacks.get(name) or fallbacks.get('AE - Nordic Taste Lab')
+            canonical_name = _restaurant_display_name(name)
+            fallback = (
+                fallbacks.get(f'{canonical_name} vecka {week}')
+                or fallbacks.get(f'{name} vecka {week}')
+                or fallbacks.get(name)
+                or fallbacks.get(canonical_name)
+            )
     except (OSError, ValueError, TypeError) as e:
         print(f"Nordic Taste Lab fallback read error: {e}")
         return None
@@ -2060,7 +2073,7 @@ def scrape_nordic_taste_lab(url, name, session):
         if gemini_key:
             cache_key = f'img-v{active_week}'
             cached_text = None if _BYPASS_WEEKLY_CACHE.get() else _weekly_get(image_url, cache_key)
-            if cached_text:
+            if cached_text and _complete_weekday_menu(cached_text):
                 return {
                     'name': name,
                     'url': url,
@@ -2069,6 +2082,8 @@ def scrape_nordic_taste_lab(url, name, session):
                     'source': f'AI Bild OCR (cache, v{active_week})',
                     'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
                 }
+            if cached_text:
+                debug_status = f'cached OCR for v{active_week} has incomplete weekday sections'
             try:
                 img_res = session.get(image_url, timeout=15)
                 img_b64 = base64.b64encode(img_res.content).decode('utf-8')
@@ -2106,7 +2121,7 @@ def scrape_nordic_taste_lab(url, name, session):
                                 if parts and 'text' in parts[0]:
                                     extracted_text = parts[0]['text']
                                     formatted_menu = format_menu_text(extracted_text)
-                                    if formatted_menu and len(formatted_menu) > 30:
+                                    if formatted_menu and len(formatted_menu) > 30 and _complete_weekday_menu(formatted_menu):
                                         _weekly_put(image_url, cache_key, formatted_menu)
                                         return {
                                             'name': name,
@@ -2116,6 +2131,11 @@ def scrape_nordic_taste_lab(url, name, session):
                                             'source': f'AI Bild OCR ({model}, v{active_week})',
                                             'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
                                         }
+                                    debug_status = f'{model} returned incomplete weekday sections'
+                                else:
+                                    debug_status = f'{model} returned no OCR text'
+                            else:
+                                debug_status = f'{model} returned no OCR candidate'
                         else:
                             debug_status = f"{model} HTTP {resp.status_code}: {resp.text[:100]}"
                     except Exception as me:
@@ -3893,12 +3913,8 @@ def _menu_cache_usable(menu):
         or re.search(r'nordic (?:taste|test) lab', menu.get('name', ''), re.I)
     )
     if is_nordic:
-        text = '\n'.join(str(menu.get(key) or '') for key in ('menu', 'menu_sv', 'menu_en'))
-        weekdays = re.findall(
-            r'(?im)^\s*(MÅNDAG|TISDAG|ONSDAG|TORSDAG|FREDAG|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY)\b',
-            text
-        )
-        return len({day.upper() for day in weekdays}) >= 3
+        text = str(menu.get('menu_sv') or menu.get('menu') or '')
+        return _complete_weekday_menu(text)
 
     return True
 
@@ -3934,6 +3950,7 @@ def get_menus():
     def postprocess(menu_list):
         """Applicera snabb språkanpassning och formatering utan att göra om klassificeringen."""
         for menu in menu_list:
+            menu['name'] = _restaurant_display_name(menu.get('name', ''))
             if menu.get('success') and menu.get('menu'):
                 if lang == 'en' and menu.get('menu_en'):
                     menu['menu'] = menu['menu_en']
