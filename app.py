@@ -4027,6 +4027,16 @@ def _menu_retry_due(menu):
 @app.route('/api/menus', methods=['GET'])
 def get_menus():
     """Scrapa alla aktiverade URL:er och returnera menyerna anpassade efter språk."""
+    monday_slot = request.args.get('monday_slot')
+    if monday_slot is not None:
+        # Vercel cron uses UTC; only the slot matching Stockholm's offset may refresh.
+        offset = {'summer': '+0200', 'winter': '+0100'}.get(monday_slot)
+        if offset is None:
+            return jsonify(error='Invalid Monday cron slot'), 400
+        now = swedish_now()
+        if now.weekday() != 0 or now.strftime('%z') != offset:
+            return '', 204
+
     # Check if refresh is requested
     force_refresh = request.args.get('refresh', 'false').lower() == 'true'
     # Om today_only=true, filtrera texten till bara dagens sektion

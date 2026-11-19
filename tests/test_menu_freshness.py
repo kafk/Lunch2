@@ -80,6 +80,31 @@ class MenuFreshnessIntegrationTests(unittest.TestCase):
         self.assertFalse(menus[0]['success'])
         self.assertFalse(saved.args[0][0]['success'])
 
+    def test_monday_cron_refreshes_once_at_0915_stockholm_time(self):
+        from datetime import timezone
+
+        for month, day, active_hour in ((11, 23, 8), (7, 6, 7)):
+            for utc_hour, slot in ((7, 'summer'), (8, 'winter')):
+                with self.subTest(month=month, slot=slot):
+                    self.now = datetime(2026, month, day, utc_hour, 15, tzinfo=timezone.utc).astimezone(
+                        self.application.SWEDISH_TZ
+                    )
+                    query = f'?refresh=true&monday_slot={slot}'
+                    if utc_hour == active_hour:
+                        self.assertEqual(self.now.strftime('%H:%M'), '09:15')
+                        menu = dict(self.menu, scraped_at=self.now.strftime('%Y-%m-%d %H:%M'))
+                        menus, count, saved = self.request([menu], menu, query)
+                        self.assertEqual(count, 1)
+                        self.assertTrue(menus[0]['success'])
+                        self.assertIsNotNone(saved)
+                    else:
+                        with patch.object(self.application, 'swedish_now', return_value=self.now), patch.object(
+                            self.application, 'load_urls'
+                        ) as load:
+                            response = self.application.app.test_client().get('/api/menus' + query)
+                        self.assertEqual(response.status_code, 204)
+                        load.assert_not_called()
+
     def test_current_week_cache_is_explicit_fallback(self):
         menus, _, _ = self.request([self.menu], dict(self.restaurant, success=False, menu=''))
         self.assertTrue(menus[0]['success'])

@@ -14,7 +14,15 @@
   "crons": [
     {
       "path": "/api/menus?refresh=true",
-      "schedule": "10 7 * * 1-5"
+      "schedule": "10 7 * * 2-5"
+    },
+    {
+      "path": "/api/menus?refresh=true&monday_slot=summer",
+      "schedule": "15 7 * * 1"
+    },
+    {
+      "path": "/api/menus?refresh=true&monday_slot=winter",
+      "schedule": "15 8 * * 1"
     }
   ]
 }

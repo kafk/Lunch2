@@ -11,8 +11,9 @@ scraper and then the current-week saved backup are tried as before.
    `https://www.instagram.com/restaurangbackside/`, and **5 results per URL**.
 2. Keep the date filter empty. Set the task's maximum cost per run to **$0.10**
    and timeout to **120 seconds**.
-3. Schedule the saved task for **07:00 UTC, Monday-Friday**
-   (`0 7 * * 1-5`, timezone UTC), before Vercel's 07:10 UTC menu refresh.
+3. Add the saved task to the shared **Monday 09:05 Europe/Stockholm** schedule
+   (`5 9 * * 1`). Keep the separate **Tuesday-Friday 07:00 UTC** schedule
+   (`0 7 * * 2-5`), before Vercel's unchanged 07:10 UTC refresh on those days.
 4. Run the task once to populate its dataset.
 
 At the console price of $2.70/1,000 results, 22 five-result runs are about
@@ -60,8 +61,10 @@ transformer `None`, and **Save HTML to key-value store**. Limit retries and
 session rotations, and set a run timeout and spending limit in Apify.
 
 Set `APIFY_KVARTERSMENYN_TASK_ID` in Vercel alongside the existing
-`APIFY_API_TOKEN`. Schedule the task for Mondays at 07:00 UTC, before the
-07:10 UTC Lunchdejt refresh. A menu published after that run will not be
+`APIFY_API_TOKEN`. Schedule the task for Mondays at 09:05 Europe/Stockholm,
+alongside the Backside task, before the 09:15 Swedish-time Lunchdejt refresh.
+Vercel uses Monday 07:15 and 08:15 UTC slots; only the slot matching Sweden's
+current UTC offset refreshes the menus. A menu published after the Apify run will not be
 retrieved by Apify until another task run; a manual run can update it sooner.
 Costs depend on compute, residential proxy traffic and storage.
 
