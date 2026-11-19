@@ -433,7 +433,7 @@
     <div id="restaurantTipsSummary" aria-live="polite">
         {% include "admin_restaurant_tips_summary.html" %}
     </div>
-    <small>Uppdateras automatiskt var 30:e sekund medan Admin är öppet.</small><br>
+    <small>Uppdateras när du öppnar Admin eller återvänder till fliken.</small><br>
     <a href="{{ url_for('admin_restaurant_tips') }}" class="btn-outline" style="text-decoration:none; display:inline-block; margin-top:12px;">Granska restaurangtips →</a>
 </section>
 
@@ -1465,7 +1465,6 @@
         try {
             const response = await fetch('{{ url_for("admin_restaurant_tips_summary") }}', { cache: 'no-store' });
             if (response.status === 401) {
-                clearInterval(tipsRefreshTimer);
                 tipsSummary.textContent = 'Sessionen har löpt ut. Logga in igen för att se restaurangtips.';
                 return;
             }
@@ -1473,12 +1472,15 @@
             const html = (await response.text()).trim();
             if (tipsSummary.innerHTML.trim() !== html) tipsSummary.innerHTML = html;
         } catch {
-            tipsSummary.textContent = 'Restaurangtips kunde inte hämtas. Försöker igen automatiskt.';
+            tipsSummary.textContent = 'Restaurangtips kunde inte hämtas. Ladda om sidan för att försöka igen.';
         } finally {
             tipsRefreshRunning = false;
         }
     }
-    const tipsRefreshTimer = setInterval(refreshRestaurantTips, 30000);
+    document.addEventListener('visibilitychange', refreshRestaurantTips);
+    window.addEventListener('pageshow', event => {
+        if (event.persisted) refreshRestaurantTips();
+    });
 
     loadSystemInfo();
     loadRestaurants();

@@ -134,7 +134,10 @@ class NavigationTests(unittest.TestCase):
         ) as field_filter, patch.object(self.application, 'track_visit'):
             dashboard = self.client.get('/admin').get_data(as_text=True)
             self.assertIn('Inga nya restaurangtips', dashboard)
-            self.assertIn('setInterval(refreshRestaurantTips, 30000)', dashboard)
+            self.assertNotIn('setInterval(refreshRestaurantTips', dashboard)
+            self.assertIn("document.addEventListener('visibilitychange', refreshRestaurantTips)", dashboard)
+            self.assertIn('if (document.hidden || tipsRefreshRunning) return;', dashboard)
+            self.assertIn('if (event.persisted) refreshRestaurantTips();', dashboard)
             public = self.application.app.test_client()
             response = public.post('/tipsa', data={
                 'name': '<b>New Bistro</b>', 'url': 'https://example.com/lunch',

@@ -1,5 +1,5 @@
 {% if tips_unavailable %}
-    <p role="status">Restaurangtips kunde inte hämtas. Försöker igen automatiskt.</p>
+    <p role="status">Restaurangtips kunde inte hämtas. Ladda om sidan för att försöka igen.</p>
 {% elif tips %}
     <p><strong class="badge">{{ tips | length }}</strong> {{ 'nytt tips att granska' if tips | length == 1 else 'nya tips att granska' }}</p>
     <ul style="list-style:none; margin-top:8px; overflow-wrap:anywhere;">
