@@ -13,6 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from io import BytesIO
 import base64
+from urllib.parse import urlsplit
 from pypdf import PdfReader
 try:
     from zoneinfo import ZoneInfo
@@ -1846,35 +1847,35 @@ def _gemini_fetch_menu(url, reasons):
 
 
 _KVARTERS_SUBDOMAIN_IDS = {'ferrariskok': '16447', 'arya': '15855', 'saras': '16722'}
+_KVARTERS_APIFY_URLS = {
+    '16447': 'https://ferrariskok.kvartersmenyn.se/',
+    '15855': 'https://arya.kvartersmenyn.se/',
+}
 
 
-def _kvartersmenyn_direct(url, session, reasons):
-    """Gratis direkthämtning av kvartersmenyn-HTML. Cloudflare blockerar datacenter-IP:n (Vercel, Google),
-    men från vanliga IP:n fungerar den, så prova alltid först innan Gemini-kvot används."""
-    rest_id = None
+def _kvarters_restaurant_id(url):
     m = re.search(r'/rest/(\d+)', url)
     if m:
-        rest_id = m.group(1)
-    else:
-        m = re.match(r'https?://([^.]+)\.kvartersmenyn\.se', url)
-        if m:
-            rest_id = next((v for k, v in _KVARTERS_SUBDOMAIN_IDS.items() if k in m.group(1).lower()), None)
-    if not rest_id:
+        return m.group(1)
+    m = re.match(r'https?://([^.]+)\.kvartersmenyn\.se(?:/|$)', url, re.I)
+    return _KVARTERS_SUBDOMAIN_IDS.get(m.group(1).lower()) if m else None
+
+
+def _kvartersmenyn_parse_html(content, reasons, require_current_date=False):
+    soup = BeautifulSoup(content, 'html.parser')
+    page_week = re.search(r'VECKA\s+(\d+)(?:\s*,\s*(\d{4}))?', soup.get_text(' '), re.IGNORECASE)
+    year, week = _current_week()
+    if require_current_date and (not page_week or not page_week.group(2)):
+        reasons.append('Apify: menu week and year missing')
         return ''
-    candidate = f'https://www.kvartersmenyn.se/index.php/rest/{rest_id}'
-    try:
-        res = session.get(candidate, timeout=6, headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'})
-    except requests.RequestException as e:
-        reasons.append(f'direkt: {type(e).__name__}')
+    if page_week and (int(page_week.group(1)) != week or (
+            require_current_date and int(page_week.group(2)) != year)):
+        reasons.append(f'Kvartersmenyn: page shows week {page_week.group(1)}'
+                       + (f' year {page_week.group(2)}' if page_week.group(2) else ''))
         return ''
-    if res.status_code != 200:
-        reasons.append(f'direkt: HTTP {res.status_code}')
-        return ''
-    soup = BeautifulSoup(res.content, 'html.parser')
     meny = soup.select_one('div.menu_body') or soup.select_one('div.meny')
     if not meny:
-        reasons.append('direkt: ingen meny i HTML (troligen blockerad)')
+        reasons.append('Kvartersmenyn: no menu in HTML')
         return ''
     # Dolda <i>-taggar är vattenstämplar (t.ex. "caab:caec:..."), inte menytext
     for hidden in meny.find_all('i'):
@@ -1890,12 +1891,9 @@ def _kvartersmenyn_direct(url, session, reasons):
             out.append('')
             out.append(line)
             continue
-        # Rensa bokstavsprefix (A. / A: / B: / 1. etc.)
         cleaned_l = re.sub(r'^[A-Ea-e]\s*[:.]\s*', '', line)
         cleaned_l = re.sub(r'^\d+\s*[:.)]\s*', '', cleaned_l)
-        # Fixa dubbelpunkter i text som 'FREDAGS SPECIAL..LANGOS'
         cleaned_l = re.sub(r'\.{2,}', ' – ', cleaned_l)
-        # Snygga till dessert / fredagsfika
         if re.match(r'^dessert\b', cleaned_l, re.I):
             cleaned_l = re.sub(r'^dessert\s*[:.\s–-]*', 'Dessert: ', cleaned_l, flags=re.I)
         elif re.search(r'bjuds p[åa] fredagsfika', cleaned_l, re.I):
@@ -1903,14 +1901,94 @@ def _kvartersmenyn_direct(url, session, reasons):
         out.append(cleaned_l)
     text = '\n'.join(out).strip()
     days = sum(1 for d in ('Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag') if d in text)
-    if days < 2:
-        reasons.append('direkt: menyn saknar veckodagar')
-        return ''
-    page_week = re.search(r'VECKA\s+(\d+)', soup.get_text(' '), re.IGNORECASE)
-    if page_week and int(page_week.group(1)) != _current_week()[1]:
-        reasons.append(f'direkt: sidan visar vecka {page_week.group(1)}')
+    if days < 2 or (require_current_date and not _complete_weekday_menu(text)):
+        reasons.append('Kvartersmenyn: menu lacks complete weekday sections')
         return ''
     return text
+
+
+def _kvartersmenyn_direct(url, session, reasons):
+    """Try direct Kvartersmenyn HTML before paid providers."""
+    rest_id = _kvarters_restaurant_id(url)
+    if not rest_id:
+        return ''
+    candidate = f'https://www.kvartersmenyn.se/index.php/rest/{rest_id}'
+    try:
+        res = session.get(candidate, timeout=6, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'})
+    except requests.RequestException as e:
+        reasons.append(f'direkt: {type(e).__name__}')
+        return ''
+    if res.status_code != 200:
+        reasons.append(f'direkt: HTTP {res.status_code}')
+        return ''
+    return _kvartersmenyn_parse_html(res.content, reasons)
+
+
+def _kvartersmenyn_apify(url, session, reasons):
+    rest_id = _kvarters_restaurant_id(url)
+    expected_url = _KVARTERS_APIFY_URLS.get(rest_id)
+    if not expected_url:
+        return ''
+    source = urlsplit(url)
+    expected_host = urlsplit(expected_url).hostname
+    valid_source = (
+        source.scheme == 'https' and not source.username and not source.password
+        and (source.netloc == expected_host and source.path in ('', '/')
+             or source.netloc == 'www.kvartersmenyn.se'
+             and source.path.rstrip('/') == f'/index.php/rest/{rest_id}')
+    )
+    if not valid_source:
+        reasons.append('Apify: untrusted restaurant source')
+        return ''
+    token = os.environ.get('APIFY_API_TOKEN', '').strip()
+    task = os.environ.get('APIFY_KVARTERSMENYN_TASK_ID', '').strip()
+    if not token and not task:
+        return ''
+    if not token or not task:
+        reasons.append('Apify: token and Kvartersmenyn task ID are required')
+        return ''
+    if not re.fullmatch(r'[A-Za-z0-9_-]+(?:~[A-Za-z0-9_-]+)?', task):
+        reasons.append('Apify: invalid Kvartersmenyn task ID')
+        return ''
+    headers = {'Authorization': f'Bearer {token}'}
+    try:
+        response = session.get(
+            f'https://api.apify.com/v2/actor-tasks/{task}/runs/last/dataset/items',
+            headers=headers, params={'status': 'SUCCEEDED', 'format': 'json', 'clean': 'true', 'limit': 10},
+            timeout=12, allow_redirects=False,
+        )
+        if response.status_code != 200:
+            reasons.append(f'Apify dataset HTTP {response.status_code}')
+            return ''
+        items = response.json()
+        if not isinstance(items, list) or any(not isinstance(item, dict) for item in items):
+            reasons.append('Apify: invalid Kvartersmenyn dataset')
+            return ''
+        matches = [item for item in items if item.get('url') == expected_url]
+        if len(matches) != 1:
+            reasons.append('Apify: restaurant missing or duplicated in dataset')
+            return ''
+        html_url = matches[0].get('htmlUrl')
+        if not isinstance(html_url, str):
+            reasons.append('Apify: saved HTML URL missing')
+            return ''
+        parsed = urlsplit(html_url)
+        if (parsed.scheme != 'https' or parsed.netloc != 'api.apify.com'
+                or not re.fullmatch(r'/v2/key-value-stores/[A-Za-z0-9_-]+/records/[A-Za-z0-9_-]+', parsed.path)):
+            reasons.append('Apify: untrusted saved HTML URL')
+            return ''
+        html_response = session.get(
+            'https://api.apify.com' + parsed.path, headers=headers,
+            timeout=12, allow_redirects=False,
+        )
+        if html_response.status_code != 200:
+            reasons.append(f'Apify HTML HTTP {html_response.status_code}')
+            return ''
+        return _kvartersmenyn_parse_html(html_response.content, reasons, require_current_date=True)
+    except (requests.RequestException, ValueError, TypeError) as error:
+        reasons.append(f'Apify Kvartersmenyn failed: {type(error).__name__}')
+        return ''
 
 
 def fetch_menu_via_openai(url, reasons):
@@ -1945,6 +2023,14 @@ def scrape_kvartersmenyn(url, name, session):
                 'menu': text,
                 'success': True,
                 'source': 'HTML (Kvartersmenyn)',
+                'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
+            }
+        text = _kvartersmenyn_apify(url, session, reasons)
+        if text:
+            _weekly_put(url, week_key, text)
+            return {
+                'name': name, 'url': url, 'menu': text, 'success': True,
+                'source': 'Apify HTML (Kvartersmenyn)', 'menu_year': year, 'menu_week': week,
                 'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
             }
         if os.environ.get('MENU_LLM_PROVIDER', 'gemini').strip().lower() == 'openai':

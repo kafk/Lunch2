@@ -49,3 +49,23 @@ After deployment, refresh `/api/menus?refresh=true` and inspect Backside:
 to the verified post, and `menu_week`/`menu_year` should match today.
 Failures appear in `scrape_reasons`; a fallback is not proof of Apify success.
 Expired image links require a fresh scheduled task run.
+
+## Kvartersmenyn: Ferraris Kök and Arya
+
+The optional Kvartersmenyn provider reads the latest successful run of a
+separate `apify/website-content-crawler` task. It does not start paid runs
+from visitor requests. Configure the task with the two restaurant subdomain
+URLs, maximum depth 0, maximum 2 pages, Swedish residential proxy, HTML
+transformer `None`, and **Save HTML to key-value store**. Limit retries and
+session rotations, and set a run timeout and spending limit in Apify.
+
+Set `APIFY_KVARTERSMENYN_TASK_ID` in Vercel alongside the existing
+`APIFY_API_TOKEN`. Schedule the task for Mondays at 07:00 UTC, before the
+07:10 UTC Lunchdejt refresh. A menu published after that run will not be
+retrieved by Apify until another task run; a manual run can update it sooner.
+Costs depend on compute, residential proxy traffic and storage.
+
+Lunchdejt matches the exact restaurant URL, retrieves the saved HTML only from
+Apify, removes hidden watermark tags, and requires the current ISO week and
+year plus five populated weekday sections. If the task fails or its data is
+missing or stale, the existing direct, AI and saved-menu fallbacks remain.
