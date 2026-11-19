@@ -25,6 +25,8 @@ class NavigationTests(unittest.TestCase):
                 response = self.client.get(path)
                 self.assertEqual(response.status_code, 200)
                 self.assertIn(b'id="compactView"', response.data)
+                self.assertIn(b'id="headerTitle"', response.data)
+                self.assertNotIn(b'class="location-icon"', response.data)
                 self.assertIn(b'href="/" class="sidebar-link active"', response.data)
                 for retired_link in (b'/manage', b'/analytics', b'/admin/analytics'):
                     self.assertNotIn(b'href="' + retired_link + b'"', response.data)
