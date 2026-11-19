@@ -15,6 +15,8 @@ from io import BytesIO
 import base64
 from urllib.parse import urlsplit
 from pypdf import PdfReader
+from pypdf.errors import PdfReadError
+from engine.delissimo import HOME as DELISSIMO_HOME, extract_layout_menu, gamlestaden_pdf_url
 try:
     from zoneinfo import ZoneInfo
 except ImportError:
@@ -65,7 +67,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '0126')
 
-VERSION = '3.60'
+VERSION = '3.61'
 URLS_FILE = 'urls.json'
 RESTAURANTS_CONFIG_FILE = os.path.join('config', 'restaurants.json')
 COLLECTION_NAME = 'restaurants'
@@ -127,14 +129,6 @@ def init_firebase():
 # Initialize Firebase on startup
 firebase_enabled = init_firebase()
 
-def _restaurant_source_url(url):
-    return re.sub(
-        r'(?i)^(https://(?:www\.)?delissimo\.se/wp-content/uploads/\d{4}/\d{2}/)Gamle\.pdf$',
-        r'\1Gamlestan.pdf',
-        url
-    )
-
-
 def _restaurant_display_name(name):
     if name == 'AE - Nordic Test Lab':
         return 'AE - Nordic Taste Lab'
@@ -150,7 +144,7 @@ def load_urls():
             for doc in docs:
                 data = doc.to_dict()
                 urls.append({
-                    'url': _restaurant_source_url(data.get('url', '')),
+                    'url': data.get('url', ''),
                     'name': _restaurant_display_name(data.get('name', '')),
                     'enabled': data.get('enabled', True),  # Default enabled
                     'id': doc.id
@@ -189,7 +183,6 @@ def load_urls():
             urls = json.load(f)
             # Ensure enabled field exists
             for url in urls:
-                url['url'] = _restaurant_source_url(url['url'])
                 url['name'] = _restaurant_display_name(url.get('name', ''))
                 if 'enabled' not in url:
                     url['enabled'] = True
@@ -782,19 +775,53 @@ def _complete_weekday_menu(text):
 
 def scrape_pdf(url, headers):
     """Hämta och extrahera text från en PDF."""
-    url = _restaurant_source_url(url)
     response = requests.get(url, headers=headers, timeout=15)
     response.raise_for_status()
-    text = extract_pdf_text(response.content)
-    if re.match(r'^https://(?:www\.)?delissimo\.se/', url, re.I) and not _complete_weekday_menu(text):
-        fallback_path = os.path.join(os.path.dirname(__file__), 'fallback_menus.json')
-        with open(fallback_path, 'r', encoding='utf-8') as fallback_file:
-            fallbacks = json.load(fallback_file)
-        for saved in fallbacks.values():
-            if saved.get('url') == url and saved.get('menu') and _menu_cache_usable(saved):
-                return saved['menu']
-        raise ValueError('Delissimo PDF has no readable weekday sections and no current saved menu')
-    return text
+    return extract_pdf_text(response.content)
+
+
+def _scrape_delissimo(url, name, session):
+    try:
+        home = session.get(DELISSIMO_HOME, timeout=7)
+        home.raise_for_status()
+        soup = BeautifulSoup(home.content, 'html.parser')
+        links = {
+            pdf for link in soup.find_all('a', href=True)
+            if re.sub(r'[^a-z]', '', link.get_text().lower()) in ('gamlestaden', 'gamlestan')
+            if (pdf := gamlestaden_pdf_url(link['href']))
+        }
+        if len(links) != 1:
+            raise ValueError('missing or ambiguous Gamlestaden lunch link')
+        pdf_url = links.pop()
+        pdf = session.get(pdf_url, timeout=15, allow_redirects=False)
+        pdf.raise_for_status()
+        if pdf.status_code != 200 or not pdf.content.startswith(b'%PDF-'):
+            raise ValueError('Gamlestaden link did not return a PDF')
+        text = extract_layout_menu(pdf.content) or extract_pdf_text(pdf.content)
+        if not _complete_weekday_menu(text):
+            raise ValueError('PDF has no readable weekday sections')
+        result = {
+            'name': name, 'url': url, 'menu_source_url': pdf_url,
+            'menu': text, 'success': True, 'source': 'PDF',
+            'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M'),
+        }
+        if _menu_cache_usable(result):
+            return result
+        raise ValueError('PDF is not for the current week')
+    except (requests.RequestException, PdfReadError, ValueError) as error:
+        reason = str(error) if isinstance(error, ValueError) else type(error).__name__
+
+    fallback_path = os.path.join(os.path.dirname(__file__), 'fallback_menus.json')
+    with open(fallback_path, 'r', encoding='utf-8') as fallback_file:
+        saved = json.load(fallback_file).get('Delissimo', {})
+    if saved.get('menu') and _menu_cache_usable(saved):
+        return dict(saved, url=url, menu_source_url=saved['url'], fallback_used=True,
+                    scrape_reasons=[reason])
+    return {
+        'name': name, 'url': url, 'menu': '', 'success': False, 'source': 'PDF',
+        'error': f'Delissimo: {reason}', 'scrape_reasons': [reason],
+        'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M'),
+    }
 
 def find_lunch_page_link(soup, base_url):
     """Hitta länk till lunch-undersida."""
@@ -2725,7 +2752,6 @@ def enrich_menu_languages(result, lang='sv'):
 
 def scrape_url(url, name, lang='sv'):
     """Scrapa en URL och returnera menyinformation fördelat efter språk."""
-    url = _restaurant_source_url(url)
     res = _scrape_url_raw(url, name, lang=lang)
     if res and res.get('success'):
         res['menu_type'] = _configured_menu_type(url, name)
@@ -2765,6 +2791,10 @@ def _scrape_url_raw(url, name, lang='sv'):
             'Upgrade-Insecure-Requests': '1'
         }
         session.headers.update(headers)
+
+        if gamlestaden_pdf_url(url) or (
+                url.rstrip('/') == DELISSIMO_HOME.rstrip('/') and name.strip().casefold() == 'delissimo'):
+            return _scrape_delissimo(url, name, session)
 
         # SPECIAL: Nordic Taste Lab – Compass Group bildmeny med veckonummer-probing & OCR
         if 'nordic-taste-lab' in url.lower() or 'ce576758e5e44ad59e25f885b130d4ca' in url.lower():
@@ -4047,6 +4077,8 @@ def get_menus():
         """Applicera snabb språkanpassning och formatering utan att göra om klassificeringen."""
         for menu in menu_list:
             menu['name'] = _restaurant_display_name(menu.get('name', ''))
+            if gamlestaden_pdf_url(menu.get('url') or ''):
+                menu['website_url'] = DELISSIMO_HOME
             if menu.get('success') and menu.get('menu'):
                 if lang == 'en' and menu.get('menu_en'):
                     menu['menu'] = menu['menu_en']

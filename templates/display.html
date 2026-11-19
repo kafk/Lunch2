@@ -2043,7 +2043,7 @@
                         <span class="menu-item-time">${menu.scraped_at || ''}</span>
                         <div class="menu-item-status">
                             <span class="status-dot ${menu.success ? 'success' : 'error'}"></span>
-                            <a href="${escapeHtml(menu.url)}" target="_blank" style="color: #22c55e;">Besök →</a>
+                            <a href="${escapeHtml(menu.website_url || menu.url)}" target="_blank" style="color: #22c55e;">Besök →</a>
                         </div>
                     </div>
                 </div>
@@ -2062,7 +2062,7 @@
             <div class="compact-item" onclick="toggleCompact(this, event)">
                 <div class="compact-header">
                     <span class="compact-name"><span class="compact-dot"></span>${escapeHtml(menu.name)}</span>
-                    <a href="${escapeHtml(menu.url)}" target="_blank" class="compact-link" onclick="event.stopPropagation()">
+                    <a href="${escapeHtml(menu.website_url || menu.url)}" target="_blank" class="compact-link" onclick="event.stopPropagation()">
                         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
                             <polyline points="15 3 21 3 21 9"/>
@@ -2124,9 +2124,9 @@
                     <section style="padding:14px;border:1px solid #e5e7eb;border-radius:10px;"><h4 style="margin:0 0 8px;color:#374151;font-size:13px;">${t.contact || 'Kontakt'}</h4><p style="margin:0;color:#4b5563;line-height:1.55;">${contact}</p></section>
                 </div>
                 <section style="padding:14px;border:1px solid #e5e7eb;border-radius:10px;"><h4 style="margin:0 0 8px;color:#374151;font-size:13px;">${t.fullWeek || 'Hela veckans meny'}</h4><div>${formatMenuContent(menuRaw || t.noMenu, 'week', name)}</div></section>
-                <p style="margin:16px 0 0;"><a href="${escapeHtml(menu.url)}" target="_blank" rel="noopener noreferrer" style="color:#16a34a;font-weight:600;">${t.visitWebsite || 'Besök restaurangens hemsida ↗'}</a></p>`;
+                <p style="margin:16px 0 0;"><a href="${escapeHtml(menu.website_url || menu.url)}" target="_blank" rel="noopener noreferrer" style="color:#16a34a;font-weight:600;">${t.visitWebsite || 'Besök restaurangens hemsida ↗'}</a></p>`;
         } catch (error) {
-            modalBody.innerHTML = `<p>${currentLang === 'en' ? 'Could not load details.' : 'Kunde inte hämta restauranguppgifter.'}</p><p style="margin-top:16px;"><a href="${escapeHtml(menu.url)}" target="_blank" rel="noopener noreferrer">${currentLang === 'en' ? 'Visit website' : 'Besök restaurangens hemsida'}</a></p>`;
+            modalBody.innerHTML = `<p>${currentLang === 'en' ? 'Could not load details.' : 'Kunde inte hämta restauranguppgifter.'}</p><p style="margin-top:16px;"><a href="${escapeHtml(menu.website_url || menu.url)}" target="_blank" rel="noopener noreferrer">${currentLang === 'en' ? 'Visit website' : 'Besök restaurangens hemsida'}</a></p>`;
         }
     }
 
