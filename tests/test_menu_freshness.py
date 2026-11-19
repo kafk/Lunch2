@@ -73,6 +73,26 @@ class MenuFreshnessIntegrationTests(unittest.TestCase):
             response = self.application.app.test_client().get('/api/menus' + query)
             return response.get_json()['menus'], scrape.call_count, save.call_args
 
+    def test_cache_only_serves_published_data_without_retry_or_write(self):
+        failed = dict(self.menu, success=False, menu='', retry_after='2026-11-09T09:00:00')
+        for cached in (None, {'menus': [failed], 'updated_at': '2026-11-09T09:30:00'}):
+            with self.subTest(cached=cached), patch.object(
+                self.application, 'get_cached_menus', return_value=cached
+            ), patch.object(self.application, 'load_urls') as load, patch.object(
+                self.application, 'scrape_url'
+            ) as scrape, patch.object(self.application, 'save_menus_to_cache') as save:
+                response = self.application.app.test_client().get('/api/menus?cache_only=true')
+                self.assertTrue(response.cache_control.no_store)
+                if cached is None:
+                    self.assertEqual(response.status_code, 204)
+                else:
+                    self.assertEqual(response.status_code, 200)
+                    self.assertEqual(response.json['updated_at'], cached['updated_at'])
+                    self.assertFalse(response.json['menus'][0]['success'])
+                load.assert_not_called()
+                scrape.assert_not_called()
+                save.assert_not_called()
+
     def test_all_restaurants_reject_previous_week_cache(self):
         self.menu['scraped_at'] = '2026-11-08 12:00'
         menus, count, saved = self.request([self.menu], dict(self.restaurant, success=False, menu=''))

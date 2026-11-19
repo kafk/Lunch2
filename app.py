@@ -70,7 +70,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '0126')
 
-VERSION = '3.71'
+VERSION = '3.72'
 URLS_FILE = 'urls.json'
 RESTAURANTS_CONFIG_FILE = os.path.join('config', 'restaurants.json')
 COLLECTION_NAME = 'restaurants'
@@ -3108,7 +3108,9 @@ def _scrape_url_raw(url, name, lang='sv'):
 def display():
     """Huvudsida - visa lunchmenyer."""
     track_visit(request.path)
-    return render_template('display.html', version=VERSION)
+    return render_template('display.html', version=VERSION), 200, {
+        'Cache-Control': 'no-cache',
+    }
 
 @app.route('/demo')
 def demo():
@@ -3432,7 +3434,7 @@ def get_storage():
 @app.route('/api/version', methods=['GET'])
 def get_version():
     """Returnera aktuell version."""
-    return jsonify({'version': VERSION})
+    return jsonify({'version': VERSION}), 200, {'Cache-Control': 'no-store'}
 
 @app.route('/api/cleanup', methods=['POST'])
 def cleanup_duplicates():
@@ -4209,23 +4211,28 @@ def get_menus():
                 if today_only:
                     menu['menu'] = extract_today_section(menu['menu'])
 
-    # Try to get cached menus if not forcing refresh
+    cache_only = request.args.get('cache_only', '').lower() == 'true'
     retry_cached_only = False
-    if not force_refresh:
+    if cache_only or not force_refresh:
         cached = get_cached_menus()
-        if cached:
-            needs_retry = any(
+        if cached is not None:
+            needs_retry = not cache_only and any(
                 (not menu.get('success') or not _menu_cache_usable(menu)) and _menu_retry_due(menu)
-                for menu in cached.get('menus', [])
+                for menu in cached['menus']
             )
             if not needs_retry:
                 cached['menus'] = [
                     menu if _menu_cache_usable(menu) else _unavailable_menu(menu, 'saved menu expired')
-                    for menu in cached.get('menus', [])
+                    for menu in cached['menus']
                 ]
-                postprocess(cached.get('menus', []))
-                return jsonify(cached)
+                postprocess(cached['menus'])
+                response = jsonify(cached)
+                if cache_only:
+                    response.cache_control.no_store = True
+                return response
             retry_cached_only = True
+        if cache_only:
+            return '', 204, {'Cache-Control': 'no-store'}
 
     # Scrape fresh data
     urls = load_urls()

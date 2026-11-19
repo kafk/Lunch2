@@ -2065,12 +2065,18 @@
     // View switching
     document.querySelectorAll('.view-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
-            btn.classList.add('active');
-            document.getElementById(btn.dataset.view + 'View').classList.add('active');
+            setLayoutView(btn.dataset.view);
         });
     });
+
+    function setLayoutView(view) {
+        document.querySelectorAll('.view-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.view === view);
+        });
+        document.querySelectorAll('.view-container').forEach(container => {
+            container.classList.toggle('active', container.id === view + 'View');
+        });
+    }
 
     function openModal(name, content) {
         modalTitle.textContent = name;
@@ -2187,6 +2193,16 @@
             </div>`;
     }
 
+    async function fetchMenus({forceRefresh = false, cacheOnly = false} = {}) {
+        const params = new URLSearchParams({lang: currentLang});
+        if (forceRefresh) params.set('refresh', 'true');
+        if (cacheOnly) params.set('cache_only', 'true');
+        const response = await fetch('/api/menus?' + params, {cache: 'no-store'});
+        if (!response.ok || response.status === 204) return null;
+        const data = await response.json();
+        return Array.isArray(data?.menus) ? data : null;
+    }
+
     async function loadMenus(forceRefresh = false) {
         refreshBtn.disabled = true;
         loading.style.display = 'none';
@@ -2229,20 +2245,17 @@
 
             // 1. Hämta menyerna från servern (delad cache). Vid "Uppdatera" skrapar servern om allt och sparar komplett cache.
             try {
-                const cacheRes = await fetch('/api/menus?lang=' + encodeURIComponent(currentLang) + (forceRefresh ? '&refresh=true' : ''));
-                if (cacheRes.ok) {
-                    const cacheData = await cacheRes.json();
-                    if (cacheData && cacheData.menus && cacheData.menus.length > 0) {
-                        allMenus = cacheData.menus;
-                        if (cacheData.updated_at) renderScrapedDateTime(cacheData.updated_at);
-                        try {
-                            renderViews();
-                        } catch (err) {
-                            console.error("renderViews error:", err);
-                        }
-                        refreshBtn.disabled = false;
-                        return;
+                const cacheData = await fetchMenus({forceRefresh});
+                if (cacheData?.menus.length > 0) {
+                    allMenus = cacheData.menus;
+                    if (cacheData.updated_at) renderScrapedDateTime(cacheData.updated_at);
+                    try {
+                        renderViews();
+                    } catch (err) {
+                        console.error("renderViews error:", err);
                     }
+                    refreshBtn.disabled = false;
+                    return;
                 }
             } catch (e) {
                 console.error("Cache load error:", e);
@@ -2986,15 +2999,115 @@
         }
     });
 
-    // Initialize UI language & favorites badge
-    applyLanguageUI();
-    updateFavoritesBadge();
+    const pageVersion = {{ version | tojson }};
+    const reloadStateKey = 'lunch_display_reload_state';
+    let checkingForUpdates = false;
+    let renderedDay = new Date().toDateString();
 
-    // Auto-force-refresh if ?refresh=true is in the URL
-    const urlParams = new URLSearchParams(window.location.search);
-    loadMenus(urlParams.get('refresh') === 'true');
+    async function reloadIfVersionChanged() {
+        try {
+            const response = await fetch('/api/version', {
+                cache: 'no-store',
+                signal: AbortSignal.timeout?.(5000)
+            });
+            if (!response.ok) return false;
+            const {version} = await response.json();
+            if (typeof version !== 'string' || !version.trim() || version === pageVersion
+                || document.hidden || modal.classList.contains('active')) return false;
 
-    // Auto-uppdatera var 30:e minut (bra för display-läge)
-    setInterval(() => loadMenus(), 30 * 60 * 1000);
+            const attemptedKey = 'lunch_display_reload:' + version;
+            if (sessionStorage.getItem(attemptedKey)) return false;
+            sessionStorage.setItem(reloadStateKey, JSON.stringify({
+                location: window.location.href,
+                displayView,
+                onlyFavorites,
+                layout: document.querySelector('.view-btn.active')?.dataset.view,
+                scrollY: window.scrollY
+            }));
+            sessionStorage.setItem(attemptedKey, 'true');
+            window.location.reload();
+            return true;
+        } catch (error) {
+            console.warn('Could not check Lunchdejt version:', error);
+            return false;
+        }
+    }
+
+    async function updatePublishedMenus() {
+        const lang = currentLang;
+        const [data, urlsResponse] = await Promise.all([
+            fetchMenus({cacheOnly: true}),
+            fetch('/api/urls', {cache: 'no-store'})
+        ]);
+        if (!data || !urlsResponse.ok) return;
+        const urls = await urlsResponse.json();
+        if (!Array.isArray(urls) || lang !== currentLang) return;
+
+        if (data.updated_at && data.updated_at !== lastScrapedTime) {
+            renderScrapedDateTime(data.updated_at);
+        }
+        const day = new Date().toDateString();
+        if (renderedDay === day
+            && JSON.stringify(data.menus) === JSON.stringify(allMenus)
+            && JSON.stringify(urls) === JSON.stringify(allUrls)) return;
+
+        const scrollY = window.scrollY;
+        allUrls = urls;
+        allMenus = data.menus;
+        renderedDay = day;
+        emptyState.style.display = urls.length ? 'none' : 'block';
+        if (!allMenus.length) menuGrid.replaceChildren();
+        renderViews();
+        window.scrollTo(0, scrollY);
+    }
+
+    async function checkForUpdates() {
+        if (document.hidden || checkingForUpdates || refreshBtn.disabled) return;
+        checkingForUpdates = true;
+        try {
+            if (!await reloadIfVersionChanged()) await updatePublishedMenus();
+        } catch (error) {
+            console.warn('Could not refresh published lunch menus:', error);
+        } finally {
+            checkingForUpdates = false;
+        }
+    }
+
+    function restoreReloadState() {
+        try {
+            const state = JSON.parse(sessionStorage.getItem(reloadStateKey));
+            sessionStorage.removeItem(reloadStateKey);
+            if (state?.location !== window.location.href) return null;
+            if (state.displayView === 'today' || state.displayView === 'week') {
+                setDisplayView(state.displayView);
+            }
+            if (state.onlyFavorites) toggleFavoritesFilter();
+            if (['cards', 'list', 'table', 'compact'].includes(state.layout)) {
+                setLayoutView(state.layout);
+            }
+            return state;
+        } catch {
+            return null;
+        }
+    }
+
+    async function initializeDisplay() {
+        applyLanguageUI();
+        updateFavoritesBadge();
+        const state = restoreReloadState();
+        if (await reloadIfVersionChanged()) return;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        await loadMenus(!state && urlParams.get('refresh') === 'true');
+        if (state) requestAnimationFrame(() => window.scrollTo(0, state.scrollY));
+
+        document.addEventListener('visibilitychange', () => void checkForUpdates());
+        window.addEventListener('pageshow', event => {
+            if (event.persisted) void checkForUpdates();
+        });
+        setInterval(checkForUpdates, 5 * 60 * 1000);
+    }
+
+    void initializeDisplay();
 </script>
 {% endblock %}

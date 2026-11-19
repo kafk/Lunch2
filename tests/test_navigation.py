@@ -24,6 +24,8 @@ class NavigationTests(unittest.TestCase):
             with self.subTest(path=path):
                 response = self.client.get(path)
                 self.assertEqual(response.status_code, 200)
+                self.assertTrue(response.cache_control.no_cache)
+                self.assertNotIn(b'id="versionBanner"', response.data)
                 self.assertIn(b'id="compactView"', response.data)
                 self.assertIn(b'id="headerTitle"', response.data)
                 self.assertNotIn(b'class="location-icon"', response.data)
@@ -33,6 +35,14 @@ class NavigationTests(unittest.TestCase):
                 self.assertIn(b'href="/" class="sidebar-link active"', response.data)
                 for retired_link in (b'/manage', b'/analytics', b'/admin/analytics'):
                     self.assertNotIn(b'href="' + retired_link + b'"', response.data)
+
+    def test_display_and_uncached_version_endpoint_agree(self):
+        version = self.client.get('/api/version')
+        self.assertTrue(version.cache_control.no_store)
+        display = self.client.get('/')
+        expected = f'const pageVersion = "{version.json["version"]}";'
+        self.assertIn(expected, display.get_data(as_text=True))
+        self.assertNotIn(b'const pageVersion', self.client.get('/tipsa').data)
 
     def test_public_manage_page_is_removed(self):
         self.assertEqual(self.client.get('/manage').status_code, 404)
