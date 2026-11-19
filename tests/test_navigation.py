@@ -28,6 +28,8 @@ class NavigationTests(unittest.TestCase):
                 self.assertIn(b'id="headerTitle"', response.data)
                 self.assertNotIn(b'class="location-icon"', response.data)
                 self.assertIn(b'href="/tipsa" class="header-add-link"', response.data)
+                self.assertIn(b'id="suggestRestaurantText">Tipsa om en restaurang</span>', response.data)
+                self.assertIn(b'M5 12h14M12 5l7 7-7 7', response.data)
                 self.assertIn(b'href="/" class="sidebar-link active"', response.data)
                 for retired_link in (b'/manage', b'/analytics', b'/admin/analytics'):
                     self.assertNotIn(b'href="' + retired_link + b'"', response.data)

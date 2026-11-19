@@ -9,7 +9,12 @@
     <div class="header-left">
         <div class="header-info">
             <h1 class="header-temp" id="headerTitle" style="font-size: 32px;">Lunchöversikt</h1>
-            <a href="{{ url_for('suggest_restaurant') }}" class="header-add-link" id="suggestRestaurantLink">Tipsa om en restaurang</a>
+            <a href="{{ url_for('suggest_restaurant') }}" class="header-add-link" id="suggestRestaurantLink">
+                <span id="suggestRestaurantText">Tipsa om en restaurang</span>
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+            </a>
         </div>
     </div>
     <div class="header-right">
@@ -1287,7 +1292,7 @@
         if (title) title.textContent = t.headerTitle;
 
         const suggestion = document.getElementById('suggestRestaurantLink');
-        suggestion.textContent = t.suggestRestaurant;
+        document.getElementById('suggestRestaurantText').textContent = t.suggestRestaurant;
         suggestion.href = "{{ url_for('suggest_restaurant') }}" + (currentLang === 'en' ? '?lang=en' : '');
 
         const emptyRestaurants = document.getElementById('emptyRestaurantsText');
