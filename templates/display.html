@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Vyer - Lunch Monitor{% endblock %}
+{% block title %}Lunchdejt{% endblock %}
 
 {% block content %}
 <div class="gazette-wrapper">
@@ -10,15 +10,9 @@
         <div class="header-info">
             <div class="location">
                 <span class="location-icon"></span>
-                <span id="locationSubText">Alternativa Vyer</span>
+                <span>Lunchdejt</span>
             </div>
             <h1 class="header-temp" id="headerTitle" style="font-size: 32px;">Lunchöversikt</h1>
-            <a href="/manage" class="header-add-link" id="addRestaurantLink">
-                <span id="addRestaurantText">Vill du lägga till en restaurang?</span>
-                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                </svg>
-            </a>
         </div>
     </div>
     <div class="header-right">
@@ -150,8 +144,7 @@
 <div class="card" id="emptyState" style="display: none;">
     <div class="empty-state">
         <div class="empty-state-icon">🍽️</div>
-        <h3 style="color: #374151; margin-bottom: 8px;">Inga restauranger</h3>
-        <p>Lägg till restauranger under <a href="/manage" style="color: #22c55e;">Hantera</a></p>
+        <h3 id="emptyRestaurantsText" style="color: #374151; margin-bottom: 8px;">Inga restauranger</h3>
     </div>
 </div>
 </div>
@@ -203,23 +196,6 @@
         border-bottom: 2px solid var(--paper-border);
         padding-bottom: 16px;
         margin-bottom: 22px;
-    }
-
-    .header-add-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        font-size: 12.5px;
-        color: var(--bistro-green);
-        text-decoration: none;
-        margin-top: 6px;
-        font-weight: 600;
-        transition: color 0.15s ease, opacity 0.15s ease;
-    }
-
-    .header-add-link:hover {
-        color: #14331b;
-        text-decoration: underline;
     }
 
     .header-left {
@@ -1086,9 +1062,8 @@
 
     const I18N = {
         sv: {
-            locationSub: "Alternativa Vyer",
             headerTitle: "Lunchöversikt",
-            addRestaurant: "Vill du lägga till en restaurang?",
+            emptyRestaurants: "Inga restauranger",
             refresh: "Uppdatera",
             cards: "Kort",
             list: "Lista",
@@ -1111,9 +1086,8 @@
             weekdays: ['Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag','Söndag']
         },
         en: {
-            locationSub: "Alternative Views",
             headerTitle: "Lunch Overview",
-            addRestaurant: "Want to add a restaurant?",
+            emptyRestaurants: "No restaurants",
             refresh: "Refresh",
             cards: "Cards",
             list: "List",
@@ -1310,14 +1284,11 @@
             enBtn.classList.toggle('active', currentLang === 'en');
         }
 
-        const locSub = document.getElementById('locationSubText');
-        if (locSub) locSub.textContent = t.locationSub;
-
         const title = document.getElementById('headerTitle');
         if (title) title.textContent = t.headerTitle;
 
-        const addText = document.getElementById('addRestaurantText');
-        if (addText) addText.textContent = t.addRestaurant;
+        const emptyRestaurants = document.getElementById('emptyRestaurantsText');
+        if (emptyRestaurants) emptyRestaurants.textContent = t.emptyRestaurants;
 
         const refText = document.getElementById('refreshBtnText');
         if (refText) refText.textContent = t.refresh;

@@ -67,7 +67,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '0126')
 
-VERSION = '3.62'
+VERSION = '3.63'
 URLS_FILE = 'urls.json'
 RESTAURANTS_CONFIG_FILE = os.path.join('config', 'restaurants.json')
 COLLECTION_NAME = 'restaurants'
@@ -3086,22 +3086,11 @@ def _scrape_url_raw(url, name, lang='sv'):
             'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
         }
 
-@app.route('/')
-def index():
-    """Huvudsida - visa lunchmenyer."""
-    track_visit('/')
-    return render_template('index.html', version=VERSION)
-
-@app.route('/manage')
-def manage():
-    """Hantera URL:er."""
-    track_visit('/manage')
-    return render_template('manage.html', version=VERSION)
-
 @app.route('/display')
+@app.route('/')
 def display():
-    """Alternativ vy för lunchmenyer."""
-    track_visit('/display')
+    """Huvudsida - visa lunchmenyer."""
+    track_visit(request.path)
     return render_template('display.html', version=VERSION)
 
 @app.route('/demo')
@@ -3515,6 +3504,8 @@ def api_track():
 @app.route('/api/analytics', methods=['GET'])
 def api_analytics():
     """Returnera besöksstatistik för de senaste N dagarna."""
+    if not session.get('admin'):
+        return jsonify({'error': 'Inloggning krävs'}), 401
     days = min(int(request.args.get('days', 7)), 90)
     today = swedish_now().date()
     result = []
@@ -3543,6 +3534,8 @@ def api_analytics():
 @app.route('/api/analytics/today-detail', methods=['GET'])
 def api_analytics_today_detail():
     """Returnera unika besökare för idag, grupperade per visitor_id med deduplicerad besökshistorik."""
+    if not session.get('admin'):
+        return jsonify({'error': 'Inloggning krävs'}), 401
     today = swedish_now().strftime('%Y-%m-%d')
     if not db:
         return jsonify([])
@@ -3601,7 +3594,14 @@ def api_analytics_today_detail():
 
 
 @app.route('/analytics')
-def analytics():
+def legacy_analytics():
+    return redirect(url_for('admin_analytics'))
+
+
+@app.route('/admin/analytics')
+def admin_analytics():
+    if not session.get('admin'):
+        return redirect(url_for('admin_login'))
     return render_template('analytics.html', version=VERSION)
 
 

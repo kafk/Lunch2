@@ -435,6 +435,7 @@
 </style>
 
 <div class="analytics-header">
+    <a href="{{ url_for('admin') }}">← Tillbaka till Admin</a>
     <h1>Analytics</h1>
     <p>Sidbesök och unika besökare över tid</p>
 </div>
@@ -562,7 +563,7 @@
         document.getElementById('tableBody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:32px">Laddar...</td></tr>';
 
         try {
-            const res = await fetch(`/api/analytics?days=${days}`);
+            const res = await fetch(`{{ url_for('api_analytics') }}?days=${days}`);
             const data = await res.json();
             renderStats(data, days);
             renderChart(data);
@@ -669,7 +670,7 @@
         const tbody = document.getElementById('todayBody');
         tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:24px">Laddar...</td></tr>';
         try {
-            const res = await fetch('/api/analytics/today-detail');
+            const res = await fetch('{{ url_for("api_analytics_today_detail") }}');
             const visitors = await res.json();
             if (!visitors.length) {
                 tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:24px">Inga besök idag ännu</td></tr>';
