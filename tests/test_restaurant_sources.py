@@ -149,6 +149,8 @@ class RestaurantSourceTests(unittest.TestCase):
             (1900, 200, 'TORSDAG'), (1970, 340, 'KÖTT: Krämig lövbiffsgryta'),
             (2300, 200, 'FREDAG'), (2370, 340, 'KÖTT'), (2370, 500, ': Grillad Entrecote'),
             (2370, 4, 'DELISSIMO'), (2440, 340, 'med klyftpotatis.'),
+            (2510, 340, 'FÅGEL: Kycklingschnitzel'),
+            (2580, 340, 'PASTA FORESTA: Svamp i gräddsås'),
             (2700, 200, 'VECKANS PIZZA'), (2770, 340, 'Extra topping'),
         ]
         page = Mock()
@@ -161,10 +163,14 @@ class RestaurantSourceTests(unittest.TestCase):
         with patch('engine.delissimo.PdfReader', return_value=Mock(pages=[page])):
             text = self.application.extract_layout_menu(b'%PDF-fixture')
         self.assertEqual(text, (
-            'VECKA 46\nMåndag\nKÖTT: Grillad ryggbiff\nTisdag\nKÖTT: Köttfärslimpa\n'
-            'Onsdag\nKÖTT: Grillmix\nTorsdag\nKÖTT: Krämig lövbiffsgryta\n'
-            'Fredag\nKÖTT: Grillad Entrecote med klyftpotatis.'
+            'VECKA 46\nMåndag\nKött: Grillad ryggbiff\nTisdag\nKött: Köttfärslimpa\n'
+            'Onsdag\nKött: Grillmix\nTorsdag\nKött: Krämig lövbiffsgryta\n'
+            'Fredag\nKött: Grillad Entrecote med klyftpotatis.\nKyckling: Kycklingschnitzel\n'
+            'Pasta: Pasta foresta – Svamp i gräddsås'
         ))
+        self.assertEqual(self.application.enrich_menu_languages({
+            'name': 'Delissimo', 'menu': text, 'success': True
+        })['menu'], text)
 
     def test_wrongly_ordered_pdf_cache_is_rejected(self):
         menu = {

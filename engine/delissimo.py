@@ -8,7 +8,7 @@ from pypdf import PdfReader
 HOME = 'https://delissimo.se/'
 _PDF_PATH = re.compile(r'/wp-content/uploads/\d{4}/\d{2}/(?:Gamle|Gamlestan)\.pdf', re.I)
 _WEEKDAYS = ('Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag')
-_DISH = re.compile(r'^(?:kött|fågel|kyckling|fisk|vegetariskt|pasta\b[^:]*|dessert)\s*:\s*\S', re.I)
+_DISH = re.compile(r'^(kött|fågel|kyckling|fisk|vegetariskt|pasta\b[^:]*|dessert)\s*:\s*(\S.*)', re.I)
 _WEEK = re.compile(r'\b(?:vecka|week|v\.?)[ \t]*\d{1,2}\b', re.I)
 
 
@@ -71,9 +71,16 @@ def extract_layout_menu(content):
         else:
             if line.upper().startswith(('VECKANS', 'VID SPECIALKOST')):
                 break
-            if _DISH.match(line):
+            if dish := _DISH.match(line):
                 has_dish = True
-                result.append(line)
+                label, description = dish.groups()
+                label = label.strip().capitalize()
+                if label.startswith('Pasta '):
+                    description = f'{label} – {description}'
+                    label = 'Pasta'
+                elif label == 'Fågel':
+                    label = 'Kyckling'
+                result.append(f'{label}: {description}')
             elif has_dish and ':' not in line and not line.isupper():
                 result[-1] += ' ' + line
     if tuple(seen) != _WEEKDAYS or not has_dish:
