@@ -39,6 +39,8 @@ The response must belong to the requested restaurant. Results are sorted by
 publication time rather than dataset order. Posts from the preceding Sunday
 are allowed, but OCR must verify the image's current ISO year/week and source.
 Old, future-dated, wrong-account, or wrong-week posts are rejected.
+If the image's week heading is wrong, a current-week caption and all five
+printed weekday dates must independently match the current week instead.
 Only Instagram CDN image URLs are accepted, and at most two images are sent
 to OCR per refresh. Carousel images are supported.
 

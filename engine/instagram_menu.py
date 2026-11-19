@@ -7,12 +7,12 @@ from urllib.parse import urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
-from pydantic import ValidationError
+from pydantic import Field, ValidationError
 
 from .fetcher import create_session
 from .models import WeeklyMenuResult
 from .normalizer import normalize_text_to_days, format_day_menus_to_text
-from .openai_menu import SourcedMenu
+from .openai_menu import MenuDay, SourcedMenu
 from .validator import validate_menu_result, menu_freshness_error
 
 
@@ -61,7 +61,28 @@ def _validated_menu(text, url, name, now, source):
     return None
 
 
-def _image_menu(image_url, post_url, session, now, reasons):
+class ImageMenuDay(MenuDay):
+    date: str = Field(default='', description='Date printed beside the weekday, exactly as shown')
+
+
+class ImageSourcedMenu(SourcedMenu):
+    days: list[ImageMenuDay] = Field(max_length=5)
+
+
+def _image_dates_match_week(menu, now):
+    expected_days = ('monday', 'tuesday', 'wednesday', 'thursday', 'friday')
+    if len(menu.days) != len(expected_days) or {day.day for day in menu.days} != set(expected_days):
+        return False
+    monday = now.date() - timedelta(days=now.weekday())
+    for day in menu.days:
+        match = re.fullmatch(r'\s*(\d{1,2})\s*[/.-]\s*(\d{1,2})\s*', day.date)
+        expected = monday + timedelta(days=expected_days.index(day.day))
+        if not match or (int(match.group(1)), int(match.group(2))) != (expected.day, expected.month):
+            return False
+    return True
+
+
+def _image_menu(image_url, post_url, session, now, reasons, caption_week_verified=False):
     key = os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY')
     if not key:
         reasons.append('Instagram image OCR unavailable: no Gemini key')
@@ -81,21 +102,24 @@ def _image_menu(image_url, post_url, session, now, reasons):
                 {'text': f'Copy only the lunch dishes visible in this image. '
                          f'The required ISO year/week is {year}/{week}. '
                          'Read the menu week from the image; do not assume it. '
-                         'If missing or different, return days: []. '
+                         'Extract all weekdays even if the printed week differs. '
+                         'For each day copy the printed date into date, or use an empty string if missing; '
+                         'never infer a missing date. '
                          'Use lowercase English weekday names, preserve Swedish dishes, '
                          f'and set source_url to {post_url}.'},
                 {'inlineData': {'mimeType': mime, 'data': base64.b64encode(image.content).decode('ascii')}}
             ]}],
             'generationConfig': {'responseMimeType': 'application/json',
-                                 'responseJsonSchema': SourcedMenu.model_json_schema()}
+                                 'responseJsonSchema': ImageSourcedMenu.model_json_schema()}
         }
     )
     if response.status_code != 200:
         reasons.append(f'Instagram OCR HTTP {response.status_code}')
         return ''
     parts = response.json()['candidates'][0]['content']['parts']
-    menu = SourcedMenu.model_validate_json(''.join(part.get('text', '') for part in parts))
-    if (menu.year, menu.week) != (year, week) or menu.source_url != post_url:
+    menu = ImageSourcedMenu.model_validate_json(''.join(part.get('text', '') for part in parts))
+    dates_verified = caption_week_verified and menu.year in (0, year) and _image_dates_match_week(menu, now)
+    if menu.source_url != post_url or ((menu.year, menu.week) != (year, week) and not dates_verified):
         reasons.append('Instagram OCR rejected: wrong menu week or source')
         return ''
     if len(menu.days) < 2 or len({day.day for day in menu.days}) != len(menu.days):
@@ -185,7 +209,13 @@ def fetch_apify_menu(url, name, now, session=None, reasons=None):
                 if attempts >= 2:
                     break
                 attempts += 1
-                text = _image_menu(image_url, post_url, session, now, reasons)
+                caption_weeks = re.findall(r'\b(?:vecka|v\.?)[ \t]*(\d{1,2})\b', _caption(post), re.I)
+                text = _image_menu(
+                    image_url, post_url, session, now, reasons,
+                    caption_week_verified=bool(caption_weeks) and all(
+                        int(value) == now.isocalendar().week for value in caption_weeks
+                    ),
+                )
                 result = _validated_menu(text, url, name, now, 'Apify Instagram image OCR')
                 if result:
                     result.update(menu_source_url=post_url, fallback_used=False,

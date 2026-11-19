@@ -46,6 +46,7 @@ class ApifyMenuTests(unittest.TestCase):
         self.assertEqual(result['menu_source_url'], self.post['url'])
         self.assertFalse(result['fallback_used'])
         self.assertEqual(ocr.call_args.args[0], self.post['displayUrl'])
+        self.assertTrue(ocr.call_args.kwargs['caption_week_verified'])
         self.session.get.assert_called_once_with(
             'https://api.apify.com/v2/actor-tasks/test-task/runs/last/dataset/items',
             headers={'Authorization': 'Bearer test-token'},
@@ -66,6 +67,12 @@ class ApifyMenuTests(unittest.TestCase):
         ]
         self.assertIsNone(self.fetch())
         self.assertEqual(ocr.call_count, 2)
+
+    @patch('engine.instagram_menu._image_menu', return_value='')
+    def test_caption_without_week_is_not_verified(self, ocr):
+        self.post['caption'] = 'Lunchmeny'
+        self.assertIsNone(self.fetch())
+        self.assertFalse(ocr.call_args.kwargs['caption_week_verified'])
 
     @patch('engine.instagram_menu._image_menu')
     def test_old_caption_week_never_reaches_ocr(self, ocr):

@@ -66,13 +66,14 @@ class InstagramOCRTests(unittest.TestCase):
                      {'day': 'tuesday', 'dishes': ['Fisk med potatis']}]
         }
 
-    def fetch(self, status=200):
+    def fetch(self, status=200, caption_week_verified=False):
         self.session.post.return_value = Mock(status_code=status, json=lambda: {
             'candidates': [{'content': {'parts': [{'text': json.dumps(self.menu)}]}}]
         })
         reasons = []
         with patch.dict(os.environ, {'GEMINI_API_KEY': 'test-only'}):
-            result = _image_menu('https://images.example.test/menu.jpg', self.url, self.session, self.now, reasons)
+            result = _image_menu('https://images.example.test/menu.jpg', self.url, self.session, self.now, reasons,
+                                 caption_week_verified=caption_week_verified)
         self.assertEqual(self.session.post.call_count, 1)
         self.assertIn('responseJsonSchema', self.session.post.call_args.kwargs['json']['generationConfig'])
         return result
@@ -83,6 +84,44 @@ class InstagramOCRTests(unittest.TestCase):
     def test_wrong_week_rejected(self):
         self.menu['week'] = 45
         self.assertEqual(self.fetch(), '')
+
+    def test_caption_and_five_current_dates_allow_incorrect_image_week(self):
+        self.now = datetime(2026, 11, 19, 10, tzinfo=timezone.utc)
+        self.menu['week'] = 46
+        self.menu['days'] = [
+            {'day': day, 'date': f'{date}/11', 'dishes': ['Kyckling med ris']}
+            for day, date in zip(('monday', 'tuesday', 'wednesday', 'thursday', 'friday'), range(16, 21))
+        ]
+        self.assertIn('Kyckling med ris', self.fetch(caption_week_verified=True))
+
+    def test_conflicting_year_rejected_even_with_matching_dates(self):
+        self.menu['year'] = 2025
+        self.menu['week'] = 45
+        self.menu['days'] = [
+            {'day': day, 'date': f'{date}/11', 'dishes': ['Kyckling med ris']}
+            for day, date in zip(('monday', 'tuesday', 'wednesday', 'thursday', 'friday'), range(9, 14))
+        ]
+        self.assertEqual(self.fetch(caption_week_verified=True), '')
+
+    def test_conflicting_week_without_verified_caption_rejected(self):
+        self.menu['week'] = 45
+        self.menu['days'] = [
+            {'day': day, 'date': f'{date}/11', 'dishes': ['Kyckling med ris']}
+            for day, date in zip(('monday', 'tuesday', 'wednesday', 'thursday', 'friday'), range(9, 14))
+        ]
+        self.assertEqual(self.fetch(), '')
+
+    def test_conflicting_week_with_wrong_date_rejected(self):
+        self.menu['week'] = 45
+        self.menu['days'] = [
+            {'day': day, 'date': f'{date}/11', 'dishes': ['Kyckling med ris']}
+            for day, date in zip(('monday', 'tuesday', 'wednesday', 'thursday', 'friday'), range(8, 13))
+        ]
+        self.assertEqual(self.fetch(caption_week_verified=True), '')
+
+    def test_conflicting_week_with_incomplete_dates_rejected(self):
+        self.menu['week'] = 45
+        self.assertEqual(self.fetch(caption_week_verified=True), '')
 
     def test_wrong_source_rejected(self):
         self.menu['source_url'] = 'https://www.instagram.com/p/other/'
