@@ -69,6 +69,7 @@ class NavigationTests(unittest.TestCase):
         self.assertEqual(entry['url'], 'https://example.com/lunch')
         self.assertIsNone(entry['source_index'])
         self.assertTrue(entry['public_suggestion'])
+        self.assertFalse(entry['read'])
         scrape.assert_not_called()
         live.assert_not_called()
 
@@ -138,8 +139,11 @@ class NavigationTests(unittest.TestCase):
         collection = firestore.collection.return_value
         collection.document.return_value.create.side_effect = lambda entry: stored.update(entry)
         collection.document.return_value.delete.side_effect = stored.clear
+        collection.document.return_value.update.side_effect = lambda entry: stored.update(entry)
         document = Mock(id='tip-1')
         document.to_dict.side_effect = lambda: dict(stored)
+        document.exists = True
+        collection.document.return_value.get.return_value = document
         collection.where.return_value.stream.side_effect = lambda **_: [document] if stored else []
         with self.client.session_transaction() as session:
             session['admin'] = True
@@ -160,13 +164,85 @@ class NavigationTests(unittest.TestCase):
             summary = self.client.get('/admin/restaurangtips/summary')
             self.assertEqual(summary.status_code, 200)
             self.assertIn('no-store', summary.headers['Cache-Control'])
-            self.assertIn(b'>1</strong> nytt tips att granska', summary.data)
+            self.assertIn(b'1 nytt tips</strong> att granska', summary.data)
+            self.assertIn(b'class="tip-new-badge"', summary.data)
             self.assertIn(b'&lt;b&gt;New Bistro&lt;/b&gt;', summary.data)
             self.assertIn(b'New Bistro', self.client.get('/admin').data)
+            self.assertIn(b'Markera som l\xc3\xa4st', self.client.get('/admin/restaurangtips').data)
             field_filter.assert_called_with('public_suggestion', '==', True)
             collection.where.assert_called_with(filter=field_filter.return_value)
+            self.assertEqual(self.client.post('/api/admin/restaurangtips/tip-1/read').status_code, 200)
+            summary = self.client.get('/admin/restaurangtips/summary')
+            self.assertNotIn(b'tip-new-badge', summary.data)
+            self.assertIn('1 läst tips väntar på behandling.'.encode(), summary.data)
+            inbox = self.client.get('/admin/restaurangtips').get_data(as_text=True)
+            self.assertIn('Väntar på behandling (1)', inbox)
+            self.assertNotIn('Markera som läst', inbox)
+            self.assertIn('New Bistro', inbox)
             self.assertEqual(self.client.delete('/api/admin/staging/tip-1').status_code, 200)
             self.assertIn(b'Inga nya restaurangtips', self.client.get('/admin/restaurangtips/summary').data)
+
+    def test_mark_tip_read_requires_admin_and_public_suggestion(self):
+        path = '/api/admin/restaurangtips/tip-1/read'
+        self.assertEqual(self.client.post(path).status_code, 401)
+        with self.client.session_transaction() as session:
+            session['admin'] = True
+        self.assertEqual(self.client.post(path).status_code, 503)
+        db = Mock()
+        document = db.collection.return_value.document.return_value.get.return_value
+        document.exists = True
+        document.to_dict.return_value = {'public_suggestion': False}
+        with patch.object(self.application, 'db', db):
+            self.assertEqual(self.client.post(path).status_code, 404)
+            db.collection.return_value.document.return_value.update.assert_not_called()
+            document.exists = False
+            self.assertEqual(self.client.post(path).status_code, 404)
+
+    def test_legacy_unread_tips_appear_as_new(self):
+        tip = {'id': 'tip-old', 'name': 'Old Bistro', 'url': 'https://example.org'}
+        with self.client.session_transaction() as session:
+            session['admin'] = True
+        with patch.object(self.application, 'restaurant_tips_context', return_value={
+            'tips': [tip], 'tips_unavailable': False,
+        }):
+            self.assertIn(b'1 nytt tips', self.client.get('/admin/restaurangtips/summary').data)
+            self.assertIn(b'Markera som l\xc3\xa4st', self.client.get('/admin/restaurangtips').data)
+
+    def test_new_and_pending_tips_are_separate_and_reduced_motion_is_supported(self):
+        tips = [
+            {'id': 'tip-new', 'name': 'New Bistro', 'url': 'https://example.org', 'read': False},
+            {'id': 'tip-read', 'name': 'Pending Bistro', 'url': 'https://example.com', 'read': True},
+        ]
+        with self.client.session_transaction() as session:
+            session['admin'] = True
+        with patch.object(self.application, 'restaurant_tips_context', return_value={
+            'tips': tips, 'tips_unavailable': False,
+        }):
+            dashboard = self.client.get('/admin').get_data(as_text=True)
+            self.assertIn('1 nytt tips', dashboard)
+            self.assertIn('1 läst tips väntar på behandling.', dashboard)
+            self.assertIn('prefers-reduced-motion: reduce', dashboard)
+            inbox = self.client.get('/admin/restaurangtips').get_data(as_text=True)
+            new_section, pending_section = inbox.split('Väntar på behandling (1)', 1)
+            self.assertIn('New Bistro', new_section)
+            self.assertIn('Markera som läst', new_section)
+            self.assertIn('Pending Bistro', pending_section)
+            self.assertNotIn('Markera som läst', pending_section)
+
+    def test_firestore_read_failure_is_reported(self):
+        class FirestoreError(Exception):
+            pass
+
+        with self.client.session_transaction() as session:
+            session['admin'] = True
+        db = Mock()
+        db.collection.return_value.document.return_value.get.side_effect = FirestoreError()
+        with patch.object(self.application, 'db', db), patch.object(
+            self.application, 'GoogleAPICallError', FirestoreError, create=True
+        ), self.assertLogs(self.application.app.logger, level='ERROR'):
+            response = self.client.post('/api/admin/restaurangtips/tip-1/read')
+        self.assertEqual(response.status_code, 503)
+        self.assertIn('kunde inte markeras', response.get_json()['error'])
 
     def test_unavailable_inbox_is_not_reported_as_empty(self):
         with self.client.session_transaction() as session:

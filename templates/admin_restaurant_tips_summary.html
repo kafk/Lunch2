@@ -1,15 +1,19 @@
+{% set new_tips = (tips | rejectattr('read', 'defined') | list) + (tips | selectattr('read', 'defined') | rejectattr('read') | list) %}
+{% set pending_tips = tips | selectattr('read', 'defined') | selectattr('read') | list %}
 {% if tips_unavailable %}
     <p role="status">Restaurangtips kunde inte hämtas. Ladda om sidan för att försöka igen.</p>
-{% elif tips %}
-    <p><strong class="badge">{{ tips | length }}</strong> {{ 'nytt tips att granska' if tips | length == 1 else 'nya tips att granska' }}</p>
+{% else %}
+    {% if new_tips %}
+    <p><strong class="tip-new-badge">{{ new_tips | length }} {{ 'nytt tips' if new_tips | length == 1 else 'nya tips' }}</strong> att granska</p>
     <ul style="list-style:none; margin-top:8px; overflow-wrap:anywhere;">
-        {% for tip in tips[:3] %}
-        <li>
-            <strong>{{ tip.name }}</strong>
-            {% if tip.created_at_str %}<small> · {{ tip.created_at_str[:16] | replace('T', ' ') }}</small>{% endif %}
-        </li>
+        {% for tip in new_tips[:3] %}
+        <li><strong>{{ tip.name }}</strong>{% if tip.created_at_str %}<small> · {{ tip.created_at_str[:16] | replace('T', ' ') }}</small>{% endif %}</li>
         {% endfor %}
     </ul>
-{% else %}
+    {% else %}
     <p>Inga nya restaurangtips att granska.</p>
+    {% endif %}
+    {% if pending_tips %}
+    <p>{{ pending_tips | length }} {{ 'läst tips väntar' if pending_tips | length == 1 else 'lästa tips väntar' }} på behandling.</p>
+    {% endif %}
 {% endif %}

@@ -96,6 +96,21 @@
         align-items: center;
         gap: 8px;
     }
+    .tip-new-badge {
+        display: inline-block;
+        background: #b42318;
+        color: #fff;
+        border-radius: 999px;
+        padding: 3px 10px;
+        animation: tip-pulse 2s ease-in-out infinite;
+    }
+    @keyframes tip-pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(180, 35, 24, .35); }
+        50% { box-shadow: 0 0 0 6px rgba(180, 35, 24, 0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .tip-new-badge { animation: none; }
+    }
     .analytics-card-header {
         display: flex;
         align-items: flex-start;

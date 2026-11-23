@@ -6,22 +6,28 @@
 <section class="card">
     <a href="{{ url_for('admin') }}">← Tillbaka till Admin</a>
     <h1>Restaurangtips</h1>
-    <p>Kontrollera länken. Om tipset är relevant, använd ”Lägg till restaurang” i Admin. Ta sedan bort tipset för att rensa det från inkorgen. Inga tips publiceras automatiskt.</p>
+    <p>Markera nya tips som lästa för att flytta dem till väntande. Om tipset är relevant, använd ”Lägg till restaurang” i Admin. Ta sedan bort tipset från inkorgen. Inga tips publiceras automatiskt.</p>
     {% if tips_unavailable %}
     <p role="alert">Restaurangtips kunde inte hämtas. Ladda om sidan för att försöka igen.</p>
     {% else %}
+    {% set new_tips = (tips | rejectattr('read', 'defined') | list) + (tips | selectattr('read', 'defined') | rejectattr('read') | list) %}
+    {% set pending_tips = tips | selectattr('read', 'defined') | selectattr('read') | list %}
+    {% for heading, group in [('Nya tips', new_tips), ('Väntar på behandling', pending_tips)] %}
+    <h2>{{ heading }} ({{ group | length }})</h2>
     <ul>
-        {% for tip in tips %}
+        {% for tip in group %}
         <li style="margin-block: 1rem; overflow-wrap: anywhere;">
             <strong>{{ tip.name }}</strong><br>
             <span>{{ tip.url }}</span><br>
             {% if tip.created_at_str %}<small>Inkom {{ tip.created_at_str[:16] | replace('T', ' ') }}</small><br>{% endif %}
+            {% if not tip.read %}<button type="button" class="btn read-tip" data-read-url="{{ url_for('mark_restaurant_tip_read', tip_id=tip.id) }}">Markera som läst</button>{% endif %}
             <button type="button" class="btn dismiss-tip" data-delete-url="{{ url_for('delete_staging', staging_id=tip.id) }}">Ta bort tipset</button>
         </li>
         {% else %}
-        <li>Inga restaurangtips att granska.</li>
+        <li>Inga tips i denna grupp.</li>
         {% endfor %}
     </ul>
+    {% endfor %}
     {% endif %}
     <p id="tipError" role="alert"></p>
 </section>
@@ -29,6 +35,19 @@
 
 {% block scripts %}
 <script>
+    document.querySelectorAll('.read-tip').forEach(button => {
+        button.addEventListener('click', async () => {
+            button.disabled = true;
+            try {
+                const response = await fetch(button.dataset.readUrl, { method: 'POST' });
+                if (!response.ok) throw new Error('Request failed');
+                window.location.reload();
+            } catch {
+                document.getElementById('tipError').textContent = 'Tipset kunde inte markeras som läst. Försök igen.';
+                button.disabled = false;
+            }
+        });
+    });
     document.querySelectorAll('.dismiss-tip').forEach(button => {
         button.addEventListener('click', async () => {
             button.disabled = true;

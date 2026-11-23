@@ -70,7 +70,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '0126')
 
-VERSION = '3.75'
+VERSION = '3.76'
 URLS_FILE = 'urls.json'
 RESTAURANTS_CONFIG_FILE = os.path.join('config', 'restaurants.json')
 COLLECTION_NAME = 'restaurants'
@@ -3187,7 +3187,7 @@ def suggest_restaurant():
     entry = {
         'name': name, 'url': parsed._replace(fragment='').geturl(), 'source_index': None,
         'note': 'Restaurangtips från Lunchdejt', 'public_suggestion': True,
-        'created_at_str': swedish_now().isoformat(),
+        'created_at_str': swedish_now().isoformat(), 'read': False,
     }
     key = hashlib.sha256(entry['url'].encode()).hexdigest()
     if db is not None:
@@ -3776,6 +3776,24 @@ def admin_restaurant_tips():
     return render_template('admin_restaurant_tips.html', version=VERSION, **restaurant_tips_context()), 200, {
         'Cache-Control': 'private, no-store',
     }
+
+
+@app.route('/api/admin/restaurangtips/<tip_id>/read', methods=['POST'])
+def mark_restaurant_tip_read(tip_id):
+    if not session.get('admin'):
+        return jsonify(error='Inloggning krävs'), 401
+    if db is None:
+        return jsonify(error='Restaurangtips är inte tillgängliga'), 503
+    try:
+        ref = db.collection('restaurants_staging').document(tip_id)
+        document = ref.get()
+        if not document.exists or not document.to_dict().get('public_suggestion'):
+            return jsonify(error='Tipset hittades inte'), 404
+        ref.update({'read': True})
+    except GoogleAPICallError:
+        app.logger.exception('Could not mark restaurant suggestion as read')
+        return jsonify(error='Tipset kunde inte markeras som läst'), 503
+    return jsonify(success=True)
 
 
 @app.route('/api/admin/clear-cache', methods=['POST'])
