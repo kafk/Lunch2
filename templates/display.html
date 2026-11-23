@@ -1941,14 +1941,11 @@
     }
 
     function getVisibleMenus() {
-        const localPrefs = JSON.parse(localStorage.getItem('restaurant_user_preferences') || '{}');
         const visibleUrls = allUrls.filter(urlEntry => {
             // 1. Admin toggle precedence: if disabled in admin, NEVER show!
             if (urlEntry.enabled === false) return false;
             // 2. Favorites filter: if active, must be in favorites
             if (onlyFavorites && !isFavorite(urlEntry.name)) return false;
-            // 3. User local preferences
-            if (localPrefs[urlEntry.name] !== undefined) return localPrefs[urlEntry.name];
             return true;
         });
 
@@ -2206,13 +2203,8 @@
                 return;
             }
 
-            const localPrefs = JSON.parse(localStorage.getItem('restaurant_user_preferences') || '{}');
             // Admin toggle ALWAYS takes precedence: if admin disabled it, it must NEVER show!
-            const visibleUrls = allUrls.filter(u => {
-                if (u.enabled === false) return false;
-                const pref = localPrefs[u.name];
-                return pref !== undefined ? pref : true;
-            });
+            const visibleUrls = allUrls.filter(u => u.enabled !== false);
             visibleUrls.sort((a, b) => {
                 const favA = isFavorite(a.name);
                 const favB = isFavorite(b.name);
@@ -2976,9 +2968,8 @@
         }
     }
 
-    // Re-render instantly when main page toggles a restaurant or favorites change
+    // Re-render when favorites change in another tab.
     window.addEventListener('storage', (e) => {
-        if (e.key === 'restaurant_user_preferences') renderViews();
         if (e.key === 'lunch_favorites') {
             favorites = JSON.parse(localStorage.getItem('lunch_favorites') || '[]');
             updateFavoritesBadge();

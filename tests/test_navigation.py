@@ -37,6 +37,14 @@ class NavigationTests(unittest.TestCase):
     def test_public_manage_page_is_removed(self):
         self.assertEqual(self.client.get('/manage').status_code, 404)
 
+    def test_public_display_does_not_apply_removed_restaurant_preferences(self):
+        page = self.client.get('/').get_data(as_text=True)
+        self.assertNotIn('restaurant_user_preferences', page)
+        self.assertIn("onlyFavorites && !isFavorite(urlEntry.name)", page)
+        self.assertIn("urlEntry.enabled === false", page)
+        self.assertIn("allUrls.filter(u => u.enabled !== false)", page)
+        self.assertIn("localStorage.getItem('lunch_favorites')", page)
+
     def test_suggestion_is_saved_for_review_without_scraping_or_publishing(self):
         firestore = Mock()
         with patch.object(self.application, 'db', firestore), patch.object(
