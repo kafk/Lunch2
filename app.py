@@ -16,7 +16,7 @@ import base64
 from urllib.parse import urlsplit
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
-from engine import barrique
+from engine import barrique, saras
 from engine.delissimo import HOME as DELISSIMO_HOME, extract_layout_menu, gamlestaden_pdf_url
 try:
     from zoneinfo import ZoneInfo
@@ -70,7 +70,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '0126')
 
-VERSION = '3.71'
+VERSION = '3.72'
 URLS_FILE = 'urls.json'
 RESTAURANTS_CONFIG_FILE = os.path.join('config', 'restaurants.json')
 COLLECTION_NAME = 'restaurants'
@@ -1971,6 +1971,11 @@ def _kvartersmenyn_apify(url, session, reasons):
     if not valid_source:
         reasons.append('Apify: untrusted restaurant source')
         return ''
+    content = _apify_saved_html(expected_url, session, reasons)
+    return _kvartersmenyn_parse_html(content, reasons, require_current_date=True) if content else ''
+
+
+def _apify_saved_html(expected_url, session, reasons, metadata=None):
     token = os.environ.get('APIFY_API_TOKEN', '').strip()
     task = os.environ.get('APIFY_KVARTERSMENYN_TASK_ID', '').strip()
     if not token and not task:
@@ -1999,6 +2004,12 @@ def _kvartersmenyn_apify(url, session, reasons):
         if len(matches) != 1:
             reasons.append('Apify: restaurant missing or duplicated in dataset')
             return ''
+        if metadata is not None:
+            item_metadata = matches[0].get('metadata')
+            if not isinstance(item_metadata, dict):
+                reasons.append('Apify: restaurant metadata missing')
+                return ''
+            metadata.update(item_metadata)
         html_url = matches[0].get('htmlUrl')
         if not isinstance(html_url, str):
             reasons.append('Apify: saved HTML URL missing')
@@ -2015,10 +2026,32 @@ def _kvartersmenyn_apify(url, session, reasons):
         if html_response.status_code != 200:
             reasons.append(f'Apify HTML HTTP {html_response.status_code}')
             return ''
-        return _kvartersmenyn_parse_html(html_response.content, reasons, require_current_date=True)
+        return html_response.content
     except (requests.RequestException, ValueError, TypeError) as error:
         reasons.append(f'Apify Kvartersmenyn failed: {type(error).__name__}')
         return ''
+
+
+def _scrape_saras(url, name, session):
+    reasons = []
+    metadata = {}
+    content = _apify_saved_html(saras.MENU_URL, session, reasons, metadata)
+    if content:
+        try:
+            result = saras.parse_menu(content, swedish_now(), metadata)
+            result.update(
+                name=name, url=url, menu_source_url=saras.MENU_URL,
+                success=True, source=saras.MENU_SOURCE,
+                scraped_at=swedish_now().strftime('%Y-%m-%d %H:%M'),
+            )
+            return result
+        except ValueError as error:
+            reasons.append(str(error))
+    elif not reasons:
+        reasons.append('Apify: token and task ID are not configured')
+    if reasons:
+        app.logger.warning('Saras Apify: %s', '; '.join(reasons))
+    return None
 
 
 def fetch_menu_via_openai(url, reasons):
@@ -2827,6 +2860,11 @@ def _scrape_url_raw(url, name, lang='sv'):
                 'error': 'Kunde inte hitta den aktuella veckans menybild hos Compass Group.',
                 'scraped_at': swedish_now().strftime('%Y-%m-%d %H:%M')
             }
+
+        if saras.is_saras(url):
+            result = _scrape_saras(url, name, session)
+            if result:
+                return result
 
         # SPECIAL: Kvartersmenyn.se-restauranger
         if 'kvartersmenyn.se' in url.lower():

@@ -51,12 +51,13 @@ to the verified post, and `menu_week`/`menu_year` should match today.
 Failures appear in `scrape_reasons`; a fallback is not proof of Apify success.
 Expired image links require a fresh scheduled task run.
 
-## Kvartersmenyn: Ferraris Kök and Arya
+## Kvartersmenyn and Saras: Ferraris Kök, Arya and Saras Husmanskost
 
 The optional Kvartersmenyn provider reads the latest successful run of a
 separate `apify/website-content-crawler` task. It does not start paid runs
-from visitor requests. Configure the task with the two restaurant subdomain
-URLs, maximum depth 0, maximum 2 pages, Swedish residential proxy, HTML
+from visitor requests. Configure the task with the Ferraris and Arya subdomain
+URLs and `https://sarashusmanskost.com/kolgruvegatan1/`, maximum depth 0,
+maximum 3 pages, Swedish residential proxy, HTML
 transformer `None`, and **Save HTML to key-value store**. Limit retries and
 session rotations, and set a run timeout and spending limit in Apify.
 
@@ -72,3 +73,9 @@ Lunchdejt matches the exact restaurant URL, retrieves the saved HTML only from
 Apify, removes hidden watermark tags, and requires the current ISO week and
 year plus five populated weekday sections. If the task fails or its data is
 missing or stale, the existing direct, AI and saved-menu fallbacks remain.
+
+Saras is read from its own page, not Kvartersmenyn. The heading must explicitly
+identify the current ISO week, the page modification timestamp must be no more
+than 14 days old, and all five weekday sections must contain dishes. The page
+does not identify the menu year; the modification timestamp is an additional
+freshness check, not proof that the menu itself was updated on that date.
