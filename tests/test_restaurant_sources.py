@@ -25,6 +25,7 @@ class RestaurantSourceTests(unittest.TestCase):
             'builtins.open', mock_open(read_data=json.dumps([{'name': 'Delissimo', 'url': self.old_pdf}]))
         ):
             result = self.application.load_urls()
+        self.assertEqual(result[0]['name'], 'Delissimo Gamlestan')
         self.assertEqual(result[0]['url'], self.old_pdf)
 
     def test_delissimo_configured_url_stays_stable_in_firestore(self):
@@ -34,8 +35,14 @@ class RestaurantSourceTests(unittest.TestCase):
         database.collection.return_value.order_by.return_value.stream.return_value = [document]
         with patch.object(self.application, 'db', database):
             result = self.application.load_urls()
+        self.assertEqual(result[0]['name'], 'Delissimo Gamlestan')
         self.assertEqual(result[0]['url'], self.old_pdf)
         self.assertEqual(result[0]['id'], 'delissimo')
+
+    def test_delissimo_display_name_is_gamlestan_for_local_and_firestore_sources(self):
+        self.assertEqual(self.application._restaurant_display_name('Delissimo'), 'Delissimo Gamlestan')
+        self.assertEqual(self.application._restaurant_display_name('Delissimo Gamlestan'),
+                         'Delissimo Gamlestan')
 
     def delissimo_session(self, links):
         session = Mock()

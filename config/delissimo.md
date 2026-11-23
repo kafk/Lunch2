@@ -1,4 +1,4 @@
-# Delissimo Gamlestaden
+# Delissimo Gamlestan
 
 The configured menu URL identifies the restaurant. On each scrape, Lunchdejt
 follows the **Gamlestaden** link on the [official homepage](https://delissimo.se/).

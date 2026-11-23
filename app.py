@@ -70,7 +70,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '0126')
 
-VERSION = '3.72'
+VERSION = '3.73'
 URLS_FILE = 'urls.json'
 RESTAURANTS_CONFIG_FILE = os.path.join('config', 'restaurants.json')
 COLLECTION_NAME = 'restaurants'
@@ -135,6 +135,8 @@ firebase_enabled = init_firebase()
 def _restaurant_display_name(name):
     if name == 'AE - Nordic Test Lab':
         return 'AE - Nordic Taste Lab'
+    if name == 'Delissimo':
+        return 'Delissimo Gamlestan'
     return name
 
 
