@@ -25,6 +25,12 @@ class NavigationTests(unittest.TestCase):
                 response = self.client.get(path)
                 self.assertEqual(response.status_code, 200)
                 self.assertIn(b'id="compactView"', response.data)
+                self.assertIn(b'id="cardsView" class="view-container active"', response.data)
+                self.assertIn(b'id="favFilterBtn"', response.data)
+                self.assertIn(b'id="disp-btn-today"', response.data)
+                self.assertIn(b'id="disp-btn-week"', response.data)
+                for view in (b'cards', b'list', b'table', b'compact'):
+                    self.assertNotIn(b'data-view="' + view + b'"', response.data)
                 self.assertIn(b'id="headerTitle"', response.data)
                 self.assertNotIn(b'class="location-icon"', response.data)
                 self.assertIn(b'href="/tipsa" class="header-add-link"', response.data)
