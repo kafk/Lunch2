@@ -960,6 +960,7 @@
             week: "Vecka",
             loading: "Hämtar lunchmenyer...",
             noMenu: "Ingen meny tillgänglig",
+            noTodayMenu: "Ingen meny för idag tillgänglig",
             includes: "Salladsbuffé, måltidsdryck & kaffe",
             viewSite: "Se restaurangens webbplats",
             thRestaurant: "Restaurang",
@@ -985,6 +986,7 @@
             week: "Week",
             loading: "Fetching lunch menus...",
             noMenu: "No menu available",
+            noTodayMenu: "No menu available for today",
             includes: "Salad buffet, meal beverage & coffee",
             viewSite: "See restaurant's website",
             thRestaurant: "Restaurant",
@@ -1735,7 +1737,10 @@
                 }
             }
         }
-        let todayText = start === -1 ? target : lines.slice(start, end).join('\n').trim();
+        const hasDayHeaders = lines.some(l => allDays.some(d => new RegExp('^\\s*' + d + '\\b', 'i').test(l)));
+        let todayText = start === -1
+            ? (idx >= 1 && idx <= 5 && hasDayHeaders ? I18N[currentLang].noTodayMenu : target)
+            : lines.slice(start, end).join('\n').trim();
 
         if (isTheGrill || isZata) {
             const catRegex = /(?:^|\n)\s*(KÖTT|FISK|VEGETARISKT|VEGAN|SALLAD|PASTA|BURGARE|VEGO|MEAT|FISH|STREETFOOD)\s*:\s*/gi;
@@ -2439,7 +2444,11 @@
                         ${s.heading ? `<strong style="color: var(--ink-black);">${escapeHtml(headingCase(s.heading))}</strong>` : ''}
                         ${s.dishes.map(d => {
                             const dTitle = isNordic ? d.title : tr(d.title);
-                            const dText = isNordic ? d.text : tr(d.text);
+                            const heading = s.heading.toLowerCase();
+                            const cleanText = isKoop && /^(kött|fisk|vegetarisk|vegetariskt)\s*:/i.test(d.text)
+                                && d.text.split(':', 1)[0].toLowerCase() === heading
+                                ? d.text.replace(/^[^:]+:\s*/, '') : d.text;
+                            const dText = isNordic ? cleanText : tr(cleanText);
                             const cat = (isNordic ? (detectDishCategory(d.title) || detectDishCategory(d.text)) : '');
                             return `
                             <div>
@@ -2519,6 +2528,9 @@
                         const d = m.day.toUpperCase();
                         return d === todaySv || d === todayEn;
                     });
+                    if (!todayMatch && idx >= 1 && idx <= 5) {
+                        return `<span style="color:var(--ink-light);font-style:italic;">${escapeHtml(I18N[currentLang].noTodayMenu)}</span>`;
+                    }
                     targetMatches = todayMatch ? [todayMatch] : [matches[0]];
                 }
 

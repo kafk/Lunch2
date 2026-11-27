@@ -70,7 +70,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'lunch-monitor-secret-key-2026')
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '0126')
 
-VERSION = '3.76'
+VERSION = '3.77'
 URLS_FILE = 'urls.json'
 RESTAURANTS_CONFIG_FILE = os.path.join('config', 'restaurants.json')
 COLLECTION_NAME = 'restaurants'
@@ -1016,8 +1016,26 @@ def find_lunch_content(soup, url):
     weekday_sections = []
     for day_en, day_sv in zip(weekdays_en[:5], weekdays_sv[:5]):  # Bara vardagar
         section = soup.find(id=day_en)
+        continuation = None
+        if not section and (urlsplit(url).hostname or '').lower() in ('kooperativet.se', 'www.kooperativet.se'):
+            heading = soup.find(
+                lambda tag: tag.name in ('h1', 'h2', 'h3', 'h4')
+                and re.match(rf'^\s*Lunch\s+{day_sv}\b', tag.get_text(' ', strip=True), re.I)
+            )
+            if heading:
+                section = heading.find_parent('div', class_='flex_column')
+                if section:
+                    sibling = section.find_next_sibling()
+                    if sibling and 'flex_column' in sibling.get('class', []):
+                        if not any(
+                            re.match(r'^\s*Lunch\s+', h.get_text(' ', strip=True), re.I)
+                            for h in sibling.find_all(['h1', 'h2', 'h3', 'h4'])
+                        ):
+                            continuation = sibling
         if section:
             content = section.get_text(separator='\n', strip=True)
+            if continuation:
+                content += '\n' + continuation.get_text(separator='\n', strip=True)
             if content:
                 weekday_sections.append(content)
 
@@ -1026,7 +1044,7 @@ def find_lunch_content(soup, url):
         combined = '\n\n'.join(weekday_sections)
         return [{
             'keyword': 'veckomeny',
-            'content': combined[:6000],
+            'content': combined,
             'weekday_count': len(weekday_sections)
         }]
 
@@ -4200,6 +4218,14 @@ def _menu_cache_usable(menu):
         return False
     if re.match(r'^https://(?:www\.)?delissimo\.se/', menu.get('url', ''), re.I):
         return _complete_weekday_menu(menu.get('menu_sv') or menu.get('menu') or '')
+
+    if re.match(r'^https?://(?:www\.)?kooperativet\.se(?:[/:?#]|$)', menu.get('url', ''), re.I):
+        day = swedish_now().weekday()
+        if day < 5:
+            weekday = ['måndag', 'tisdag', 'onsdag', 'torsdag', 'fredag'][day]
+            text = str(menu.get('menu_sv') or menu.get('menu') or '')
+            if not re.search(rf'(?im)^\s*{weekday}\b', text):
+                return False
 
     is_nordic = (
         'ce576758e5e44ad59e25f885b130d4ca' in menu.get('url', '').lower()
